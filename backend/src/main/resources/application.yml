@@ -1,16 +1,23 @@
 # Default profile = local development (H2 in-memory, zero setup).
-# Production (Render + Neon) uses the "prod" profile: application-prod.yml
+# H2 runs in PostgreSQL compatibility mode so the same Flyway migrations run
+# locally and in production. Production (Render + Neon) uses application-prod.yml.
 spring:
   datasource:
     # Driver is auto-detected from the URL prefix (jdbc:h2 locally, jdbc:postgresql
     # in prod). Do NOT pin driver-class-name here or it leaks into the prod profile.
-    url: jdbc:h2:mem:localmediakit;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:localmediakit;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     username: sa
     password: ""
   jpa:
+    # Flyway owns the schema; Hibernate never generates or alters DDL.
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     open-in-view: false
+  flyway:
+    enabled: true
+    # Adopt Flyway on a database that may already contain tables (the Step 0
+    # 'kits' table created before Flyway): baseline instead of failing.
+    baseline-on-migrate: true
 
 server:
   port: ${PORT:8080}
@@ -21,9 +28,16 @@ management:
       exposure:
         include: health
 
-# Frontend on-demand revalidation target. Overridden by env vars in every real
-# environment; the secret must NEVER be committed with a real value.
 app:
+  # Frontend on-demand revalidation target. Overridden by env vars in every real
+  # environment; the secret must NEVER be committed with a real value.
   revalidate:
     url: ${REVALIDATE_URL:http://localhost:3000/api/revalidate}
     secret: ${REVALIDATE_SECRET:local-dev-secret}
+  jwt:
+    # HS256 requires >= 32 bytes. Overridden by JWT_SECRET in every real environment.
+    secret: ${JWT_SECRET:local-dev-jwt-secret-change-me-at-least-32-bytes-long}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
+  cors:
+    # Comma-separated list of allowed browser origins (the dashboard).
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
