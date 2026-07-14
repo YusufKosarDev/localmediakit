@@ -2,8 +2,9 @@
 # Production (Render + Neon) uses the "prod" profile: application-prod.yml
 spring:
   datasource:
+    # Driver is auto-detected from the URL prefix (jdbc:h2 locally, jdbc:postgresql
+    # in prod). Do NOT pin driver-class-name here or it leaks into the prod profile.
     url: jdbc:h2:mem:localmediakit;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
     username: sa
     password: ""
   jpa:
