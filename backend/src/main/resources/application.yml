@@ -1,0 +1,28 @@
+# Default profile = local development (H2 in-memory, zero setup).
+# Production (Render + Neon) uses the "prod" profile: application-prod.yml
+spring:
+  datasource:
+    url: jdbc:h2:mem:localmediakit;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+# Frontend on-demand revalidation target. Overridden by env vars in every real
+# environment; the secret must NEVER be committed with a real value.
+app:
+  revalidate:
+    url: ${REVALIDATE_URL:http://localhost:3000/api/revalidate}
+    secret: ${REVALIDATE_SECRET:local-dev-secret}

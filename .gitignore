@@ -1,0 +1,8 @@
+# Root-level ignores (backend/ and frontend/ have their own too)
+.env
+.env.local
+.env*.local
+.idea/
+.vscode/
+*.log
+.DS_Store

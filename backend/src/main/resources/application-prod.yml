@@ -1,0 +1,14 @@
+# Production profile (Render + Neon Postgres). Activated with SPRING_PROFILES_ACTIVE=prod.
+# All values come from environment variables set in the Render dashboard.
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
