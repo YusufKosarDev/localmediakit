@@ -2,6 +2,9 @@ package com.localmediakit.shared;
 
 import com.localmediakit.auth.EmailAlreadyUsedException;
 import com.localmediakit.auth.InvalidCredentialsException;
+import com.localmediakit.mediakit.MediaKitNotFoundException;
+import com.localmediakit.mediakit.ReservedSlugException;
+import com.localmediakit.user.PlanLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -30,6 +33,21 @@ public class ApiExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(InvalidCredentialsException ex) {
         return body(HttpStatus.UNAUTHORIZED, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(ReservedSlugException.class)
+    public ResponseEntity<Map<String, Object>> handleReservedSlug(ReservedSlugException ex) {
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(PlanLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handlePlanLimit(PlanLimitExceededException ex) {
+        return body(HttpStatus.FORBIDDEN, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(MediaKitNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleMediaKitNotFound(MediaKitNotFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
     }
 
     private ResponseEntity<Map<String, Object>> body(HttpStatus status, String message, Object details) {
