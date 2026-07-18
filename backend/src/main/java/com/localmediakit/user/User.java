@@ -67,6 +67,11 @@ public class User {
         return plan;
     }
 
+    /** Plan changes go through billing (or tests); there is no free-form setter. */
+    public void changePlan(Plan plan) {
+        this.plan = plan;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

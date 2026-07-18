@@ -19,6 +19,11 @@ public class PlanPolicy {
         return MAX_MEDIA_KITS.getOrDefault(plan, 1);
     }
 
+    /** FREE sees only the total view counter; PRO gets the full breakdown. */
+    public boolean detailedAnalyticsEnabled(Plan plan) {
+        return plan == Plan.PRO;
+    }
+
     public void assertCanCreateMediaKit(Plan plan, long currentCount) {
         int max = maxMediaKits(plan);
         if (currentCount >= max) {

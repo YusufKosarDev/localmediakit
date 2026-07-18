@@ -41,3 +41,7 @@ app:
   cors:
     # Comma-separated list of allowed browser origins (the dashboard).
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  analytics:
+    # Salts the anonymous visitor fingerprint (sha256 of ip|ua|day|salt).
+    # Override with a real value in production so hashes are not guessable.
+    salt: ${ANALYTICS_SALT:local-dev-analytics-salt}

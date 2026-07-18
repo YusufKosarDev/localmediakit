@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import TrackView from "./TrackView";
 
 // On-demand ISR only: the page is generated on first visit, cached at the edge,
 // and re-generated ONLY when the backend triggers revalidateTag("kit-<slug>")
@@ -177,6 +178,7 @@ export default async function KitPage({
         padding: "48px 16px",
       }}
     >
+      <TrackView slug={kit.slug} />
       <article
         style={{
           background: c.card,

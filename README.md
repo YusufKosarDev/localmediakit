@@ -5,7 +5,7 @@ Odeme akisi Stripe **test mode** ile calisir; gercek odeme alinmaz.
 
 Durum: kayit/giris (JWT), medya kiti CRUD + slug yonetimi, publish + immutable
 versiyonlama, edge-cached public sayfalar, istatistik/engagement/demografi
-katmani ve marka isbirlikleri vitrini calisiyor.
+katmani, marka isbirlikleri vitrini ve ziyaretci analitigi calisiyor.
 
 ## Mimari
 
@@ -37,6 +37,13 @@ Marka ziyaretci  ─────────────────────
   - Marka isbirlikleri: `GET|POST|PUT|DELETE /api/mediakits/{id}/collaborations`
     (`brand_collaborations`, display_order ile vitrin sirasi). Publish aninda
     snapshot'a donar; sira snapshot dizi sirasi olarak korunur.
+  - Ziyaretci analitigi: public sayfa render'dan SONRA bloklamayan bir beacon
+    atar (`POST /api/track`, best-effort — backend uyuyorsa sessizce duser,
+    sayfa edge'den gelmeye devam eder). Ingestion: anonim gunluk donen
+    ziyaretci hash'i (ham IP saklanmaz), 30 dk oturum penceresiyle dedup,
+    bot/headless filtresi. Sahibe agregasyon `GET /api/mediakits/{id}/analytics`:
+    FREE toplam sayac, PRO tekil ziyaretci + gunluk seri + referrer/cihaz
+    kirilimi (plan ayrimi PlanPolicy uzerinden).
 - **frontend/** — Next.js App Router.
   - `app/[slug]` — on-demand ISR: ilk ziyarette uretilir, edge'de cache'lenir,
     yalnizca publish aninda yenilenir. Draft degisiklikleri public sayfayi etkilemez.

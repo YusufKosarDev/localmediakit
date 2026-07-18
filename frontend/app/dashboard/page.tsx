@@ -36,6 +36,15 @@ type Stat = {
 
 type DemoEntry = { category: string; label: string; percentage: number | string };
 
+type Analytics = {
+  plan: string;
+  totalViews: number;
+  uniqueVisitors: number | null;
+  viewsByDay: { date: string; views: number; uniqueVisitors: number }[] | null;
+  referrers: { label: string; count: number }[] | null;
+  devices: { label: string; count: number }[] | null;
+};
+
 type Collab = {
   id: number;
   brandName: string;
@@ -67,6 +76,8 @@ export default function DashboardPage() {
   const [statForm, setStatForm] = useState({ ...emptyStatForm });
   const [demoEntries, setDemoEntries] = useState<DemoEntry[]>([]);
   const [collabs, setCollabs] = useState<Collab[]>([]);
+  const [analyticsFor, setAnalyticsFor] = useState<number | null>(null);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [collabForm, setCollabForm] = useState({ brandName: "", campaign: "", period: "", resultNote: "" });
 
   const loadKits = useCallback(async () => {
@@ -177,6 +188,17 @@ export default function DashboardPage() {
     setStatForm({ ...emptyStatForm });
     setCollabForm({ brandName: "", campaign: "", period: "", resultNote: "" });
     setStatsFor(id);
+  }
+
+  async function loadAnalytics(kitId: number) {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/analytics`, { headers: authHeaders() });
+    if (res.ok) {
+      setAnalytics(await res.json());
+      setAnalyticsFor(kitId);
+    } else {
+      setError(`Analitik yuklenemedi (HTTP ${res.status})`);
+    }
   }
 
   async function addCollab(kitId: number, e: React.FormEvent) {
@@ -363,8 +385,64 @@ export default function DashboardPage() {
               }>
                 Istatistik & Kitle
               </button>
+              <button onClick={() =>
+                analyticsFor === kit.id ? setAnalyticsFor(null) : loadAnalytics(kit.id)
+              }>
+                Analitik
+              </button>
               <button onClick={() => deleteKit(kit.id)}>Sil</button>
             </div>
+            {analyticsFor === kit.id && analytics && (
+              <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
+                <strong style={{ fontSize: 14 }}>Ziyaretci analitigi</strong>
+                <div style={{ fontSize: 28, fontWeight: 700 }}>
+                  {analytics.totalViews.toLocaleString("tr-TR")}
+                  <span style={{ fontSize: 14, fontWeight: 400, color: "#666" }}> toplam goruntulenme</span>
+                </div>
+                {analytics.plan !== "PRO" && (
+                  <small style={{ color: "#666" }}>
+                    Tekil ziyaretci, gunluk grafik, referrer ve cihaz kirilimi PRO planda.
+                  </small>
+                )}
+                {analytics.plan === "PRO" && (
+                  <div style={{ fontSize: 13 }}>
+                    <div>Tekil ziyaretci: <strong>{analytics.uniqueVisitors?.toLocaleString("tr-TR")}</strong></div>
+                    {analytics.viewsByDay && analytics.viewsByDay.length > 0 && (
+                      <div style={{ marginTop: 6 }}>
+                        <div style={{ color: "#666" }}>Son 30 gun:</div>
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 60 }}>
+                          {analytics.viewsByDay.map((d) => {
+                            const max = Math.max(...analytics.viewsByDay!.map((x) => x.views));
+                            return (
+                              <div key={d.date}
+                                title={`${d.date}: ${d.views} goruntulenme, ${d.uniqueVisitors} tekil`}
+                                style={{
+                                  width: 14,
+                                  height: Math.max(4, (d.views / max) * 56),
+                                  background: "#2563eb",
+                                  borderRadius: 2,
+                                }} />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {analytics.referrers && analytics.referrers.length > 0 && (
+                      <div style={{ marginTop: 6 }}>
+                        <span style={{ color: "#666" }}>Kaynaklar: </span>
+                        {analytics.referrers.map((r) => `${r.label} (${r.count})`).join(", ")}
+                      </div>
+                    )}
+                    {analytics.devices && analytics.devices.length > 0 && (
+                      <div>
+                        <span style={{ color: "#666" }}>Cihazlar: </span>
+                        {analytics.devices.map((d) => `${d.label} (${d.count})`).join(", ")}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             {statsFor === kit.id && (
               <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
                 <strong style={{ fontSize: 14 }}>Platform istatistikleri</strong>

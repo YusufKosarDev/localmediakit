@@ -2,6 +2,7 @@ package com.localmediakit.security;
 
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpMethod;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,6 +42,8 @@ public class SecurityConfig {
                         // (400/404/500) would be masked as a 401.
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/auth/**", "/api/public/**", "/actuator/health").permitAll()
+                        // Anonymous view beacon from public pages (best-effort analytics).
+                        .requestMatchers(HttpMethod.POST, "/api/track").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(
                         (request, response, authException) ->

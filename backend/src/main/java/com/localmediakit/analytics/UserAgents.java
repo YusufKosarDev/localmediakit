@@ -1,0 +1,26 @@
+package com.localmediakit.analytics;
+
+import java.util.Locale;
+
+/** Coarse user-agent classification; we never store the raw string. */
+final class UserAgents {
+
+    private UserAgents() {
+    }
+
+    static boolean isBot(String userAgent) {
+        if (userAgent == null || userAgent.isBlank()) {
+            return true; // no UA at all: almost certainly not a real browser
+        }
+        String ua = userAgent.toLowerCase(Locale.ROOT);
+        return ua.contains("bot") || ua.contains("crawler") || ua.contains("spider")
+                || ua.contains("preview") || ua.contains("curl") || ua.contains("wget")
+                || ua.contains("python-requests") || ua.contains("headless");
+    }
+
+    static String device(String userAgent) {
+        String ua = userAgent.toLowerCase(Locale.ROOT);
+        return (ua.contains("mobi") || ua.contains("android") || ua.contains("iphone"))
+                ? "MOBILE" : "DESKTOP";
+    }
+}
