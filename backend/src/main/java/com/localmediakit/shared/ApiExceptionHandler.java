@@ -5,6 +5,7 @@ import com.localmediakit.auth.InvalidCredentialsException;
 import com.localmediakit.mediakit.MediaKitNotFoundException;
 import com.localmediakit.mediakit.ReservedSlugException;
 import com.localmediakit.mediakit.VersionNotFoundException;
+import com.localmediakit.stats.InvalidDemographicsException;
 import com.localmediakit.user.PlanLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MediaKitNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleMediaKitNotFound(MediaKitNotFoundException ex) {
         return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(InvalidDemographicsException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidDemographics(InvalidDemographicsException ex) {
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
     @ExceptionHandler(VersionNotFoundException.class)

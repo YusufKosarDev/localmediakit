@@ -23,6 +23,23 @@ type Version = {
   active: boolean;
 };
 
+type Stat = {
+  platform: string;
+  followers: number;
+  avgViews: number | null;
+  avgLikes: number | null;
+  avgComments: number | null;
+  engagementRate: number | null;
+  followerGrowth30d: number | null;
+  recordedAt: string;
+};
+
+type DemoEntry = { category: string; label: string; percentage: number | string };
+
+const PLATFORMS = ["YOUTUBE", "INSTAGRAM", "TIKTOK"];
+const CATEGORIES = ["AGE", "GENDER", "COUNTRY"];
+const emptyStatForm = { platform: "YOUTUBE", followers: "", avgViews: "", avgLikes: "", avgComments: "" };
+
 function authHeaders(): HeadersInit {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   return { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` };
@@ -35,6 +52,10 @@ export default function DashboardPage() {
   const [form, setForm] = useState({ title: "", headline: "", avatarUrl: "", theme: "light", slug: "" });
   const [versions, setVersions] = useState<Version[]>([]);
   const [versionsFor, setVersionsFor] = useState<number | null>(null);
+  const [statsFor, setStatsFor] = useState<number | null>(null);
+  const [stats, setStats] = useState<Stat[]>([]);
+  const [statForm, setStatForm] = useState({ ...emptyStatForm });
+  const [demoEntries, setDemoEntries] = useState<DemoEntry[]>([]);
 
   const loadKits = useCallback(async () => {
     const res = await fetch(`${BACKEND}/api/mediakits`, { headers: authHeaders() });
@@ -132,6 +153,57 @@ export default function DashboardPage() {
     }
   }
 
+  async function loadStatsPanel(id: number) {
+    const [sRes, dRes] = await Promise.all([
+      fetch(`${BACKEND}/api/mediakits/${id}/stats`, { headers: authHeaders() }),
+      fetch(`${BACKEND}/api/mediakits/${id}/demographics`, { headers: authHeaders() }),
+    ]);
+    if (sRes.ok) setStats(await sRes.json());
+    if (dRes.ok) setDemoEntries(await dRes.json());
+    setStatForm({ ...emptyStatForm });
+    setStatsFor(id);
+  }
+
+  async function addStat(kitId: number, e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    const num = (v: string) => (v === "" ? null : Number(v));
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/stats`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        platform: statForm.platform,
+        followers: num(statForm.followers),
+        avgViews: num(statForm.avgViews),
+        avgLikes: num(statForm.avgLikes),
+        avgComments: num(statForm.avgComments),
+      }),
+    });
+    if (res.status === 201) {
+      await loadStatsPanel(kitId);
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? `Istatistik eklenemedi (HTTP ${res.status})`);
+    }
+  }
+
+  async function saveDemographics(kitId: number) {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/demographics`, {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        entries: demoEntries.map((d) => ({ ...d, percentage: Number(d.percentage) })),
+      }),
+    });
+    if (res.ok) {
+      setDemoEntries(await res.json());
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? `Demografi kaydedilemedi (HTTP ${res.status})`);
+    }
+  }
+
   async function deleteKit(id: number) {
     setError("");
     const res = await fetch(`${BACKEND}/api/mediakits/${id}`, { method: "DELETE", headers: authHeaders() });
@@ -214,8 +286,82 @@ export default function DashboardPage() {
               }>
                 Versiyonlar
               </button>
+              <button onClick={() =>
+                statsFor === kit.id ? setStatsFor(null) : loadStatsPanel(kit.id)
+              }>
+                Istatistik & Kitle
+              </button>
               <button onClick={() => deleteKit(kit.id)}>Sil</button>
             </div>
+            {statsFor === kit.id && (
+              <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
+                <strong style={{ fontSize: 14 }}>Platform istatistikleri</strong>
+                {stats.length === 0 && <div><small>Henuz istatistik yok.</small></div>}
+                {stats.map((s) => (
+                  <div key={s.platform}>
+                    <small>
+                      {s.platform}: {s.followers.toLocaleString("tr-TR")} takipci
+                      {s.engagementRate != null && <> — etkilesim %{s.engagementRate}</>}
+                      {s.followerGrowth30d != null && (
+                        <> — 30 gun: {s.followerGrowth30d >= 0 ? "+" : ""}{s.followerGrowth30d}%</>
+                      )}
+                    </small>
+                  </div>
+                ))}
+                <form onSubmit={(e) => addStat(kit.id, e)}
+                  style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                  <select value={statForm.platform}
+                    onChange={(e) => setStatForm({ ...statForm, platform: e.target.value })}>
+                    {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <input required type="number" min={0} placeholder="takipci *" style={{ width: 90 }}
+                    value={statForm.followers}
+                    onChange={(e) => setStatForm({ ...statForm, followers: e.target.value })} />
+                  <input type="number" min={0} placeholder="ort. izlenme" style={{ width: 90 }}
+                    value={statForm.avgViews}
+                    onChange={(e) => setStatForm({ ...statForm, avgViews: e.target.value })} />
+                  <input type="number" min={0} placeholder="ort. begeni" style={{ width: 90 }}
+                    value={statForm.avgLikes}
+                    onChange={(e) => setStatForm({ ...statForm, avgLikes: e.target.value })} />
+                  <input type="number" min={0} placeholder="ort. yorum" style={{ width: 90 }}
+                    value={statForm.avgComments}
+                    onChange={(e) => setStatForm({ ...statForm, avgComments: e.target.value })} />
+                  <button type="submit">Olcum ekle</button>
+                </form>
+
+                <strong style={{ fontSize: 14, display: "block", marginTop: 10 }}>Kitle (demografi)</strong>
+                {demoEntries.map((d, i) => (
+                  <div key={i} style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                    <select value={d.category}
+                      onChange={(e) => setDemoEntries(demoEntries.map((x, j) =>
+                        j === i ? { ...x, category: e.target.value } : x))}>
+                      {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                    <input placeholder="etiket" value={d.label} style={{ width: 110 }}
+                      onChange={(e) => setDemoEntries(demoEntries.map((x, j) =>
+                        j === i ? { ...x, label: e.target.value } : x))} />
+                    <input type="number" min={0} max={100} step="0.1" placeholder="%" style={{ width: 70 }}
+                      value={d.percentage}
+                      onChange={(e) => setDemoEntries(demoEntries.map((x, j) =>
+                        j === i ? { ...x, percentage: e.target.value } : x))} />
+                    <button onClick={() => setDemoEntries(demoEntries.filter((_, j) => j !== i))}>
+                      Kaldir
+                    </button>
+                  </div>
+                ))}
+                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                  <button onClick={() =>
+                    setDemoEntries([...demoEntries, { category: "AGE", label: "", percentage: "" }])
+                  }>
+                    Satir ekle
+                  </button>
+                  <button onClick={() => saveDemographics(kit.id)}>Demografiyi kaydet</button>
+                </div>
+                <small style={{ color: "#666" }}>
+                  Not: degisiklikler public sayfaya ancak Yayinla ile yansir.
+                </small>
+              </div>
+            )}
             {versionsFor === kit.id && (
               <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
                 {versions.length === 0 && <small>Henuz yayinlanmamis.</small>}

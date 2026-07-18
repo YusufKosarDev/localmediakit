@@ -2,6 +2,8 @@ package com.localmediakit.mediakit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.localmediakit.stats.DemographicsService;
+import com.localmediakit.stats.StatsService;
 import com.localmediakit.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,19 +28,25 @@ public class MediaKitPublicationService {
     private final RevalidationClient revalidationClient;
     private final TransactionTemplate transactionTemplate;
     private final ObjectMapper objectMapper;
+    private final StatsService statsService;
+    private final DemographicsService demographicsService;
 
     public MediaKitPublicationService(MediaKitAccess access,
                                       MediaKitRepository mediaKitRepository,
                                       MediaKitVersionRepository versionRepository,
                                       RevalidationClient revalidationClient,
                                       TransactionTemplate transactionTemplate,
-                                      ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      StatsService statsService,
+                                      DemographicsService demographicsService) {
         this.access = access;
         this.mediaKitRepository = mediaKitRepository;
         this.versionRepository = versionRepository;
         this.revalidationClient = revalidationClient;
         this.transactionTemplate = transactionTemplate;
         this.objectMapper = objectMapper;
+        this.statsService = statsService;
+        this.demographicsService = demographicsService;
     }
 
     /** Freezes the current draft into a new immutable version and makes it the live one. */
@@ -50,7 +58,7 @@ public class MediaKitPublicationService {
             int nextNumber = versionRepository.findTopByMediaKitIdOrderByVersionNumberDesc(kit.getId())
                     .map(v -> v.getVersionNumber() + 1)
                     .orElse(1);
-            String json = toJson(MediaKitSnapshot.of(kit, owner.getDisplayName()));
+            String json = toJson(buildSnapshot(kit, owner));
             MediaKitVersion version = versionRepository.save(
                     new MediaKitVersion(kit.getId(), nextNumber, kit.getSlug(), json));
             return activate(kit, version);
@@ -84,6 +92,26 @@ public class MediaKitPublicationService {
     public Optional<PublicKitResponse> findPublished(String slug) {
         return versionRepository.findActiveBySlug(slug)
                 .map(version -> PublicKitResponse.from(fromJson(version.getContentJson()), version));
+    }
+
+    /**
+     * Freezes the full publishable state: draft fields plus the CURRENT stats
+     * (with engagement/growth already computed) and demographics. The public
+     * page reads only this, so later stat entries never move a published page.
+     */
+    private MediaKitSnapshot buildSnapshot(MediaKit kit, User owner) {
+        var platforms = statsService.latestForKit(kit.getId()).stream()
+                .map(v -> new MediaKitSnapshot.PlatformStatSnapshot(
+                        v.platform().name(), v.followers(), v.avgViews(), v.avgLikes(),
+                        v.avgComments(), v.engagementRate(), v.followerGrowth30d()))
+                .toList();
+        var demographics = demographicsService.listForKit(kit.getId()).stream()
+                .map(e -> new MediaKitSnapshot.DemographicSnapshot(
+                        e.category().name(), e.label(), e.percentage()))
+                .toList();
+        return new MediaKitSnapshot(
+                kit.getSlug(), kit.getTitle(), kit.getHeadline(), kit.getAvatarUrl(),
+                kit.getTheme(), owner.getDisplayName(), platforms, demographics);
     }
 
     private Activation activate(MediaKit kit, MediaKitVersion version) {

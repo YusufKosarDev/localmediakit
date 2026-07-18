@@ -1,5 +1,7 @@
 package com.localmediakit.mediakit;
 
+import java.util.List;
+
 /** Public page payload: the frozen snapshot plus version metadata. */
 public record PublicKitResponse(
         String slug,
@@ -8,6 +10,8 @@ public record PublicKitResponse(
         String avatarUrl,
         String theme,
         String displayName,
+        List<MediaKitSnapshot.PlatformStatSnapshot> platforms,
+        List<MediaKitSnapshot.DemographicSnapshot> demographics,
         int version,
         String publishedAt) {
 
@@ -19,6 +23,8 @@ public record PublicKitResponse(
                 snapshot.avatarUrl(),
                 snapshot.theme(),
                 snapshot.displayName(),
+                snapshot.platformsOrEmpty(),
+                snapshot.demographicsOrEmpty(),
                 version.getVersionNumber(),
                 version.getPublishedAt().toString());
     }

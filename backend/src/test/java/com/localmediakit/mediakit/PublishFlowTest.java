@@ -225,11 +225,55 @@ class PublishFlowTest {
     }
 
     @Test
+    void statsAreFrozenIntoTheSnapshotAtPublishTime() throws Exception {
+        String token = register("pub-stats@example.com");
+        long kitId = createKit(token, "{\"title\":\"Istatistikli Kit\"}");
+
+        mockMvc.perform(post("/api/mediakits/" + kitId + "/stats")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"platform\":\"INSTAGRAM\",\"followers\":1000,\"avgLikes\":50,\"avgComments\":15}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(put("/api/mediakits/" + kitId + "/demographics")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"entries\":[{\"category\":\"AGE\",\"label\":\"18-24\",\"percentage\":45}]}"))
+                .andExpect(status().isOk());
+        publish(token, kitId);
+
+        mockMvc.perform(get("/api/public/kits/istatistikli-kit"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.platforms.length()").value(1))
+                .andExpect(jsonPath("$.platforms[0].platform").value("INSTAGRAM"))
+                .andExpect(jsonPath("$.platforms[0].followers").value(1000))
+                .andExpect(jsonPath("$.platforms[0].engagementRate").value(6.50))
+                .andExpect(jsonPath("$.demographics[0].label").value("18-24"));
+
+        // New measurements AFTER publish must not move the public page.
+        mockMvc.perform(post("/api/mediakits/" + kitId + "/stats")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"platform\":\"INSTAGRAM\",\"followers\":9999,\"avgLikes\":500,\"avgComments\":100}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/api/public/kits/istatistikli-kit"))
+                .andExpect(jsonPath("$.platforms[0].followers").value(1000));
+
+        // Re-publishing freezes the new numbers into a new snapshot.
+        publish(token, kitId);
+        mockMvc.perform(get("/api/public/kits/istatistikli-kit"))
+                .andExpect(jsonPath("$.platforms[0].followers").value(9999));
+    }
+
+    @Test
     void seededDemoKitIsServedFromTheNewModel() throws Exception {
         mockMvc.perform(get("/api/public/kits/demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Demo Medya Kiti"))
                 .andExpect(jsonPath("$.displayName").value("LocalMediaKit"))
-                .andExpect(jsonPath("$.version").value(1));
+                .andExpect(jsonPath("$.version").value(2))
+                .andExpect(jsonPath("$.platforms.length()").value(3))
+                .andExpect(jsonPath("$.platforms[?(@.platform=='YOUTUBE')].engagementRate").value(8.00))
+                .andExpect(jsonPath("$.platforms[?(@.platform=='TIKTOK')].followerGrowth30d").value(25.0))
+                .andExpect(jsonPath("$.demographics.length()").value(10));
     }
 }
