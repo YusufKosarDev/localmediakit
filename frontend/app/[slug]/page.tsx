@@ -18,7 +18,7 @@ const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
 // Part of the fetch cache key. The Data Cache survives deployments, so cached
 // entries with the OLD response shape would break the new page; bumping this
 // whenever the public payload shape changes starts from a clean cache.
-const PUBLIC_SCHEMA_VERSION = "3";
+const PUBLIC_SCHEMA_VERSION = "4";
 
 type PlatformStat = {
   platform: string;
@@ -36,6 +36,14 @@ type Demographic = {
   percentage: number;
 };
 
+type Collaboration = {
+  brandName: string;
+  campaign: string | null;
+  period: string | null;
+  resultNote: string | null;
+  logoUrl: string | null;
+};
+
 type PublicKit = {
   slug: string;
   title: string;
@@ -45,6 +53,7 @@ type PublicKit = {
   displayName: string;
   platforms: PlatformStat[];
   demographics: Demographic[];
+  collaborations: Collaboration[];
   version: number;
   publishedAt: string;
 };
@@ -379,6 +388,98 @@ export default async function KitPage({
                       </div>
                     </div>
                   ))}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {kit.collaborations.length > 0 && (
+          <section style={{ marginTop: 32 }}>
+            <h2
+              style={{
+                fontSize: 13,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: c.muted,
+                margin: "0 0 12px",
+              }}
+            >
+              Marka Isbirlikleri
+            </h2>
+            <div style={{ display: "grid", gap: 10 }}>
+              {kit.collaborations.map((col, i) => (
+                <div
+                  key={i}
+                  style={{
+                    border: `1px solid ${c.line}`,
+                    borderRadius: 12,
+                    padding: "14px 16px",
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  {col.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={col.logoUrl}
+                      alt={col.brandName}
+                      width={40}
+                      height={40}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 8,
+                        objectFit: "cover",
+                        border: `1px solid ${c.line}`,
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      aria-hidden
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 8,
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 600,
+                        background: c.chip,
+                        color: c.muted,
+                      }}
+                    >
+                      {col.brandName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "baseline",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <strong style={{ fontSize: 15 }}>{col.brandName}</strong>
+                      {col.period && (
+                        <span style={{ fontSize: 12, color: c.muted }}>
+                          {col.period}
+                        </span>
+                      )}
+                    </div>
+                    {col.campaign && (
+                      <div style={{ fontSize: 14, marginTop: 2 }}>{col.campaign}</div>
+                    )}
+                    {col.resultNote && (
+                      <div style={{ fontSize: 13, color: c.muted, marginTop: 2 }}>
+                        {col.resultNote}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

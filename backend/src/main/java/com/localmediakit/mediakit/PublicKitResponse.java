@@ -12,6 +12,7 @@ public record PublicKitResponse(
         String displayName,
         List<MediaKitSnapshot.PlatformStatSnapshot> platforms,
         List<MediaKitSnapshot.DemographicSnapshot> demographics,
+        List<MediaKitSnapshot.CollaborationSnapshot> collaborations,
         int version,
         String publishedAt) {
 
@@ -25,6 +26,7 @@ public record PublicKitResponse(
                 snapshot.displayName(),
                 snapshot.platformsOrEmpty(),
                 snapshot.demographicsOrEmpty(),
+                snapshot.collaborationsOrEmpty(),
                 version.getVersionNumber(),
                 version.getPublishedAt().toString());
     }

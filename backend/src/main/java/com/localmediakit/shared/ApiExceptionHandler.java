@@ -1,6 +1,7 @@
 package com.localmediakit.shared;
 
 import com.localmediakit.auth.EmailAlreadyUsedException;
+import com.localmediakit.collab.CollaborationNotFoundException;
 import com.localmediakit.auth.InvalidCredentialsException;
 import com.localmediakit.mediakit.MediaKitNotFoundException;
 import com.localmediakit.mediakit.ReservedSlugException;
@@ -66,6 +67,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(InvalidDemographicsException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidDemographics(InvalidDemographicsException ex) {
         return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(CollaborationNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleCollabNotFound(CollaborationNotFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
     }
 
     @ExceptionHandler(VersionNotFoundException.class)

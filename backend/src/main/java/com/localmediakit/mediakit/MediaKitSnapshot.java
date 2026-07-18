@@ -21,7 +21,8 @@ public record MediaKitSnapshot(
         String theme,
         String displayName,
         List<PlatformStatSnapshot> platforms,
-        List<DemographicSnapshot> demographics) {
+        List<DemographicSnapshot> demographics,
+        List<CollaborationSnapshot> collaborations) {
 
     public record PlatformStatSnapshot(
             String platform,
@@ -39,6 +40,15 @@ public record MediaKitSnapshot(
             BigDecimal percentage) {
     }
 
+    /** Array order IS the showcase order (frozen from display_order at publish). */
+    public record CollaborationSnapshot(
+            String brandName,
+            String campaign,
+            String period,
+            String resultNote,
+            String logoUrl) {
+    }
+
     /** Older snapshots predate stats; normalize their absent lists to empty. */
     public List<PlatformStatSnapshot> platformsOrEmpty() {
         return platforms == null ? List.of() : platforms;
@@ -46,5 +56,9 @@ public record MediaKitSnapshot(
 
     public List<DemographicSnapshot> demographicsOrEmpty() {
         return demographics == null ? List.of() : demographics;
+    }
+
+    public List<CollaborationSnapshot> collaborationsOrEmpty() {
+        return collaborations == null ? List.of() : collaborations;
     }
 }

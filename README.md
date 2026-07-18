@@ -4,8 +4,8 @@ Egitim / portfolyo projesi. Icerik ureticileri icin canli medya kiti platformu.
 Odeme akisi Stripe **test mode** ile calisir; gercek odeme alinmaz.
 
 Durum: kayit/giris (JWT), medya kiti CRUD + slug yonetimi, publish + immutable
-versiyonlama, edge-cached public sayfalar ve istatistik/engagement/demografi
-katmani calisiyor.
+versiyonlama, edge-cached public sayfalar, istatistik/engagement/demografi
+katmani ve marka isbirlikleri vitrini calisiyor.
 
 ## Mimari
 
@@ -34,6 +34,9 @@ Marka ziyaretci  ─────────────────────
     platform = yeni sinif). Demografi: `GET|PUT /api/mediakits/{id}/demographics`.
     Istatistik ve demografi publish aninda snapshot'a DONDURULUR; public sayfa
     canli hesap yapmaz.
+  - Marka isbirlikleri: `GET|POST|PUT|DELETE /api/mediakits/{id}/collaborations`
+    (`brand_collaborations`, display_order ile vitrin sirasi). Publish aninda
+    snapshot'a donar; sira snapshot dizi sirasi olarak korunur.
 - **frontend/** — Next.js App Router.
   - `app/[slug]` — on-demand ISR: ilk ziyarette uretilir, edge'de cache'lenir,
     yalnizca publish aninda yenilenir. Draft degisiklikleri public sayfayi etkilemez.

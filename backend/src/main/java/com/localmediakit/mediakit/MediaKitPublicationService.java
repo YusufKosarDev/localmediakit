@@ -2,6 +2,7 @@ package com.localmediakit.mediakit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.localmediakit.collab.CollaborationService;
 import com.localmediakit.stats.DemographicsService;
 import com.localmediakit.stats.StatsService;
 import com.localmediakit.user.User;
@@ -30,6 +31,7 @@ public class MediaKitPublicationService {
     private final ObjectMapper objectMapper;
     private final StatsService statsService;
     private final DemographicsService demographicsService;
+    private final CollaborationService collaborationService;
 
     public MediaKitPublicationService(MediaKitAccess access,
                                       MediaKitRepository mediaKitRepository,
@@ -38,7 +40,8 @@ public class MediaKitPublicationService {
                                       TransactionTemplate transactionTemplate,
                                       ObjectMapper objectMapper,
                                       StatsService statsService,
-                                      DemographicsService demographicsService) {
+                                      DemographicsService demographicsService,
+                                      CollaborationService collaborationService) {
         this.access = access;
         this.mediaKitRepository = mediaKitRepository;
         this.versionRepository = versionRepository;
@@ -47,6 +50,7 @@ public class MediaKitPublicationService {
         this.objectMapper = objectMapper;
         this.statsService = statsService;
         this.demographicsService = demographicsService;
+        this.collaborationService = collaborationService;
     }
 
     /** Freezes the current draft into a new immutable version and makes it the live one. */
@@ -109,9 +113,15 @@ public class MediaKitPublicationService {
                 .map(e -> new MediaKitSnapshot.DemographicSnapshot(
                         e.category().name(), e.label(), e.percentage()))
                 .toList();
+        // listForKit returns display_order ASC; the frozen array order is the showcase order.
+        var collaborations = collaborationService.listForKit(kit.getId()).stream()
+                .map(c -> new MediaKitSnapshot.CollaborationSnapshot(
+                        c.getBrandName(), c.getCampaign(), c.getPeriod(),
+                        c.getResultNote(), c.getLogoUrl()))
+                .toList();
         return new MediaKitSnapshot(
                 kit.getSlug(), kit.getTitle(), kit.getHeadline(), kit.getAvatarUrl(),
-                kit.getTheme(), owner.getDisplayName(), platforms, demographics);
+                kit.getTheme(), owner.getDisplayName(), platforms, demographics, collaborations);
     }
 
     private Activation activate(MediaKit kit, MediaKitVersion version) {

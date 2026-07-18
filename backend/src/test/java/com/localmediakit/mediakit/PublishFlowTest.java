@@ -265,15 +265,55 @@ class PublishFlowTest {
     }
 
     @Test
+    void collaborationsAreFrozenIntoTheSnapshotAtPublishTime() throws Exception {
+        String token = register("pub-collab@example.com");
+        long kitId = createKit(token, "{\"title\":\"Markali Kit\"}");
+
+        mockMvc.perform(post("/api/mediakits/" + kitId + "/collaborations")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"brandName\":\"Ikinci Marka\",\"displayOrder\":1}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/mediakits/" + kitId + "/collaborations")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"brandName\":\"Birinci Marka\",\"displayOrder\":0}"))
+                .andExpect(status().isCreated());
+        publish(token, kitId);
+
+        // Snapshot array order = display_order, not insertion order.
+        mockMvc.perform(get("/api/public/kits/markali-kit"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.collaborations.length()").value(2))
+                .andExpect(jsonPath("$.collaborations[0].brandName").value("Birinci Marka"))
+                .andExpect(jsonPath("$.collaborations[1].brandName").value("Ikinci Marka"));
+
+        // A collab added AFTER publish must not appear until re-publish.
+        mockMvc.perform(post("/api/mediakits/" + kitId + "/collaborations")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"brandName\":\"Sizinti Marka\",\"displayOrder\":2}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/api/public/kits/markali-kit"))
+                .andExpect(jsonPath("$.collaborations.length()").value(2));
+
+        publish(token, kitId);
+        mockMvc.perform(get("/api/public/kits/markali-kit"))
+                .andExpect(jsonPath("$.collaborations.length()").value(3));
+    }
+
+    @Test
     void seededDemoKitIsServedFromTheNewModel() throws Exception {
         mockMvc.perform(get("/api/public/kits/demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Demo Medya Kiti"))
                 .andExpect(jsonPath("$.displayName").value("LocalMediaKit"))
-                .andExpect(jsonPath("$.version").value(2))
+                .andExpect(jsonPath("$.version").value(3))
                 .andExpect(jsonPath("$.platforms.length()").value(3))
                 .andExpect(jsonPath("$.platforms[?(@.platform=='YOUTUBE')].engagementRate").value(8.00))
                 .andExpect(jsonPath("$.platforms[?(@.platform=='TIKTOK')].followerGrowth30d").value(25.0))
-                .andExpect(jsonPath("$.demographics.length()").value(10));
+                .andExpect(jsonPath("$.demographics.length()").value(10))
+                .andExpect(jsonPath("$.collaborations.length()").value(3))
+                .andExpect(jsonPath("$.collaborations[0].brandName").value("Kahve Diyari"));
     }
 }
