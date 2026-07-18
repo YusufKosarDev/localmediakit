@@ -78,6 +78,8 @@ export default function DashboardPage() {
   const [collabs, setCollabs] = useState<Collab[]>([]);
   const [analyticsFor, setAnalyticsFor] = useState<number | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [billing, setBilling] = useState<{ plan: string; subscriptionStatus: string | null; currentPeriodEnd: string | null } | null>(null);
+  const [upgradeNote, setUpgradeNote] = useState("");
   const [collabForm, setCollabForm] = useState({ brandName: "", campaign: "", period: "", resultNote: "" });
 
   const loadKits = useCallback(async () => {
@@ -98,7 +100,31 @@ export default function DashboardPage() {
         return loadKits();
       })
       .catch(() => setError("Oturum gecersiz veya suresi dolmus."));
+    fetch(`${BACKEND}/api/billing`, { headers: authHeaders() })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data && setBilling(data))
+      .catch(() => {});
+    const upgrade = new URLSearchParams(window.location.search).get("upgrade");
+    if (upgrade === "success") {
+      setUpgradeNote("Odeme alindi (test modu). Planiniz webhook ile birkac saniye icinde PRO olur; sayfayi yenileyin.");
+    } else if (upgrade === "cancelled") {
+      setUpgradeNote("Odeme iptal edildi; planiniz degismedi.");
+    }
   }, [loadKits]);
+
+  async function startUpgrade() {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/billing/checkout`, { method: "POST", headers: authHeaders() });
+    if (res.ok) {
+      const data = await res.json();
+      window.location.href = data.url;
+    } else if (res.status === 503) {
+      setError("Odeme sistemi bu ortamda yapilandirilmamis.");
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? `Upgrade baslatilamadi (HTTP ${res.status})`);
+    }
+  }
 
   async function createKit(e: React.FormEvent) {
     e.preventDefault();
@@ -328,6 +354,26 @@ export default function DashboardPage() {
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div>Merhaba <strong>{me.displayName}</strong> ({me.plan}) — {me.email}</div>
         <button onClick={logout}>Cikis</button>
+      </div>
+      <div style={{ border: "1px solid #ccc", padding: 10, marginTop: 10 }}>
+        {me.plan === "PRO" ? (
+          <div>
+            <strong>Plan: PRO</strong>
+            {billing?.currentPeriodEnd && (
+              <small> — donem sonu: {new Date(billing.currentPeriodEnd).toLocaleDateString("tr-TR")}</small>
+            )}
+            {billing?.subscriptionStatus && <small> — durum: {billing.subscriptionStatus}</small>}
+            <div><small>Iptal/degisiklik Stripe test panelinden yapilir.</small></div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <span><strong>Plan: FREE</strong> — 1 kit, toplam sayac, sayfada rozet.</span>
+            <button onClick={startUpgrade} style={{ fontWeight: 600 }}>
+              PRO'ya gec — $7/ay (TEST MODU, gercek odeme yok)
+            </button>
+          </div>
+        )}
+        {upgradeNote && <div style={{ color: "#15803d", marginTop: 6 }}>{upgradeNote}</div>}
       </div>
 
       <h2>Yeni medya kiti</h2>

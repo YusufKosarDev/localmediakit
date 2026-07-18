@@ -45,3 +45,12 @@ app:
     # Salts the anonymous visitor fingerprint (sha256 of ip|ua|day|salt).
     # Override with a real value in production so hashes are not guessable.
     salt: ${ANALYTICS_SALT:local-dev-analytics-salt}
+  stripe:
+    # TEST MODE keys only; real values live in the host's env, never in the repo.
+    # With the dummy default, checkout answers 503 (billing not configured).
+    secret-key: ${STRIPE_SECRET_KEY:sk_test_dummy}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_test_dummy}
+    price-id: ${STRIPE_PRICE_ID:price_dummy}
+  billing:
+    # Where Stripe sends the visitor back after hosted Checkout.
+    frontend-url: ${FRONTEND_URL:http://localhost:3000}

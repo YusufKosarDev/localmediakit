@@ -1,6 +1,9 @@
 package com.localmediakit.shared;
 
 import com.localmediakit.auth.EmailAlreadyUsedException;
+import com.localmediakit.billing.AlreadyProException;
+import com.localmediakit.billing.BillingNotConfiguredException;
+import com.localmediakit.billing.InvalidWebhookSignatureException;
 import com.localmediakit.collab.CollaborationNotFoundException;
 import com.localmediakit.auth.InvalidCredentialsException;
 import com.localmediakit.mediakit.MediaKitNotFoundException;
@@ -67,6 +70,21 @@ public class ApiExceptionHandler {
     @ExceptionHandler(InvalidDemographicsException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidDemographics(InvalidDemographicsException ex) {
         return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(InvalidWebhookSignatureException.class)
+    public ResponseEntity<Map<String, Object>> handleBadWebhookSignature(InvalidWebhookSignatureException ex) {
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(BillingNotConfiguredException.class)
+    public ResponseEntity<Map<String, Object>> handleBillingNotConfigured(BillingNotConfiguredException ex) {
+        return body(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(AlreadyProException.class)
+    public ResponseEntity<Map<String, Object>> handleAlreadyPro(AlreadyProException ex) {
+        return body(HttpStatus.CONFLICT, ex.getMessage(), null);
     }
 
     @ExceptionHandler(CollaborationNotFoundException.class)

@@ -22,7 +22,9 @@ public record MediaKitSnapshot(
         String displayName,
         List<PlatformStatSnapshot> platforms,
         List<DemographicSnapshot> demographics,
-        List<CollaborationSnapshot> collaborations) {
+        List<CollaborationSnapshot> collaborations,
+        /** Frozen at publish: FREE publishes carry the LocalMediaKit badge, PRO ones do not. */
+        Boolean showBadge) {
 
     public record PlatformStatSnapshot(
             String platform,
@@ -60,5 +62,10 @@ public record MediaKitSnapshot(
 
     public List<CollaborationSnapshot> collaborationsOrEmpty() {
         return collaborations == null ? List.of() : collaborations;
+    }
+
+    /** Snapshots published before the badge existed default to showing it. */
+    public boolean showBadgeOrDefault() {
+        return showBadge == null || showBadge;
     }
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.localmediakit.collab.CollaborationService;
 import com.localmediakit.stats.DemographicsService;
 import com.localmediakit.stats.StatsService;
+import com.localmediakit.user.PlanPolicy;
 import com.localmediakit.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class MediaKitPublicationService {
     private final StatsService statsService;
     private final DemographicsService demographicsService;
     private final CollaborationService collaborationService;
+    private final PlanPolicy planPolicy;
 
     public MediaKitPublicationService(MediaKitAccess access,
                                       MediaKitRepository mediaKitRepository,
@@ -41,7 +43,8 @@ public class MediaKitPublicationService {
                                       ObjectMapper objectMapper,
                                       StatsService statsService,
                                       DemographicsService demographicsService,
-                                      CollaborationService collaborationService) {
+                                      CollaborationService collaborationService,
+                                      PlanPolicy planPolicy) {
         this.access = access;
         this.mediaKitRepository = mediaKitRepository;
         this.versionRepository = versionRepository;
@@ -51,6 +54,7 @@ public class MediaKitPublicationService {
         this.statsService = statsService;
         this.demographicsService = demographicsService;
         this.collaborationService = collaborationService;
+        this.planPolicy = planPolicy;
     }
 
     /** Freezes the current draft into a new immutable version and makes it the live one. */
@@ -58,6 +62,10 @@ public class MediaKitPublicationService {
         Activation result = transactionTemplate.execute(status -> {
             MediaKit kit = access.requireOwnedKit(userEmail, kitId);
             User owner = access.requireUser(userEmail);
+            // Plan gate: on FREE only the oldest kit(s) within the limit may
+            // (re)publish. Existing live pages are untouched by a downgrade.
+            planPolicy.assertCanPublish(owner.getPlan(),
+                    mediaKitRepository.countByUserIdAndIdLessThan(owner.getId(), kit.getId()));
 
             int nextNumber = versionRepository.findTopByMediaKitIdOrderByVersionNumberDesc(kit.getId())
                     .map(v -> v.getVersionNumber() + 1)
@@ -121,7 +129,8 @@ public class MediaKitPublicationService {
                 .toList();
         return new MediaKitSnapshot(
                 kit.getSlug(), kit.getTitle(), kit.getHeadline(), kit.getAvatarUrl(),
-                kit.getTheme(), owner.getDisplayName(), platforms, demographics, collaborations);
+                kit.getTheme(), owner.getDisplayName(), platforms, demographics, collaborations,
+                planPolicy.showsBranding(owner.getPlan()));
     }
 
     private Activation activate(MediaKit kit, MediaKitVersion version) {

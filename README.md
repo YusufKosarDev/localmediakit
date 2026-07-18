@@ -1,11 +1,17 @@
 # LocalMediaKit
 
 Egitim / portfolyo projesi. Icerik ureticileri icin canli medya kiti platformu.
-Odeme akisi Stripe **test mode** ile calisir; gercek odeme alinmaz.
+
+> **Odeme notu:** Odeme akisi Stripe **TEST MODE** ile calisir; gercek odeme
+> alinmaz, gercek kart kabul edilmez. Odeme sayfasi Stripe'in kendi hosted
+> Checkout sayfasidir - bu deployment odeme islemez. Upgrade akisi yalnizca
+> oturum acilmis dashboard'dadir; public medya kiti sayfalarinda hicbir
+> odeme/fiyat ogesi yoktur.
 
 Durum: kayit/giris (JWT), medya kiti CRUD + slug yonetimi, publish + immutable
 versiyonlama, edge-cached public sayfalar, istatistik/engagement/demografi
-katmani, marka isbirlikleri vitrini ve ziyaretci analitigi calisiyor.
+katmani, marka isbirlikleri vitrini, ziyaretci analitigi ve Stripe test-mode
+faturalama (FREE/PRO) calisiyor.
 
 ## Mimari
 
@@ -44,6 +50,14 @@ Marka ziyaretci  ─────────────────────
     bot/headless filtresi. Sahibe agregasyon `GET /api/mediakits/{id}/analytics`:
     FREE toplam sayac, PRO tekil ziyaretci + gunluk seri + referrer/cihaz
     kirilimi (plan ayrimi PlanPolicy uzerinden).
+  - Faturalama (Stripe TEST MODE): `POST /api/billing/checkout` hosted Checkout
+    URL'i doner (yalnizca dashboard); `POST /api/billing/webhook` imza dogrulamali
+    ve idempotent (event id `processed_stripe_events` tablosunda, etkilerle ayni
+    transaction'da). FREE: 1 kit + toplam sayac + sayfada rozet. PRO: sinirsiz
+    kit + detayli analitik + rozet yok. Downgrade'de mevcut yayinlar korunur;
+    FREE limiti yeni olusturmayi ve fazla kitlerin yeniden yayinlanmasini
+    engeller. Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID,
+    FRONTEND_URL (secret'lar repoya girmez).
 - **frontend/** — Next.js App Router.
   - `app/[slug]` — on-demand ISR: ilk ziyarette uretilir, edge'de cache'lenir,
     yalnizca publish aninda yenilenir. Draft degisiklikleri public sayfayi etkilemez.

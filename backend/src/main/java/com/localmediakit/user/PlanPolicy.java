@@ -24,6 +24,25 @@ public class PlanPolicy {
         return plan == Plan.PRO;
     }
 
+    /** FREE publishes carry the LocalMediaKit badge on the public page. */
+    public boolean showsBranding(Plan plan) {
+        return plan != Plan.PRO;
+    }
+
+    /**
+     * Downgrade rule: existing kits and their live pages survive a PRO->FREE
+     * drop (brand links must not break), but only the OLDEST kits within the
+     * plan limit may be (re)published. olderKitCount is how many of the
+     * owner's kits were created before the one being published.
+     */
+    public void assertCanPublish(Plan plan, long olderKitCount) {
+        if (olderKitCount >= maxMediaKits(plan)) {
+            throw new PlanLimitExceededException(
+                    "Your plan allows publishing only the first " + maxMediaKits(plan)
+                            + " media kit(s). Upgrade to PRO to publish this one.");
+        }
+    }
+
     public void assertCanCreateMediaKit(Plan plan, long currentCount) {
         int max = maxMediaKits(plan);
         if (currentCount >= max) {

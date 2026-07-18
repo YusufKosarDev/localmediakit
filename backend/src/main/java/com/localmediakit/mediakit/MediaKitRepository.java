@@ -14,6 +14,9 @@ public interface MediaKitRepository extends JpaRepository<MediaKit, Long> {
 
     long countByUserId(Long userId);
 
+    /** Creation-order position of a kit within its owner's kits (ids are monotonic). */
+    long countByUserIdAndIdLessThan(Long userId, Long id);
+
     boolean existsBySlug(String slug);
 
     boolean existsBySlugAndIdNot(String slug, Long id);

@@ -55,6 +55,7 @@ type PublicKit = {
   platforms: PlatformStat[];
   demographics: Demographic[];
   collaborations: Collaboration[];
+  showBadge: boolean;
   version: number;
   publishedAt: string;
 };
@@ -498,7 +499,8 @@ export default async function KitPage({
             textAlign: "center",
           }}
         >
-          {publishedDate} tarihinde yayinlandi · LocalMediaKit
+          {publishedDate} tarihinde yayinlandi
+          {kit.showBadge !== false && " · LocalMediaKit"}
         </footer>
       </article>
     </main>
