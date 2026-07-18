@@ -2,35 +2,43 @@ package com.localmediakit.mediakit;
 
 import com.localmediakit.user.PlanPolicy;
 import com.localmediakit.user.User;
-import com.localmediakit.user.UserRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class MediaKitService {
 
     private final MediaKitRepository mediaKitRepository;
-    private final UserRepository userRepository;
+    private final MediaKitVersionRepository versionRepository;
+    private final MediaKitAccess access;
     private final SlugService slugService;
     private final PlanPolicy planPolicy;
+    private final RevalidationClient revalidationClient;
+    private final TransactionTemplate transactionTemplate;
 
     public MediaKitService(MediaKitRepository mediaKitRepository,
-                           UserRepository userRepository,
+                           MediaKitVersionRepository versionRepository,
+                           MediaKitAccess access,
                            SlugService slugService,
-                           PlanPolicy planPolicy) {
+                           PlanPolicy planPolicy,
+                           RevalidationClient revalidationClient,
+                           TransactionTemplate transactionTemplate) {
         this.mediaKitRepository = mediaKitRepository;
-        this.userRepository = userRepository;
+        this.versionRepository = versionRepository;
+        this.access = access;
         this.slugService = slugService;
         this.planPolicy = planPolicy;
+        this.revalidationClient = revalidationClient;
+        this.transactionTemplate = transactionTemplate;
     }
 
     @Transactional
     public MediaKitResponse create(String userEmail, CreateMediaKitRequest request) {
-        User user = requireUser(userEmail);
+        User user = access.requireUser(userEmail);
         planPolicy.assertCanCreateMediaKit(user.getPlan(), mediaKitRepository.countByUserId(user.getId()));
 
         String slug = resolveSlug(request.slug(), request.title(), null);
@@ -38,24 +46,28 @@ public class MediaKitService {
                 user.getId(), slug, request.title().trim(),
                 request.headline(), request.avatarUrl(), request.theme());
         mediaKitRepository.save(kit);
-        return MediaKitResponse.from(kit);
+        return toResponse(kit);
     }
 
     @Transactional(readOnly = true)
     public List<MediaKitResponse> list(String userEmail) {
-        User user = requireUser(userEmail);
+        User user = access.requireUser(userEmail);
         return mediaKitRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream().map(MediaKitResponse::from).toList();
+                .stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public MediaKitResponse get(String userEmail, Long id) {
-        return MediaKitResponse.from(requireOwnedKit(userEmail, id));
+        return toResponse(access.requireOwnedKit(userEmail, id));
     }
 
+    /**
+     * Edits only the DRAFT. The published snapshot (and so the public page) is
+     * untouched until the owner explicitly publishes again.
+     */
     @Transactional
     public MediaKitResponse update(String userEmail, Long id, UpdateMediaKitRequest request) {
-        MediaKit kit = requireOwnedKit(userEmail, id);
+        MediaKit kit = access.requireOwnedKit(userEmail, id);
         kit.updateDetails(request.title().trim(), request.headline(), request.avatarUrl(), request.theme());
 
         if (request.slug() != null && !request.slug().isBlank()) {
@@ -64,18 +76,29 @@ public class MediaKitService {
                 if (slugService.isReserved(desired)) {
                     throw new ReservedSlugException(desired);
                 }
-                String unique = slugService.makeUnique(
-                        desired, candidate -> mediaKitRepository.existsBySlugAndIdNot(candidate, id));
+                String unique = slugService.makeUnique(desired, candidate -> slugTaken(candidate, id));
                 kit.changeSlug(unique);
             }
         }
-        return MediaKitResponse.from(kit);
+        return toResponse(kit);
     }
 
-    @Transactional
     public void delete(String userEmail, Long id) {
-        MediaKit kit = requireOwnedKit(userEmail, id);
-        mediaKitRepository.delete(kit);
+        // Capture the live slug inside the transaction; revalidate after commit
+        // so the public page is evicted only once the kit is really gone.
+        Optional<String> liveSlug = transactionTemplate.execute(status -> {
+            MediaKit kit = access.requireOwnedKit(userEmail, id);
+            Optional<String> active = kit.getPublishedVersionId() == null
+                    ? Optional.<String>empty()
+                    : versionRepository.findById(kit.getPublishedVersionId()).map(MediaKitVersion::getSlug);
+            // Detach the pointer before the row goes away, so the FK to
+            // media_kit_versions never blocks the cascade delete.
+            kit.clearPublishedVersion();
+            mediaKitRepository.saveAndFlush(kit);
+            mediaKitRepository.delete(kit);
+            return active;
+        });
+        liveSlug.ifPresent(revalidationClient::revalidate);
     }
 
     /**
@@ -88,20 +111,26 @@ public class MediaKitService {
         if (explicit && slugService.isReserved(base)) {
             throw new ReservedSlugException(base);
         }
-        return slugService.makeUnique(base, candidate -> excludeId == null
+        return slugService.makeUnique(base, candidate -> slugTaken(candidate, excludeId));
+    }
+
+    /**
+     * A slug is taken if another DRAFT uses it or if it is another kit's LIVE
+     * published URL (drafts can be renamed after publish, so the two differ).
+     */
+    private boolean slugTaken(String candidate, Long excludeKitId) {
+        boolean draftTaken = excludeKitId == null
                 ? mediaKitRepository.existsBySlug(candidate)
-                : mediaKitRepository.existsBySlugAndIdNot(candidate, excludeId));
+                : mediaKitRepository.existsBySlugAndIdNot(candidate, excludeKitId);
+        return draftTaken
+                || versionRepository.activeSlugTakenByOtherKit(candidate, excludeKitId == null ? -1L : excludeKitId);
     }
 
-    private MediaKit requireOwnedKit(String userEmail, Long id) {
-        User user = requireUser(userEmail);
-        // Ownership is enforced by the query: another user's kit is simply "not found".
-        return mediaKitRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(MediaKitNotFoundException::new);
-    }
-
-    private User requireUser(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+    private MediaKitResponse toResponse(MediaKit kit) {
+        String publishedSlug = kit.getPublishedVersionId() == null
+                ? null
+                : versionRepository.findById(kit.getPublishedVersionId())
+                        .map(MediaKitVersion::getSlug).orElse(null);
+        return MediaKitResponse.from(kit, publishedSlug);
     }
 }

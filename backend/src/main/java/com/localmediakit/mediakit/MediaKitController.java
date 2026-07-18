@@ -20,9 +20,12 @@ import java.util.List;
 public class MediaKitController {
 
     private final MediaKitService mediaKitService;
+    private final MediaKitPublicationService publicationService;
 
-    public MediaKitController(MediaKitService mediaKitService) {
+    public MediaKitController(MediaKitService mediaKitService,
+                              MediaKitPublicationService publicationService) {
         this.mediaKitService = mediaKitService;
+        this.publicationService = publicationService;
     }
 
     @PostMapping
@@ -47,6 +50,23 @@ public class MediaKitController {
                                    @PathVariable Long id,
                                    @Valid @RequestBody UpdateMediaKitRequest request) {
         return mediaKitService.update(currentEmail(authentication), id, request);
+    }
+
+    @PostMapping("/{id}/publish")
+    public PublishResponse publish(Authentication authentication, @PathVariable Long id) {
+        return publicationService.publish(currentEmail(authentication), id);
+    }
+
+    @GetMapping("/{id}/versions")
+    public List<VersionResponse> versions(Authentication authentication, @PathVariable Long id) {
+        return publicationService.listVersions(currentEmail(authentication), id);
+    }
+
+    @PostMapping("/{id}/versions/{versionNumber}/activate")
+    public PublishResponse activateVersion(Authentication authentication,
+                                           @PathVariable Long id,
+                                           @PathVariable int versionNumber) {
+        return publicationService.activateVersion(currentEmail(authentication), id, versionNumber);
     }
 
     @DeleteMapping("/{id}")

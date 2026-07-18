@@ -1,6 +1,6 @@
 export const metadata = {
   title: "LocalMediaKit",
-  description: "Canli medya kiti - Adim 0 mimari kaniti",
+  description: "Icerik ureticileri icin canli medya kiti platformu",
 };
 
 export default function RootLayout({

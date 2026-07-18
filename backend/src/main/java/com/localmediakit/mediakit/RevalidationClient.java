@@ -1,4 +1,4 @@
-package com.localmediakit.kit;
+package com.localmediakit.mediakit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;

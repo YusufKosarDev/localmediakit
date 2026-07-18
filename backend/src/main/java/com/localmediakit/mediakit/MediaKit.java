@@ -40,6 +40,10 @@ public class MediaKit {
     @Column(nullable = false)
     private MediaKitStatus status;
 
+    /** Points at the ACTIVE snapshot in media_kit_versions; null until first publish. */
+    @Column(name = "published_version_id")
+    private Long publishedVersionId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -76,6 +80,22 @@ public class MediaKit {
         this.updatedAt = Instant.now();
     }
 
+    /**
+     * State machine: DRAFT -> PUBLISHED on first publish; a PUBLISHED kit stays
+     * PUBLISHED and only its active version pointer moves (re-publish appends a
+     * new version, rollback re-points to an old one).
+     */
+    /** Detaches the live pointer so the row (and its versions) can be deleted. */
+    public void clearPublishedVersion() {
+        this.publishedVersionId = null;
+    }
+
+    public void activateVersion(Long versionId) {
+        this.publishedVersionId = versionId;
+        this.status = MediaKitStatus.PUBLISHED;
+        this.updatedAt = Instant.now();
+    }
+
     public Long getId() {
         return id;
     }
@@ -106,6 +126,10 @@ public class MediaKit {
 
     public MediaKitStatus getStatus() {
         return status;
+    }
+
+    public Long getPublishedVersionId() {
+        return publishedVersionId;
     }
 
     public Instant getCreatedAt() {

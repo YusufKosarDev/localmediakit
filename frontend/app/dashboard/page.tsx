@@ -13,6 +13,14 @@ type Kit = {
   avatarUrl: string | null;
   theme: string;
   status: string;
+  publishedSlug: string | null;
+};
+
+type Version = {
+  version: number;
+  slug: string;
+  publishedAt: string;
+  active: boolean;
 };
 
 function authHeaders(): HeadersInit {
@@ -25,6 +33,8 @@ export default function DashboardPage() {
   const [kits, setKits] = useState<Kit[]>([]);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ title: "", headline: "", avatarUrl: "", theme: "light", slug: "" });
+  const [versions, setVersions] = useState<Version[]>([]);
+  const [versionsFor, setVersionsFor] = useState<number | null>(null);
 
   const loadKits = useCallback(async () => {
     const res = await fetch(`${BACKEND}/api/mediakits`, { headers: authHeaders() });
@@ -84,6 +94,44 @@ export default function DashboardPage() {
     }
   }
 
+  async function publishKit(id: number) {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${id}/publish`, {
+      method: "POST",
+      headers: authHeaders(),
+    });
+    if (res.ok) {
+      await loadKits();
+      if (versionsFor === id) await loadVersions(id);
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? `Yayinlanamadi (HTTP ${res.status})`);
+    }
+  }
+
+  async function loadVersions(id: number) {
+    const res = await fetch(`${BACKEND}/api/mediakits/${id}/versions`, { headers: authHeaders() });
+    if (res.ok) {
+      setVersions(await res.json());
+      setVersionsFor(id);
+    }
+  }
+
+  async function activateVersion(kitId: number, version: number) {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/versions/${version}/activate`, {
+      method: "POST",
+      headers: authHeaders(),
+    });
+    if (res.ok) {
+      await loadKits();
+      await loadVersions(kitId);
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? `Versiyona donulemedi (HTTP ${res.status})`);
+    }
+  }
+
   async function deleteKit(id: number) {
     setError("");
     const res = await fetch(`${BACKEND}/api/mediakits/${id}`, { method: "DELETE", headers: authHeaders() });
@@ -135,7 +183,19 @@ export default function DashboardPage() {
       <h2>Kitlerim ({kits.length})</h2>
       {kits.map((kit) => (
         <div key={kit.id} style={{ border: "1px solid #ccc", padding: 12, marginBottom: 10 }}>
-          <div><small>#{kit.id} — durum: {kit.status}</small></div>
+          <div>
+            <small>
+              #{kit.id} — durum: <strong>{kit.status}</strong>
+              {kit.publishedSlug && (
+                <>
+                  {" — canli: "}
+                  <a href={`/${kit.publishedSlug}`} target="_blank" rel="noreferrer">
+                    /{kit.publishedSlug}
+                  </a>
+                </>
+              )}
+            </small>
+          </div>
           <div style={{ display: "grid", gap: 6, maxWidth: 420, marginTop: 6 }}>
             <input value={kit.title} onChange={(e) => updateKitField(kit.id, "title", e.target.value)} />
             <input placeholder="headline" value={kit.headline ?? ""}
@@ -146,8 +206,34 @@ export default function DashboardPage() {
             <input value={kit.slug} onChange={(e) => updateKitField(kit.id, "slug", e.target.value)} />
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => saveKit(kit)}>Kaydet</button>
+              <button onClick={() => publishKit(kit.id)} style={{ fontWeight: 600 }}>
+                Yayinla
+              </button>
+              <button onClick={() =>
+                versionsFor === kit.id ? setVersionsFor(null) : loadVersions(kit.id)
+              }>
+                Versiyonlar
+              </button>
               <button onClick={() => deleteKit(kit.id)}>Sil</button>
             </div>
+            {versionsFor === kit.id && (
+              <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
+                {versions.length === 0 && <small>Henuz yayinlanmamis.</small>}
+                {versions.map((v) => (
+                  <div key={v.version} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <small>
+                      v{v.version} — /{v.slug} — {new Date(v.publishedAt).toLocaleString("tr-TR")}
+                      {v.active && <strong> (yayinda)</strong>}
+                    </small>
+                    {!v.active && (
+                      <button onClick={() => activateVersion(kit.id, v.version)}>
+                        Bu versiyona don
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ))}
