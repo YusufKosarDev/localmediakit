@@ -7,9 +7,12 @@ import com.localmediakit.billing.DemoUpgradeDisabledException;
 import com.localmediakit.billing.InvalidWebhookSignatureException;
 import com.localmediakit.collab.CollaborationNotFoundException;
 import com.localmediakit.auth.InvalidCredentialsException;
+import com.localmediakit.mediakit.InvalidKitPasswordException;
 import com.localmediakit.mediakit.MediaKitNotFoundException;
 import com.localmediakit.mediakit.ReservedSlugException;
+import com.localmediakit.mediakit.TooManyUnlockAttemptsException;
 import com.localmediakit.mediakit.VersionNotFoundException;
+import com.localmediakit.mediakit.VersionNotVisibleException;
 import com.localmediakit.stats.InvalidDemographicsException;
 import com.localmediakit.user.PlanLimitExceededException;
 import org.springframework.http.HttpStatus;
@@ -101,6 +104,21 @@ public class ApiExceptionHandler {
     @ExceptionHandler(VersionNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleVersionNotFound(VersionNotFoundException ex) {
         return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(VersionNotVisibleException.class)
+    public ResponseEntity<Map<String, Object>> handleVersionNotVisible(VersionNotVisibleException ex) {
+        return body(HttpStatus.FORBIDDEN, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(InvalidKitPasswordException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidKitPassword(InvalidKitPasswordException ex) {
+        return body(HttpStatus.UNAUTHORIZED, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(TooManyUnlockAttemptsException.class)
+    public ResponseEntity<Map<String, Object>> handleTooManyUnlock(TooManyUnlockAttemptsException ex) {
+        return body(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), null);
     }
 
     private ResponseEntity<Map<String, Object>> body(HttpStatus status, String message, Object details) {

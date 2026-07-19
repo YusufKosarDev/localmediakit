@@ -29,6 +29,23 @@ public class PlanPolicy {
         return plan != Plan.PRO;
     }
 
+    /** Password-protecting a kit is a PRO feature. */
+    public boolean passwordProtectionEnabled(Plan plan) {
+        return plan == Plan.PRO;
+    }
+
+    /** FREE sees only the most recent versions; PRO sees the full history. */
+    public int maxVisibleVersions(Plan plan) {
+        return plan == Plan.PRO ? Integer.MAX_VALUE : 2;
+    }
+
+    public void assertPasswordProtectionAllowed(Plan plan) {
+        if (!passwordProtectionEnabled(plan)) {
+            throw new PlanLimitExceededException(
+                    "Password protection is a PRO feature. Upgrade to protect this kit.");
+        }
+    }
+
     /**
      * Downgrade rule: existing kits and their live pages survive a PRO->FREE
      * drop (brand links must not break), but only the OLDEST kits within the

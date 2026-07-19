@@ -69,6 +69,20 @@ public class MediaKitController {
         return publicationService.activateVersion(currentEmail(authentication), id, versionNumber);
     }
 
+    @PutMapping("/{id}/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void setPassword(Authentication authentication,
+                            @PathVariable Long id,
+                            @Valid @RequestBody SetPasswordRequest request) {
+        mediaKitService.setPassword(currentEmail(authentication), id, request.password());
+    }
+
+    @DeleteMapping("/{id}/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removePassword(Authentication authentication, @PathVariable Long id) {
+        mediaKitService.removePassword(currentEmail(authentication), id);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(Authentication authentication, @PathVariable Long id) {

@@ -10,8 +10,9 @@ Egitim / portfolyo projesi. Icerik ureticileri icin canli medya kiti platformu.
 
 Durum: kayit/giris (JWT), medya kiti CRUD + slug yonetimi, publish + immutable
 versiyonlama, edge-cached public sayfalar, istatistik/engagement/demografi
-katmani, marka isbirlikleri vitrini, ziyaretci analitigi ve Stripe test-mode
-faturalama (FREE/PRO) calisiyor.
+katmani, marka isbirlikleri vitrini, ziyaretci analitigi, Stripe test-mode
+faturalama (FREE/PRO) ve PRO ekstralari (PDF export, sifre korumasi, tam
+versiyon gecmisi) calisiyor.
 
 ## Mimari
 
@@ -61,6 +62,18 @@ Marka ziyaretci  ─────────────────────
     sayac + sayfada rozet. PRO: sinirsiz kit + detayli analitik + rozet yok.
     Downgrade'de mevcut yayinlar korunur; FREE limiti yeni olusturmayi ve
     fazla kitlerin yeniden yayinlanmasini engeller. Secret'lar repoya girmez.
+  - PRO ekstralari (Adim 8):
+    - PDF export: public sayfada "PDF olarak indir" — tarayicinin kendi
+      print-to-PDF'i (client-side, sifir backend yuku, sifir bagimlilik).
+      FREE ciktilar rozet tasir, PRO temiz.
+    - Sifre korumasi (PRO): kit'e sifre konunca aktif snapshot'in
+      `password_hash`'i dolar; public GET yalnizca kapi metadata'si doner
+      (hassas veri edge cache'e girmez), icerik `POST /api/public/kits/{slug}/
+      unlock` ile (BCrypt + brute-force limiti: 15 dk'da 5 hatali deneme, sonra
+      429) client-side alinir. NORMAL (sifresiz) kitler HIC degismez, hala edge
+      HIT. Sifre publish aninda snapshot'a donar (immutable snapshot prensibi).
+    - Versiyon gecmisi: FREE son 2 versiyonu gorur ve yalnizca bu pencereye
+      geri donebilir; PRO tam gecmis + her versiyona rollback (PlanPolicy).
 - **frontend/** — Next.js App Router.
   - `app/[slug]` — on-demand ISR: ilk ziyarette uretilir, edge'de cache'lenir,
     yalnizca publish aninda yenilenir. Draft degisiklikleri public sayfayi etkilemez.

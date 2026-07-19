@@ -35,6 +35,10 @@ public class MediaKitVersion {
     @Column(name = "content_json", columnDefinition = "text", nullable = false)
     private String contentJson;
 
+    /** Access password FROZEN at publish time; null = public version. */
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     @Column(name = "published_at", nullable = false)
     private Instant publishedAt;
 
@@ -42,11 +46,13 @@ public class MediaKitVersion {
         // for JPA
     }
 
-    public MediaKitVersion(Long mediaKitId, int versionNumber, String slug, String contentJson) {
+    public MediaKitVersion(Long mediaKitId, int versionNumber, String slug,
+                           String contentJson, String passwordHash) {
         this.mediaKitId = mediaKitId;
         this.versionNumber = versionNumber;
         this.slug = slug;
         this.contentJson = contentJson;
+        this.passwordHash = passwordHash;
         this.publishedAt = Instant.now();
     }
 
@@ -68,6 +74,14 @@ public class MediaKitVersion {
 
     public String getContentJson() {
         return contentJson;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public boolean isPasswordProtected() {
+        return passwordHash != null && !passwordHash.isBlank();
     }
 
     public Instant getPublishedAt() {

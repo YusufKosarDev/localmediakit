@@ -7,6 +7,7 @@ import com.localmediakit.stats.DemographicsService;
 import com.localmediakit.stats.StatsService;
 import com.localmediakit.user.PlanPolicy;
 import com.localmediakit.user.User;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -34,6 +35,8 @@ public class MediaKitPublicationService {
     private final DemographicsService demographicsService;
     private final CollaborationService collaborationService;
     private final PlanPolicy planPolicy;
+    private final PasswordEncoder passwordEncoder;
+    private final UnlockRateLimiter unlockRateLimiter;
 
     public MediaKitPublicationService(MediaKitAccess access,
                                       MediaKitRepository mediaKitRepository,
@@ -44,7 +47,9 @@ public class MediaKitPublicationService {
                                       StatsService statsService,
                                       DemographicsService demographicsService,
                                       CollaborationService collaborationService,
-                                      PlanPolicy planPolicy) {
+                                      PlanPolicy planPolicy,
+                                      PasswordEncoder passwordEncoder,
+                                      UnlockRateLimiter unlockRateLimiter) {
         this.access = access;
         this.mediaKitRepository = mediaKitRepository;
         this.versionRepository = versionRepository;
@@ -55,6 +60,8 @@ public class MediaKitPublicationService {
         this.demographicsService = demographicsService;
         this.collaborationService = collaborationService;
         this.planPolicy = planPolicy;
+        this.passwordEncoder = passwordEncoder;
+        this.unlockRateLimiter = unlockRateLimiter;
     }
 
     /** Freezes the current draft into a new immutable version and makes it the live one. */
@@ -71,8 +78,10 @@ public class MediaKitPublicationService {
                     .map(v -> v.getVersionNumber() + 1)
                     .orElse(1);
             String json = toJson(buildSnapshot(kit, owner));
-            MediaKitVersion version = versionRepository.save(
-                    new MediaKitVersion(kit.getId(), nextNumber, kit.getSlug(), json));
+            // Freeze the current password into the version, like the badge/stats:
+            // draft password changes only reach the public page on republish.
+            MediaKitVersion version = versionRepository.save(new MediaKitVersion(
+                    kit.getId(), nextNumber, kit.getSlug(), json, kit.getPasswordHash()));
             return activate(kit, version);
         });
         return revalidateAndRespond(result);
@@ -82,9 +91,16 @@ public class MediaKitPublicationService {
     public PublishResponse activateVersion(String userEmail, Long kitId, int versionNumber) {
         Activation result = transactionTemplate.execute(status -> {
             MediaKit kit = access.requireOwnedKit(userEmail, kitId);
+            User owner = access.requireUser(userEmail);
             MediaKitVersion version = versionRepository
                     .findByMediaKitIdAndVersionNumber(kit.getId(), versionNumber)
                     .orElseThrow(VersionNotFoundException::new);
+            // FREE may only roll back within its visible history window; PRO to any.
+            long newerCount = versionRepository
+                    .countByMediaKitIdAndVersionNumberGreaterThan(kit.getId(), versionNumber);
+            if (newerCount >= planPolicy.maxVisibleVersions(owner.getPlan())) {
+                throw new VersionNotVisibleException();
+            }
             return activate(kit, version);
         });
         return revalidateAndRespond(result);
@@ -93,17 +109,51 @@ public class MediaKitPublicationService {
     @Transactional(readOnly = true)
     public List<VersionResponse> listVersions(String userEmail, Long kitId) {
         MediaKit kit = access.requireOwnedKit(userEmail, kitId);
+        User owner = access.requireUser(userEmail);
+        // Plan-aware: FREE sees only the most recent versions, PRO the full history.
         return versionRepository.findByMediaKitIdOrderByVersionNumberDesc(kit.getId())
                 .stream()
+                .limit(planPolicy.maxVisibleVersions(owner.getPlan()))
                 .map(v -> VersionResponse.from(v, kit.getPublishedVersionId()))
                 .toList();
     }
 
-    /** Public read: resolves the ACTIVE snapshot living at {@code slug}. */
+    /**
+     * Public read. A public kit returns its full content (edge-cacheable,
+     * unchanged path). A protected kit returns only the gate metadata — the
+     * sensitive content is never placed here, so it never reaches the edge.
+     */
     @Transactional(readOnly = true)
     public Optional<PublicKitResponse> findPublished(String slug) {
-        return versionRepository.findActiveBySlug(slug)
-                .map(version -> PublicKitResponse.from(fromJson(version.getContentJson()), version));
+        return versionRepository.findActiveBySlug(slug).map(version -> {
+            MediaKitSnapshot snapshot = fromJson(version.getContentJson());
+            return version.isPasswordProtected()
+                    ? PublicKitResponse.locked(snapshot, version)
+                    : PublicKitResponse.full(snapshot, version);
+        });
+    }
+
+    /**
+     * Unlocks a protected page. Verifies the password against the ACTIVE
+     * version's frozen hash, guarded by a brute-force limiter keyed on the
+     * client. A public (unprotected) kit needs no password and returns its
+     * content directly.
+     */
+    @Transactional(readOnly = true)
+    public PublicKitResponse unlock(String slug, String password, String clientKey) {
+        MediaKitVersion version = versionRepository.findActiveBySlug(slug)
+                .orElseThrow(MediaKitNotFoundException::new);
+        MediaKitSnapshot snapshot = fromJson(version.getContentJson());
+        if (!version.isPasswordProtected()) {
+            return PublicKitResponse.full(snapshot, version);
+        }
+        unlockRateLimiter.checkAllowed(clientKey);
+        if (password == null || !passwordEncoder.matches(password, version.getPasswordHash())) {
+            unlockRateLimiter.recordFailure(clientKey);
+            throw new InvalidKitPasswordException();
+        }
+        unlockRateLimiter.reset(clientKey);
+        return PublicKitResponse.full(snapshot, version);
     }
 
     /**

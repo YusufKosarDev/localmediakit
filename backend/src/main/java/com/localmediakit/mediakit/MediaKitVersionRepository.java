@@ -15,6 +15,9 @@ public interface MediaKitVersionRepository extends JpaRepository<MediaKitVersion
 
     Optional<MediaKitVersion> findByMediaKitIdAndVersionNumber(Long mediaKitId, int versionNumber);
 
+    /** How many versions are newer than a given one — its rank in the history. */
+    long countByMediaKitIdAndVersionNumberGreaterThan(Long mediaKitId, int versionNumber);
+
     /** The snapshot currently live at {@code slug}: the one some kit's published_version_id points at. */
     @Query("""
             select v from MediaKitVersion v, MediaKit k

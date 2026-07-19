@@ -9,10 +9,11 @@ public record MediaKitResponse(
         String theme,
         String status,
         String publishedSlug,
+        boolean passwordProtected,
         String createdAt,
         String updatedAt) {
 
-    public static MediaKitResponse from(MediaKit kit, String publishedSlug) {
+    public static MediaKitResponse from(MediaKit kit, String publishedSlug, boolean passwordProtected) {
         return new MediaKitResponse(
                 kit.getId(),
                 kit.getSlug(),
@@ -22,6 +23,7 @@ public record MediaKitResponse(
                 kit.getTheme(),
                 kit.getStatus().name(),
                 publishedSlug,
+                passwordProtected,
                 kit.getCreatedAt().toString(),
                 kit.getUpdatedAt().toString());
     }

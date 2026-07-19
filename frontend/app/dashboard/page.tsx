@@ -14,6 +14,7 @@ type Kit = {
   theme: string;
   status: string;
   publishedSlug: string | null;
+  passwordProtected: boolean;
 };
 
 type Version = {
@@ -223,6 +224,40 @@ export default function DashboardPage() {
     }
   }
 
+  async function setKitPassword(kitId: number) {
+    setError("");
+    const pw = window.prompt("Bu kit icin sifre belirleyin (en az 4 karakter):");
+    if (pw == null) return;
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/password`, {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({ password: pw }),
+    });
+    if (res.status === 204) {
+      await loadKits();
+      setError("Sifre kaydedildi. Public sayfaya yansimasi icin Yayinla.");
+    } else if (res.status === 403) {
+      setError("Sifre korumasi PRO ozelligidir.");
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? `Sifre belirlenemedi (HTTP ${res.status})`);
+    }
+  }
+
+  async function removeKitPassword(kitId: number) {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/password`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    if (res.status === 204) {
+      await loadKits();
+      setError("Sifre kaldirildi. Public sayfaya yansimasi icin Yayinla.");
+    } else {
+      setError(`Sifre kaldirilamadi (HTTP ${res.status})`);
+    }
+  }
+
   async function loadStatsPanel(id: number) {
     const [sRes, dRes, cRes] = await Promise.all([
       fetch(`${BACKEND}/api/mediakits/${id}/stats`, { headers: authHeaders() }),
@@ -429,6 +464,7 @@ export default function DashboardPage() {
           <div>
             <small>
               #{kit.id} — durum: <strong>{kit.status}</strong>
+              {kit.passwordProtected && <> — 🔒 sifreli</>}
               {kit.publishedSlug && (
                 <>
                   {" — canli: "}
@@ -467,6 +503,14 @@ export default function DashboardPage() {
               }>
                 Analitik
               </button>
+              {kit.passwordProtected ? (
+                <button onClick={() => removeKitPassword(kit.id)}>Sifreyi kaldir</button>
+              ) : (
+                <button onClick={() => setKitPassword(kit.id)}
+                  title={me.plan === "PRO" ? "" : "PRO ozelligi"}>
+                  🔒 Sifre koy{me.plan === "PRO" ? "" : " (PRO)"}
+                </button>
+              )}
               <button onClick={() => deleteKit(kit.id)}>Sil</button>
             </div>
             {analyticsFor === kit.id && analytics && (

@@ -44,6 +44,10 @@ public class MediaKit {
     @Column(name = "published_version_id")
     private Long publishedVersionId;
 
+    /** BCrypt hash of the draft's access password; null = public kit. */
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -77,6 +81,12 @@ public class MediaKit {
 
     public void changeSlug(String slug) {
         this.slug = slug;
+        this.updatedAt = Instant.now();
+    }
+
+    /** Sets or clears the draft access password (pass null to make it public). */
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
         this.updatedAt = Instant.now();
     }
 
@@ -130,6 +140,14 @@ public class MediaKit {
 
     public Long getPublishedVersionId() {
         return publishedVersionId;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public boolean isPasswordProtected() {
+        return passwordHash != null && !passwordHash.isBlank();
     }
 
     public Instant getCreatedAt() {

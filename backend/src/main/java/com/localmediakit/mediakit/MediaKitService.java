@@ -2,6 +2,7 @@ package com.localmediakit.mediakit;
 
 import com.localmediakit.user.PlanPolicy;
 import com.localmediakit.user.User;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -19,6 +20,7 @@ public class MediaKitService {
     private final PlanPolicy planPolicy;
     private final RevalidationClient revalidationClient;
     private final TransactionTemplate transactionTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     public MediaKitService(MediaKitRepository mediaKitRepository,
                            MediaKitVersionRepository versionRepository,
@@ -26,7 +28,8 @@ public class MediaKitService {
                            SlugService slugService,
                            PlanPolicy planPolicy,
                            RevalidationClient revalidationClient,
-                           TransactionTemplate transactionTemplate) {
+                           TransactionTemplate transactionTemplate,
+                           PasswordEncoder passwordEncoder) {
         this.mediaKitRepository = mediaKitRepository;
         this.versionRepository = versionRepository;
         this.access = access;
@@ -34,6 +37,7 @@ public class MediaKitService {
         this.planPolicy = planPolicy;
         this.revalidationClient = revalidationClient;
         this.transactionTemplate = transactionTemplate;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -81,6 +85,24 @@ public class MediaKitService {
             }
         }
         return toResponse(kit);
+    }
+
+    /**
+     * Sets the draft access password (PRO only). Affects the public page only
+     * on the next publish, keeping the immutable-snapshot contract.
+     */
+    @Transactional
+    public void setPassword(String userEmail, Long id, String rawPassword) {
+        User user = access.requireUser(userEmail);
+        planPolicy.assertPasswordProtectionAllowed(user.getPlan());
+        MediaKit kit = access.requireOwnedKit(userEmail, id);
+        kit.setPasswordHash(passwordEncoder.encode(rawPassword));
+    }
+
+    @Transactional
+    public void removePassword(String userEmail, Long id) {
+        MediaKit kit = access.requireOwnedKit(userEmail, id);
+        kit.setPasswordHash(null);
     }
 
     public void delete(String userEmail, Long id) {
@@ -131,6 +153,6 @@ public class MediaKitService {
                 ? null
                 : versionRepository.findById(kit.getPublishedVersionId())
                         .map(MediaKitVersion::getSlug).orElse(null);
-        return MediaKitResponse.from(kit, publishedSlug);
+        return MediaKitResponse.from(kit, publishedSlug, kit.isPasswordProtected());
     }
 }
