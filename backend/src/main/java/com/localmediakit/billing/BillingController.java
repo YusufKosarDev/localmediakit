@@ -1,5 +1,6 @@
 package com.localmediakit.billing;
 
+import com.localmediakit.user.Plan;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +33,20 @@ public class BillingController {
     @GetMapping
     public BillingStatusResponse status(Authentication authentication) {
         return billingService.statusFor((String) authentication.getPrincipal());
+    }
+
+    /**
+     * Demo-mode plan switches (graceful-enable): available ONLY while Stripe
+     * is not configured; 403 otherwise. Users can only change their own plan.
+     */
+    @PostMapping("/demo-upgrade")
+    public BillingStatusResponse demoUpgrade(Authentication authentication) {
+        return billingService.demoChangePlan((String) authentication.getPrincipal(), Plan.PRO);
+    }
+
+    @PostMapping("/demo-downgrade")
+    public BillingStatusResponse demoDowngrade(Authentication authentication) {
+        return billingService.demoChangePlan((String) authentication.getPrincipal(), Plan.FREE);
     }
 
     /** Stripe webhook: public path, but every request must carry a valid signature. */

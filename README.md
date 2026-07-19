@@ -50,14 +50,17 @@ Marka ziyaretci  ─────────────────────
     bot/headless filtresi. Sahibe agregasyon `GET /api/mediakits/{id}/analytics`:
     FREE toplam sayac, PRO tekil ziyaretci + gunluk seri + referrer/cihaz
     kirilimi (plan ayrimi PlanPolicy uzerinden).
-  - Faturalama (Stripe TEST MODE): `POST /api/billing/checkout` hosted Checkout
-    URL'i doner (yalnizca dashboard); `POST /api/billing/webhook` imza dogrulamali
-    ve idempotent (event id `processed_stripe_events` tablosunda, etkilerle ayni
-    transaction'da). FREE: 1 kit + toplam sayac + sayfada rozet. PRO: sinirsiz
-    kit + detayli analitik + rozet yok. Downgrade'de mevcut yayinlar korunur;
-    FREE limiti yeni olusturmayi ve fazla kitlerin yeniden yayinlanmasini
-    engeller. Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID,
-    FRONTEND_URL (secret'lar repoya girmez).
+  - Faturalama (Stripe TEST MODE, graceful-enable): Stripe entegrasyonu
+    (hosted Checkout + imza dogrulamali, idempotent webhook + abonelik yasam
+    dongusu) tam olarak uygulandi ve testli; STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID env'leri girildiginde aktiflesir.
+    Bu env'ler yokken demo dagitiminda canli gosterim icin dogrudan
+    plan-degistirme uclari devrededir (`POST /api/billing/demo-upgrade|
+    demo-downgrade`, yalnizca kullanicinin KENDI plani); Stripe aktifken bu
+    uclar 403 doner (odeme bypass'i olamaz — testli). FREE: 1 kit + toplam
+    sayac + sayfada rozet. PRO: sinirsiz kit + detayli analitik + rozet yok.
+    Downgrade'de mevcut yayinlar korunur; FREE limiti yeni olusturmayi ve
+    fazla kitlerin yeniden yayinlanmasini engeller. Secret'lar repoya girmez.
 - **frontend/** — Next.js App Router.
   - `app/[slug]` — on-demand ISR: ilk ziyarette uretilir, edge'de cache'lenir,
     yalnizca publish aninda yenilenir. Draft degisiklikleri public sayfayi etkilemez.

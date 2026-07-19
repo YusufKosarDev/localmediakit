@@ -3,6 +3,7 @@ package com.localmediakit.shared;
 import com.localmediakit.auth.EmailAlreadyUsedException;
 import com.localmediakit.billing.AlreadyProException;
 import com.localmediakit.billing.BillingNotConfiguredException;
+import com.localmediakit.billing.DemoUpgradeDisabledException;
 import com.localmediakit.billing.InvalidWebhookSignatureException;
 import com.localmediakit.collab.CollaborationNotFoundException;
 import com.localmediakit.auth.InvalidCredentialsException;
@@ -80,6 +81,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(BillingNotConfiguredException.class)
     public ResponseEntity<Map<String, Object>> handleBillingNotConfigured(BillingNotConfiguredException ex) {
         return body(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(DemoUpgradeDisabledException.class)
+    public ResponseEntity<Map<String, Object>> handleDemoUpgradeDisabled(DemoUpgradeDisabledException ex) {
+        return body(HttpStatus.FORBIDDEN, ex.getMessage(), null);
     }
 
     @ExceptionHandler(AlreadyProException.class)

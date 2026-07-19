@@ -78,7 +78,7 @@ export default function DashboardPage() {
   const [collabs, setCollabs] = useState<Collab[]>([]);
   const [analyticsFor, setAnalyticsFor] = useState<number | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [billing, setBilling] = useState<{ plan: string; subscriptionStatus: string | null; currentPeriodEnd: string | null } | null>(null);
+  const [billing, setBilling] = useState<{ plan: string; subscriptionStatus: string | null; currentPeriodEnd: string | null; stripeEnabled: boolean } | null>(null);
   const [upgradeNote, setUpgradeNote] = useState("");
   const [collabForm, setCollabForm] = useState({ brandName: "", campaign: "", period: "", resultNote: "" });
 
@@ -114,15 +114,36 @@ export default function DashboardPage() {
 
   async function startUpgrade() {
     setError("");
-    const res = await fetch(`${BACKEND}/api/billing/checkout`, { method: "POST", headers: authHeaders() });
+    if (billing?.stripeEnabled) {
+      // Real flow: hosted Stripe Checkout (test mode).
+      const res = await fetch(`${BACKEND}/api/billing/checkout`, { method: "POST", headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        window.location.href = data.url;
+      } else {
+        const data = await res.json().catch(() => null);
+        setError(data?.error ?? `Upgrade baslatilamadi (HTTP ${res.status})`);
+      }
+      return;
+    }
+    // Demo flow (Stripe not configured): direct plan switch, no payment.
+    await demoPlanSwitch("demo-upgrade");
+  }
+
+  async function demoPlanSwitch(path: "demo-upgrade" | "demo-downgrade") {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/billing/${path}`, { method: "POST", headers: authHeaders() });
     if (res.ok) {
       const data = await res.json();
-      window.location.href = data.url;
-    } else if (res.status === 503) {
-      setError("Odeme sistemi bu ortamda yapilandirilmamis.");
+      setBilling(data);
+      setMe((prev) => (prev ? { ...prev, plan: data.plan } : prev));
+      setUpgradeNote(data.plan === "PRO"
+        ? "Plan PRO yapildi (demo modu — gercek odeme yok)."
+        : "Plan FREE yapildi (demo modu).");
+      await loadKits();
     } else {
       const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Upgrade baslatilamadi (HTTP ${res.status})`);
+      setError(data?.error ?? `Plan degistirilemedi (HTTP ${res.status})`);
     }
   }
 
@@ -363,13 +384,23 @@ export default function DashboardPage() {
               <small> — donem sonu: {new Date(billing.currentPeriodEnd).toLocaleDateString("tr-TR")}</small>
             )}
             {billing?.subscriptionStatus && <small> — durum: {billing.subscriptionStatus}</small>}
-            <div><small>Iptal/degisiklik Stripe test panelinden yapilir.</small></div>
+            {billing?.stripeEnabled ? (
+              <div><small>Iptal/degisiklik Stripe test panelinden yapilir.</small></div>
+            ) : (
+              <div style={{ marginTop: 4 }}>
+                <button onClick={() => demoPlanSwitch("demo-downgrade")}>
+                  FREE'ye don (demo)
+                </button>
+              </div>
+            )}
           </div>
         ) : (
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <span><strong>Plan: FREE</strong> — 1 kit, toplam sayac, sayfada rozet.</span>
             <button onClick={startUpgrade} style={{ fontWeight: 600 }}>
-              PRO'ya gec — $7/ay (TEST MODU, gercek odeme yok)
+              {billing?.stripeEnabled
+                ? "PRO'ya gec — $7/ay (TEST MODU, gercek odeme yok)"
+                : "PRO'ya gec (demo — gercek odeme yok)"}
             </button>
           </div>
         )}

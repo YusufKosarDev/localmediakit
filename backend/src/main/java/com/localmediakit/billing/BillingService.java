@@ -65,9 +65,18 @@ public class BillingService {
         Stripe.apiKey = secretKey;
     }
 
+    /**
+     * Graceful-enable switch: real Stripe Checkout when the STRIPE_* env vars
+     * are present, the demo plan-switch endpoints when they are not. The two
+     * are mutually exclusive — see {@link #demoChangePlan}.
+     */
+    public boolean stripeConfigured() {
+        return secretKey != null && !secretKey.isBlank() && !secretKey.startsWith("sk_test_dummy");
+    }
+
     /** Creates a hosted Checkout session and returns its URL. No DB writes here. */
     public String createCheckoutUrl(String userEmail) {
-        if (secretKey == null || secretKey.isBlank() || secretKey.startsWith("sk_test_dummy")) {
+        if (!stripeConfigured()) {
             throw new BillingNotConfiguredException();
         }
         User user = access.requireUser(userEmail);
@@ -99,7 +108,32 @@ public class BillingService {
         return new BillingStatusResponse(
                 user.getPlan().name(),
                 sub.map(Subscription::getStatus).orElse(null),
-                sub.map(Subscription::getCurrentPeriodEnd).map(Instant::toString).orElse(null));
+                sub.map(Subscription::getCurrentPeriodEnd).map(Instant::toString).orElse(null),
+                stripeConfigured());
+    }
+
+    /**
+     * Demo-mode plan switch: lets an authenticated user flip THEIR OWN plan
+     * when (and only when) Stripe is not configured. The guard is not
+     * cosmetic: with real billing active this endpoint would be a payment
+     * bypass, so it hard-fails with 403 the moment STRIPE_* env vars exist.
+     */
+    @Transactional
+    public BillingStatusResponse demoChangePlan(String userEmail, Plan targetPlan) {
+        if (stripeConfigured()) {
+            throw new DemoUpgradeDisabledException();
+        }
+        User user = access.requireUser(userEmail);
+        user.changePlan(targetPlan);
+        userRepository.save(user);
+
+        String status = targetPlan == Plan.PRO ? "demo" : "canceled";
+        Subscription sub = subscriptionRepository.findByUserId(user.getId())
+                .orElseGet(() -> new Subscription(user.getId(), null, null, status));
+        sub.updateFromStripe(null, null, status, null);
+        subscriptionRepository.save(sub);
+        log.info("Demo plan switch: user {} -> {}", user.getId(), targetPlan);
+        return statusFor(userEmail);
     }
 
     /**
