@@ -59,14 +59,21 @@ export async function generateMetadata({
     return { title: `${kit.title} — Sifre korumali`, robots: { index: false } };
   }
   const description = kit.headline ?? `${kit.displayName} medya kiti`;
+  const images = kit.avatarUrl ? [{ url: kit.avatarUrl }] : undefined;
   return {
     title: `${kit.title} — ${kit.displayName}`,
     description,
     openGraph: {
-      title: kit.title,
+      title: `${kit.title} — ${kit.displayName}`,
       description,
       type: "profile",
-      ...(kit.avatarUrl ? { images: [{ url: kit.avatarUrl }] } : {}),
+      ...(images ? { images } : {}),
+    },
+    twitter: {
+      card: images ? "summary_large_image" : "summary",
+      title: `${kit.title} — ${kit.displayName}`,
+      description,
+      ...(images ? { images } : {}),
     },
   };
 }

@@ -45,6 +45,17 @@ app:
     # Salts the anonymous visitor fingerprint (sha256 of ip|ua|day|salt).
     # Override with a real value in production so hashes are not guessable.
     salt: ${ANALYTICS_SALT:local-dev-analytics-salt}
+  ratelimit:
+    # In-memory token buckets per client IP (per minute). Disabled in tests.
+    enabled: ${RATELIMIT_ENABLED:true}
+    login-capacity: ${RATELIMIT_LOGIN:10}
+    register-capacity: ${RATELIMIT_REGISTER:30}
+    track-capacity: ${RATELIMIT_TRACK:120}
+    unlock-capacity: ${RATELIMIT_UNLOCK:20}
+  demo:
+    # Seed/reset the login-able demo account and purge @test.dev accounts.
+    seed-on-startup: ${DEMO_SEED_ON_STARTUP:true}
+    reset-cron: ${DEMO_RESET_CRON:0 0 3 * * *}
   domains:
     # DNS verification job (custom-domain skeleton). Intervals in ms.
     job-interval-ms: ${DOMAIN_JOB_INTERVAL_MS:60000}

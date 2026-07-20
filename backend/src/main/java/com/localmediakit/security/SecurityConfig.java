@@ -42,6 +42,8 @@ public class SecurityConfig {
                         // (400/404/500) would be masked as a 401.
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/auth/**", "/api/public/**", "/actuator/health").permitAll()
+                        // API docs (springdoc): public so the schema is browsable.
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs").permitAll()
                         // Anonymous view beacon from public pages (best-effort analytics).
                         .requestMatchers(HttpMethod.POST, "/api/track").permitAll()
                         // Stripe webhook: no session, authenticated by its signature instead.
