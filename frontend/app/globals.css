@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* dark: variant follows the per-kit data-theme scope, not the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /*
   Semantic design tokens. Light is the default (:root); the public media-kit
   page flips to dark per-kit by stamping data-theme="dark" on its own root
@@ -26,7 +29,8 @@
   --radius-2xl: 1.125rem;
 }
 
-:root {
+:root,
+[data-theme="light"] {
   --page: #f6f6f8;
   --surface: #ffffff;
   --elevated: #ffffff;
@@ -72,4 +76,22 @@ html {
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-rise { animation: none; }
+}
+
+/* PDF export = browser print. Hide chrome and force a light, clean sheet even
+   for a dark-themed kit. */
+@media print {
+  .no-print { display: none !important; }
+  .kit-root { min-height: auto !important; padding: 0 !important; }
+  [data-theme="dark"] {
+    --page: #ffffff;
+    --surface: #ffffff;
+    --elevated: #ffffff;
+    --fg: #0b0b0f;
+    --muted: #52525b;
+    --faint: #71717a;
+    --line: #e5e5e5;
+    --brand: #6d40e6;
+    --brand-weak: #f2ecfe;
+  }
 }

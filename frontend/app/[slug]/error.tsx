@@ -1,48 +1,27 @@
 "use client";
 
-// Renders when the page could not be generated (e.g. the slug is not cached
-// yet and the backend is unreachable). The failed render is not cached, so
-// "Tekrar dene" or a later visit will retry cleanly.
+// Renders when the page could not be generated (e.g. the slug is not cached yet
+// and the backend is unreachable). The failed render is not cached, so a retry
+// or a later visit recovers cleanly.
 export default function KitError({ reset }: { error: Error; reset: () => void }) {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f6f7f9",
-        color: "#1a1f27",
-        fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "48px 16px",
-        textAlign: "center",
-      }}
-    >
+    <main className="grid min-h-screen place-items-center px-6 text-center">
       <div>
-        <p style={{ fontSize: 56, margin: 0 }} aria-hidden>
+        <p className="text-6xl" aria-hidden>
           ⏳
         </p>
-        <h1 style={{ fontSize: 24, margin: "16px 0 8px" }}>
+        <h1 className="mt-4 text-2xl font-semibold tracking-tight">
           Sayfa su anda goruntulenemiyor
         </h1>
-        <p style={{ color: "#6b7280", maxWidth: 400, margin: "0 auto" }}>
+        <p className="mx-auto mt-2 max-w-md text-muted">
           Gecici bir sorun olustu. Birkac saniye icinde tekrar deneyin.
         </p>
-        <p style={{ marginTop: 24 }}>
-          <button
-            onClick={() => reset()}
-            style={{
-              padding: "10px 20px",
-              borderRadius: 8,
-              border: "1px solid #d1d5db",
-              background: "#ffffff",
-              cursor: "pointer",
-              fontSize: 15,
-            }}
-          >
-            Tekrar dene
-          </button>
-        </p>
+        <button
+          onClick={() => reset()}
+          className="mt-6 inline-flex h-10 items-center rounded-xl border border-line bg-surface px-4 font-medium transition-colors hover:bg-page"
+        >
+          Tekrar dene
+        </button>
       </div>
     </main>
   );

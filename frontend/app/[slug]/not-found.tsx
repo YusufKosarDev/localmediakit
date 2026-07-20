@@ -1,33 +1,22 @@
+import Link from "next/link";
+
 export default function KitNotFound() {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f6f7f9",
-        color: "#1a1f27",
-        fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "48px 16px",
-        textAlign: "center",
-      }}
-    >
+    <main className="grid min-h-screen place-items-center px-6 text-center">
       <div>
-        <p style={{ fontSize: 56, margin: 0 }} aria-hidden>
+        <p className="text-6xl" aria-hidden>
           🔍
         </p>
-        <h1 style={{ fontSize: 24, margin: "16px 0 8px" }}>
-          Bu sayfa yayinda degil
-        </h1>
-        <p style={{ color: "#6b7280", maxWidth: 380, margin: "0 auto" }}>
+        <h1 className="mt-4 text-2xl font-semibold tracking-tight">Bu sayfa yayinda degil</h1>
+        <p className="mx-auto mt-2 max-w-sm text-muted">
           Aradiginiz medya kiti bulunamadi ya da henuz yayinlanmamis olabilir.
         </p>
-        <p style={{ marginTop: 24 }}>
-          <a href="/" style={{ color: "#2563eb", textDecoration: "none" }}>
-            LocalMediaKit ana sayfasina don →
-          </a>
-        </p>
+        <Link
+          href="/"
+          className="mt-6 inline-flex h-10 items-center rounded-xl bg-brand-strong px-4 font-medium text-white shadow-sm transition-opacity hover:opacity-90"
+        >
+          LocalMediaKit ana sayfasina don
+        </Link>
       </div>
     </main>
   );

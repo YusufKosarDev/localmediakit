@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Lock } from "lucide-react";
 import KitCard, { PublicKit } from "./KitCard";
+import { Button, Card, Input } from "@/app/_components/ui";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
@@ -23,14 +25,7 @@ export default function PasswordGate({
   const [busy, setBusy] = useState(false);
   const [kit, setKit] = useState<PublicKit | null>(null);
 
-  const dark = theme === "dark";
-  const colors = dark
-    ? { bg: "#0e1116", card: "#161b22", text: "#e6edf3", muted: "#8b949e", line: "#21262d" }
-    : { bg: "#f6f7f9", card: "#ffffff", text: "#1a1f27", muted: "#6b7280", line: "#e5e7eb" };
-
-  if (kit) {
-    return <KitCard kit={kit} />;
-  }
+  if (kit) return <KitCard kit={kit} />;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,76 +54,32 @@ export default function PasswordGate({
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: colors.bg,
-        color: colors.text,
-        fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "48px 16px",
-      }}
-    >
-      <div
-        style={{
-          background: colors.card,
-          border: `1px solid ${colors.line}`,
-          borderRadius: 16,
-          maxWidth: 400,
-          width: "100%",
-          padding: "40px 32px",
-          textAlign: "center",
-          boxShadow: dark ? "none" : "0 8px 30px rgba(0,0,0,0.06)",
-        }}
-      >
-        <div style={{ fontSize: 44 }} aria-hidden>
-          🔒
-        </div>
-        <h1 style={{ fontSize: 22, margin: "12px 0 6px" }}>{title}</h1>
-        <p style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}>
-          Bu medya kiti sifre korumali. Goruntulemek icin sifreyi girin.
-        </p>
-        <form onSubmit={submit} style={{ display: "grid", gap: 10 }}>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Sifre"
-            autoFocus
-            required
-            style={{
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: `1px solid ${colors.line}`,
-              background: dark ? "#0e1116" : "#fff",
-              color: colors.text,
-              fontSize: 15,
-            }}
-          />
-          <button
-            type="submit"
-            disabled={busy}
-            style={{
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: "none",
-              background: "#2563eb",
-              color: "#fff",
-              fontSize: 15,
-              fontWeight: 600,
-              cursor: busy ? "default" : "pointer",
-              opacity: busy ? 0.7 : 1,
-            }}
-          >
-            {busy ? "Kontrol ediliyor..." : "Goruntule"}
-          </button>
-        </form>
-        {error && (
-          <p style={{ color: "#dc2626", fontSize: 14, marginTop: 12 }}>{error}</p>
-        )}
-      </div>
-    </main>
+    <div data-theme={theme === "dark" ? "dark" : "light"}>
+      <main className="grid min-h-screen place-items-center bg-page px-5 text-fg">
+        <Card className="w-full max-w-sm p-7 text-center">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand-weak text-brand">
+            <Lock className="h-5 w-5" />
+          </div>
+          <h1 className="mt-4 text-lg font-semibold tracking-tight">{title}</h1>
+          <p className="mt-1 text-sm text-muted">
+            Bu medya kiti sifre korumali. Goruntulemek icin sifreyi girin.
+          </p>
+          <form onSubmit={submit} className="mt-5 grid gap-2.5">
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Sifre"
+              autoFocus
+              required
+            />
+            <Button type="submit" disabled={busy} className="w-full">
+              {busy ? "Kontrol ediliyor..." : "Goruntule"}
+            </Button>
+          </form>
+          {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+        </Card>
+      </main>
+    </div>
   );
 }
