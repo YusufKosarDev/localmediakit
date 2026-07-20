@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/*
+  Semantic design tokens. Light is the default (:root); the public media-kit
+  page flips to dark per-kit by stamping data-theme="dark" on its own root
+  scope — never via the OS setting, so a kit's chosen theme always wins.
+  App surfaces (home, auth, dashboard) stay light.
+*/
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-weak: var(--brand-weak);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+}
+
+:root {
+  --page: #f6f6f8;
+  --surface: #ffffff;
+  --elevated: #ffffff;
+  --fg: #0b0b0f;
+  --muted: #62636b;
+  --faint: #9698a1;
+  --line: #e8e8ec;
+  /* violet-indigo accent */
+  --brand: #6d40e6;         /* links / accent text / icons (light) */
+  --brand-strong: #6d40e6;  /* solid button bg — white text passes in both modes */
+  --brand-weak: #f2ecfe;    /* wash background */
+  --success: #15803d;
+  --danger: #b91c1c;
+}
+
+[data-theme="dark"] {
+  --page: #0a0a0c;
+  --surface: #151519;
+  --elevated: #1c1c22;
+  --fg: #f4f4f6;
+  --muted: #a2a2ab;
+  --faint: #6f7079;
+  --line: #26262c;
+  --brand: #a998f8;         /* lighter accent text on dark */
+  --brand-strong: #6d40e6;
+  --brand-weak: #1d1730;
+  --success: #4ade80;
+  --danger: #f87171;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle, JS-free entrance used on the public page (respects reduced-motion). */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-rise {
+  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise { animation: none; }
+}

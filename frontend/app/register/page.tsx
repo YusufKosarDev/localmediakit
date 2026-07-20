@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { Button, Card, Input, Label } from "@/app/_components/ui";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
@@ -29,6 +31,10 @@ export default function RegisterPage() {
         setError("Gecersiz bilgi (sifre en az 8 karakter, gecerli email).");
         return;
       }
+      if (res.status === 429) {
+        setError("Cok fazla deneme. Lutfen biraz bekleyin.");
+        return;
+      }
       if (!res.ok) {
         setError("Kayit basarisiz.");
         return;
@@ -44,19 +50,50 @@ export default function RegisterPage() {
   }
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: 40, maxWidth: 360 }}>
-      <h1>Kayit ol</h1>
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 10 }}>
-        <input placeholder="ad" value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)} required />
-        <input type="email" placeholder="email" value={email}
-          onChange={(e) => setEmail(e.target.value)} required />
-        <input type="password" placeholder="sifre (min 8)" value={password}
-          onChange={(e) => setPassword(e.target.value)} required />
-        <button type="submit" disabled={busy}>{busy ? "..." : "Kayit ol"}</button>
-      </form>
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
-      <p>Zaten hesabin var mi? <a href="/login">Giris yap</a></p>
+    <main className="grid min-h-screen place-items-center px-6 py-12">
+      <div className="w-full max-w-sm">
+        <Link href="/" className="mb-6 flex items-center justify-center gap-2">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-strong text-sm font-bold text-white">
+            LM
+          </span>
+          <span className="font-semibold tracking-tight">LocalMediaKit</span>
+        </Link>
+
+        <Card className="p-6">
+          <h1 className="text-xl font-semibold tracking-tight">Hesap olustur</h1>
+          <p className="mt-1 text-sm text-muted">Ilk medya kitinizi dakikalar icinde yayinlayin.</p>
+
+          <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
+            <div className="grid gap-1.5">
+              <Label htmlFor="name">Ad</Label>
+              <Input id="name" placeholder="Adiniz" value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)} required />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" placeholder="siz@ornek.com" value={email}
+                onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="password">Sifre</Label>
+              <Input id="password" type="password" placeholder="En az 8 karakter" value={password}
+                onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+            <Button type="submit" disabled={busy} className="w-full">
+              {busy ? "..." : "Kayit ol"}
+            </Button>
+          </form>
+
+          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+        </Card>
+
+        <p className="mt-4 text-center text-sm text-muted">
+          Zaten hesabin var mi?{" "}
+          <Link href="/login" className="font-medium text-brand hover:underline">
+            Giris yap
+          </Link>
+        </p>
+      </div>
     </main>
   );
 }

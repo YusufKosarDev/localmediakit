@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { GeistSans } from "geist/font/sans";
+import "./globals.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://localmediakit.vercel.app";
 
@@ -26,8 +28,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="tr">
-      <body style={{ margin: 0 }}>{children}</body>
+    <html lang="tr" className={GeistSans.variable}>
+      <body className="min-h-screen bg-page text-fg font-sans antialiased">
+        {children}
+      </body>
     </html>
   );
 }

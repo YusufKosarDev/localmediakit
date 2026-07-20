@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { Sparkles } from "lucide-react";
+import { Button, Card, Input, Label } from "@/app/_components/ui";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
-// Public demo credentials — the demo account is meant to be shared and is reset
-// nightly on the backend.
 const DEMO_EMAIL = "demo@localmediakit.app";
 const DEMO_PASSWORD = "demo1234";
 
@@ -43,37 +44,64 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: 40, maxWidth: 360 }}>
-      <h1>Giris</h1>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          login(email, password);
-        }}
-        style={{ display: "grid", gap: 10 }}
-      >
-        <input type="email" placeholder="email" value={email}
-          onChange={(e) => setEmail(e.target.value)} required />
-        <input type="password" placeholder="sifre" value={password}
-          onChange={(e) => setPassword(e.target.value)} required />
-        <button type="submit" disabled={busy}>{busy ? "..." : "Giris yap"}</button>
-      </form>
+    <main className="grid min-h-screen place-items-center px-6 py-12">
+      <div className="w-full max-w-sm">
+        <Link href="/" className="mb-6 flex items-center justify-center gap-2">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-strong text-sm font-bold text-white">
+            LM
+          </span>
+          <span className="font-semibold tracking-tight">LocalMediaKit</span>
+        </Link>
 
-      <div style={{ margin: "16px 0", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
-        <button
-          onClick={() => login(DEMO_EMAIL, DEMO_PASSWORD)}
-          disabled={busy}
-          style={{ fontWeight: 600, padding: "8px 14px", cursor: busy ? "default" : "pointer" }}
-        >
-          Demo olarak gez
-        </button>
-        <p style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>
-          Dolu bir PRO hesapla panoyu kesfedin (gece sifirlanir).
+        <Card className="p-6">
+          <h1 className="text-xl font-semibold tracking-tight">Giris yap</h1>
+          <p className="mt-1 text-sm text-muted">Panonuza erisin.</p>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              login(email, password);
+            }}
+            className="mt-5 grid gap-4"
+          >
+            <div className="grid gap-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" placeholder="siz@ornek.com" value={email}
+                onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="password">Sifre</Label>
+              <Input id="password" type="password" placeholder="••••••••" value={password}
+                onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+            <Button type="submit" disabled={busy} className="w-full">
+              {busy ? "..." : "Giris yap"}
+            </Button>
+          </form>
+
+          <div className="my-5 flex items-center gap-3 text-xs text-faint">
+            <span className="h-px flex-1 bg-line" /> veya <span className="h-px flex-1 bg-line" />
+          </div>
+
+          <Button variant="secondary" className="w-full" disabled={busy}
+            onClick={() => login(DEMO_EMAIL, DEMO_PASSWORD)}>
+            <Sparkles className="h-4 w-4 text-brand" />
+            Demo olarak gez
+          </Button>
+          <p className="mt-2 text-center text-xs text-faint">
+            Dolu bir PRO hesabiyla panoyu kesfedin (gece sifirlanir).
+          </p>
+
+          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+        </Card>
+
+        <p className="mt-4 text-center text-sm text-muted">
+          Hesabin yok mu?{" "}
+          <Link href="/register" className="font-medium text-brand hover:underline">
+            Kayit ol
+          </Link>
         </p>
       </div>
-
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
-      <p>Hesabin yok mu? <a href="/register">Kayit ol</a></p>
     </main>
   );
 }
