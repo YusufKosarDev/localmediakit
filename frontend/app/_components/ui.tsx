@@ -49,6 +49,41 @@ export const Input = React.forwardRef<
   );
 });
 
+export const Select = React.forwardRef<
+  HTMLSelectElement,
+  React.SelectHTMLAttributes<HTMLSelectElement>
+>(function Select({ className, ...props }, ref) {
+  return (
+    <select
+      ref={ref}
+      className={cn(
+        "h-10 rounded-xl border border-line bg-surface px-3 text-sm text-fg transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:border-brand/50",
+        className
+      )}
+      {...props}
+    />
+  );
+});
+
+export const Textarea = React.forwardRef<
+  HTMLTextAreaElement,
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>
+>(function Textarea({ className, ...props }, ref) {
+  return (
+    <textarea
+      ref={ref}
+      className={cn(
+        "w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-fg",
+        "placeholder:text-faint transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:border-brand/50",
+        className
+      )}
+      {...props}
+    />
+  );
+});
+
 export function Card({
   className,
   ...props

@@ -1,100 +1,79 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Send, Trash2, Lock, Unlock, ExternalLink, Plus, ArrowUp, ArrowDown,
+  RefreshCw, Crown, LogOut, Eye, Sparkles, Globe, X,
+} from "lucide-react";
+import { Button, Card, Input, Select, Badge, Label } from "@/app/_components/ui";
+import { ViewsTrend, ReferrerBars, DeviceBars } from "./_AnalyticsCharts";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
 type Me = { id: number; email: string; displayName: string; plan: string };
 type Kit = {
-  id: number;
-  slug: string;
-  title: string;
-  headline: string | null;
-  avatarUrl: string | null;
-  theme: string;
-  status: string;
-  publishedSlug: string | null;
-  passwordProtected: boolean;
+  id: number; slug: string; title: string; headline: string | null;
+  avatarUrl: string | null; theme: string; status: string;
+  publishedSlug: string | null; passwordProtected: boolean;
 };
-
-type Version = {
-  version: number;
-  slug: string;
-  publishedAt: string;
-  active: boolean;
-};
-
+type Version = { version: number; slug: string; publishedAt: string; active: boolean };
 type Stat = {
-  platform: string;
-  followers: number;
-  avgViews: number | null;
-  avgLikes: number | null;
-  avgComments: number | null;
-  engagementRate: number | null;
-  followerGrowth30d: number | null;
-  recordedAt: string;
+  platform: string; followers: number; avgViews: number | null; avgLikes: number | null;
+  avgComments: number | null; engagementRate: number | null; followerGrowth30d: number | null;
 };
-
 type DemoEntry = { category: string; label: string; percentage: number | string };
-
 type Domain = {
-  id: number;
-  domain: string;
-  status: string;
-  attempts: number;
-  lastCheckedAt: string | null;
-  dnsRecordType: string;
-  dnsRecordHost: string;
-  dnsRecordValue: string;
+  id: number; domain: string; status: string; attempts: number; lastCheckedAt: string | null;
+  dnsRecordType: string; dnsRecordHost: string; dnsRecordValue: string;
 };
-
 type Analytics = {
-  plan: string;
-  totalViews: number;
-  uniqueVisitors: number | null;
+  plan: string; totalViews: number; uniqueVisitors: number | null;
   viewsByDay: { date: string; views: number; uniqueVisitors: number }[] | null;
   referrers: { label: string; count: number }[] | null;
   devices: { label: string; count: number }[] | null;
 };
-
 type Collab = {
-  id: number;
-  brandName: string;
-  campaign: string | null;
-  period: string | null;
-  resultNote: string | null;
-  logoUrl: string | null;
-  displayOrder: number;
+  id: number; brandName: string; campaign: string | null; period: string | null;
+  resultNote: string | null; logoUrl: string | null; displayOrder: number;
 };
+type Billing = { plan: string; subscriptionStatus: string | null; currentPeriodEnd: string | null; stripeEnabled: boolean };
+type Tab = "edit" | "stats" | "collabs" | "analytics" | "versions" | "domain";
 
 const PLATFORMS = ["YOUTUBE", "INSTAGRAM", "TIKTOK"];
 const CATEGORIES = ["AGE", "GENDER", "COUNTRY"];
 const emptyStatForm = { platform: "YOUTUBE", followers: "", avgViews: "", avgLikes: "", avgComments: "" };
+const TABS: { id: Tab; label: string }[] = [
+  { id: "edit", label: "Duzenle" },
+  { id: "stats", label: "Istatistik & Kitle" },
+  { id: "collabs", label: "Isbirlikleri" },
+  { id: "analytics", label: "Analitik" },
+  { id: "versions", label: "Versiyonlar" },
+  { id: "domain", label: "Domain" },
+];
 
 function authHeaders(): HeadersInit {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   return { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` };
 }
+const nf = (n: number) => n.toLocaleString("tr-TR");
 
 export default function DashboardPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [kits, setKits] = useState<Kit[]>([]);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [form, setForm] = useState({ title: "", headline: "", avatarUrl: "", theme: "light", slug: "" });
+  const [active, setActive] = useState<{ kitId: number; tab: Tab } | null>(null);
   const [versions, setVersions] = useState<Version[]>([]);
-  const [versionsFor, setVersionsFor] = useState<number | null>(null);
-  const [statsFor, setStatsFor] = useState<number | null>(null);
   const [stats, setStats] = useState<Stat[]>([]);
   const [statForm, setStatForm] = useState({ ...emptyStatForm });
   const [demoEntries, setDemoEntries] = useState<DemoEntry[]>([]);
   const [collabs, setCollabs] = useState<Collab[]>([]);
-  const [analyticsFor, setAnalyticsFor] = useState<number | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [domainsFor, setDomainsFor] = useState<number | null>(null);
   const [domains, setDomains] = useState<Domain[]>([]);
   const [domainInput, setDomainInput] = useState("");
-  const [billing, setBilling] = useState<{ plan: string; subscriptionStatus: string | null; currentPeriodEnd: string | null; stripeEnabled: boolean } | null>(null);
-  const [upgradeNote, setUpgradeNote] = useState("");
+  const [billing, setBilling] = useState<Billing | null>(null);
   const [collabForm, setCollabForm] = useState({ brandName: "", campaign: "", period: "", resultNote: "" });
 
   const loadKits = useCallback(async () => {
@@ -120,17 +99,13 @@ export default function DashboardPage() {
       .then((data) => data && setBilling(data))
       .catch(() => {});
     const upgrade = new URLSearchParams(window.location.search).get("upgrade");
-    if (upgrade === "success") {
-      setUpgradeNote("Odeme alindi (test modu). Planiniz webhook ile birkac saniye icinde PRO olur; sayfayi yenileyin.");
-    } else if (upgrade === "cancelled") {
-      setUpgradeNote("Odeme iptal edildi; planiniz degismedi.");
-    }
+    if (upgrade === "success") setNotice("Odeme alindi (test modu). Plan birkac saniye icinde PRO olur; yenileyin.");
+    else if (upgrade === "cancelled") setNotice("Odeme iptal edildi; plan degismedi.");
   }, [loadKits]);
 
   async function startUpgrade() {
     setError("");
     if (billing?.stripeEnabled) {
-      // Real flow: hosted Stripe Checkout (test mode).
       const res = await fetch(`${BACKEND}/api/billing/checkout`, { method: "POST", headers: authHeaders() });
       if (res.ok) {
         const data = await res.json();
@@ -141,7 +116,6 @@ export default function DashboardPage() {
       }
       return;
     }
-    // Demo flow (Stripe not configured): direct plan switch, no payment.
     await demoPlanSwitch("demo-upgrade");
   }
 
@@ -152,9 +126,7 @@ export default function DashboardPage() {
       const data = await res.json();
       setBilling(data);
       setMe((prev) => (prev ? { ...prev, plan: data.plan } : prev));
-      setUpgradeNote(data.plan === "PRO"
-        ? "Plan PRO yapildi (demo modu — gercek odeme yok)."
-        : "Plan FREE yapildi (demo modu).");
+      setNotice(data.plan === "PRO" ? "Plan PRO yapildi (demo modu — gercek odeme yok)." : "Plan FREE yapildi (demo modu).");
       await loadKits();
     } else {
       const data = await res.json().catch(() => null);
@@ -166,9 +138,7 @@ export default function DashboardPage() {
     e.preventDefault();
     setError("");
     const res = await fetch(`${BACKEND}/api/mediakits`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify(form),
+      method: "POST", headers: authHeaders(), body: JSON.stringify(form),
     });
     if (res.status === 201) {
       setForm({ title: "", headline: "", avatarUrl: "", theme: "light", slug: "" });
@@ -182,114 +152,56 @@ export default function DashboardPage() {
   async function saveKit(kit: Kit) {
     setError("");
     const res = await fetch(`${BACKEND}/api/mediakits/${kit.id}`, {
-      method: "PUT",
-      headers: authHeaders(),
-      body: JSON.stringify({
-        title: kit.title,
-        headline: kit.headline,
-        avatarUrl: kit.avatarUrl,
-        theme: kit.theme,
-        slug: kit.slug,
-      }),
+      method: "PUT", headers: authHeaders(),
+      body: JSON.stringify({ title: kit.title, headline: kit.headline, avatarUrl: kit.avatarUrl, theme: kit.theme, slug: kit.slug }),
     });
-    if (res.ok) {
-      await loadKits();
-    } else {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Kaydedilemedi (HTTP ${res.status})`);
-    }
+    if (res.ok) { setNotice("Kaydedildi."); await loadKits(); }
+    else { const d = await res.json().catch(() => null); setError(d?.error ?? `Kaydedilemedi (HTTP ${res.status})`); }
   }
 
   async function publishKit(id: number) {
     setError("");
-    const res = await fetch(`${BACKEND}/api/mediakits/${id}/publish`, {
-      method: "POST",
-      headers: authHeaders(),
-    });
+    const res = await fetch(`${BACKEND}/api/mediakits/${id}/publish`, { method: "POST", headers: authHeaders() });
     if (res.ok) {
+      setNotice("Yayinlandi.");
       await loadKits();
-      if (versionsFor === id) await loadVersions(id);
-    } else {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Yayinlanamadi (HTTP ${res.status})`);
-    }
+      if (active?.kitId === id && active.tab === "versions") await loadVersions(id);
+    } else { const d = await res.json().catch(() => null); setError(d?.error ?? `Yayinlanamadi (HTTP ${res.status})`); }
   }
 
   async function loadVersions(id: number) {
     const res = await fetch(`${BACKEND}/api/mediakits/${id}/versions`, { headers: authHeaders() });
-    if (res.ok) {
-      setVersions(await res.json());
-      setVersionsFor(id);
-    }
+    if (res.ok) setVersions(await res.json());
   }
-
   async function activateVersion(kitId: number, version: number) {
     setError("");
-    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/versions/${version}/activate`, {
-      method: "POST",
-      headers: authHeaders(),
-    });
-    if (res.ok) {
-      await loadKits();
-      await loadVersions(kitId);
-    } else {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Versiyona donulemedi (HTTP ${res.status})`);
-    }
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/versions/${version}/activate`, { method: "POST", headers: authHeaders() });
+    if (res.ok) { await loadKits(); await loadVersions(kitId); }
+    else { const d = await res.json().catch(() => null); setError(d?.error ?? `Versiyona donulemedi (HTTP ${res.status})`); }
   }
 
   async function loadDomains(kitId: number) {
-    setError("");
     const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/domains`, { headers: authHeaders() });
-    if (res.ok) {
-      setDomains(await res.json());
-      setDomainInput("");
-      setDomainsFor(kitId);
-    } else {
-      setError(`Domainler yuklenemedi (HTTP ${res.status})`);
-    }
+    if (res.ok) { setDomains(await res.json()); setDomainInput(""); }
   }
-
   async function addDomain(kitId: number, e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
+    e.preventDefault(); setError("");
     const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/domains`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ domain: domainInput }),
+      method: "POST", headers: authHeaders(), body: JSON.stringify({ domain: domainInput }),
     });
-    if (res.status === 201) {
-      setDomainInput("");
-      await loadDomains(kitId);
-    } else if (res.status === 403) {
-      setError("Custom domain PRO ozelligidir.");
-    } else {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Domain eklenemedi (HTTP ${res.status})`);
-    }
+    if (res.status === 201) { setDomainInput(""); await loadDomains(kitId); }
+    else if (res.status === 403) setError("Custom domain PRO ozelligidir.");
+    else { const d = await res.json().catch(() => null); setError(d?.error ?? `Domain eklenemedi (HTTP ${res.status})`); }
   }
-
   async function checkDomain(kitId: number, domainId: number) {
     setError("");
-    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/domains/${domainId}/check`, {
-      method: "POST",
-      headers: authHeaders(),
-    });
-    if (res.ok) {
-      await loadDomains(kitId);
-    } else {
-      setError(`Kontrol edilemedi (HTTP ${res.status})`);
-    }
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/domains/${domainId}/check`, { method: "POST", headers: authHeaders() });
+    if (res.ok) await loadDomains(kitId); else setError(`Kontrol edilemedi (HTTP ${res.status})`);
   }
-
   async function deleteDomain(kitId: number, domainId: number) {
     setError("");
-    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/domains/${domainId}`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-    if (res.status === 204) await loadDomains(kitId);
-    else setError(`Silinemedi (HTTP ${res.status})`);
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/domains/${domainId}`, { method: "DELETE", headers: authHeaders() });
+    if (res.status === 204) await loadDomains(kitId); else setError(`Silinemedi (HTTP ${res.status})`);
   }
 
   async function setKitPassword(kitId: number) {
@@ -297,33 +209,17 @@ export default function DashboardPage() {
     const pw = window.prompt("Bu kit icin sifre belirleyin (en az 4 karakter):");
     if (pw == null) return;
     const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/password`, {
-      method: "PUT",
-      headers: authHeaders(),
-      body: JSON.stringify({ password: pw }),
+      method: "PUT", headers: authHeaders(), body: JSON.stringify({ password: pw }),
     });
-    if (res.status === 204) {
-      await loadKits();
-      setError("Sifre kaydedildi. Public sayfaya yansimasi icin Yayinla.");
-    } else if (res.status === 403) {
-      setError("Sifre korumasi PRO ozelligidir.");
-    } else {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Sifre belirlenemedi (HTTP ${res.status})`);
-    }
+    if (res.status === 204) { await loadKits(); setNotice("Sifre kaydedildi. Public sayfaya yansimasi icin Yayinla."); }
+    else if (res.status === 403) setError("Sifre korumasi PRO ozelligidir.");
+    else { const d = await res.json().catch(() => null); setError(d?.error ?? `Sifre belirlenemedi (HTTP ${res.status})`); }
   }
-
   async function removeKitPassword(kitId: number) {
     setError("");
-    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/password`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-    if (res.status === 204) {
-      await loadKits();
-      setError("Sifre kaldirildi. Public sayfaya yansimasi icin Yayinla.");
-    } else {
-      setError(`Sifre kaldirilamadi (HTTP ${res.status})`);
-    }
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/password`, { method: "DELETE", headers: authHeaders() });
+    if (res.status === 204) { await loadKits(); setNotice("Sifre kaldirildi. Public sayfaya yansimasi icin Yayinla."); }
+    else setError(`Sifre kaldirilamadi (HTTP ${res.status})`);
   }
 
   async function loadStatsPanel(id: number) {
@@ -337,474 +233,428 @@ export default function DashboardPage() {
     if (cRes.ok) setCollabs(await cRes.json());
     setStatForm({ ...emptyStatForm });
     setCollabForm({ brandName: "", campaign: "", period: "", resultNote: "" });
-    setStatsFor(id);
   }
-
   async function loadAnalytics(kitId: number) {
     setError("");
     const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/analytics`, { headers: authHeaders() });
-    if (res.ok) {
-      setAnalytics(await res.json());
-      setAnalyticsFor(kitId);
-    } else {
-      setError(`Analitik yuklenemedi (HTTP ${res.status})`);
-    }
+    if (res.ok) setAnalytics(await res.json()); else setError(`Analitik yuklenemedi (HTTP ${res.status})`);
   }
 
-  async function addCollab(kitId: number, e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/collaborations`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ ...collabForm, displayOrder: collabs.length }),
+  async function addStat(kitId: number, e: React.FormEvent) {
+    e.preventDefault(); setError("");
+    const num = (v: string) => (v === "" ? null : Number(v));
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/stats`, {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ platform: statForm.platform, followers: num(statForm.followers), avgViews: num(statForm.avgViews), avgLikes: num(statForm.avgLikes), avgComments: num(statForm.avgComments) }),
     });
-    if (res.status === 201) {
-      await loadStatsPanel(kitId);
-    } else {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Isbirligi eklenemedi (HTTP ${res.status})`);
-    }
+    if (res.status === 201) await loadStatsPanel(kitId);
+    else { const d = await res.json().catch(() => null); setError(d?.error ?? `Istatistik eklenemedi (HTTP ${res.status})`); }
   }
-
+  async function saveDemographics(kitId: number) {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/demographics`, {
+      method: "PUT", headers: authHeaders(),
+      body: JSON.stringify({ entries: demoEntries.map((d) => ({ ...d, percentage: Number(d.percentage) })) }),
+    });
+    if (res.ok) { setDemoEntries(await res.json()); setNotice("Demografi kaydedildi."); }
+    else { const d = await res.json().catch(() => null); setError(d?.error ?? `Demografi kaydedilemedi (HTTP ${res.status})`); }
+  }
+  async function addCollab(kitId: number, e: React.FormEvent) {
+    e.preventDefault(); setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/collaborations`, {
+      method: "POST", headers: authHeaders(), body: JSON.stringify({ ...collabForm, displayOrder: collabs.length }),
+    });
+    if (res.status === 201) await loadStatsPanel(kitId);
+    else { const d = await res.json().catch(() => null); setError(d?.error ?? `Isbirligi eklenemedi (HTTP ${res.status})`); }
+  }
   async function saveCollab(kitId: number, col: Collab) {
     setError("");
     const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/collaborations/${col.id}`, {
-      method: "PUT",
-      headers: authHeaders(),
-      body: JSON.stringify({
-        brandName: col.brandName,
-        campaign: col.campaign,
-        period: col.period,
-        resultNote: col.resultNote,
-        logoUrl: col.logoUrl,
-        displayOrder: col.displayOrder,
-      }),
+      method: "PUT", headers: authHeaders(),
+      body: JSON.stringify({ brandName: col.brandName, campaign: col.campaign, period: col.period, resultNote: col.resultNote, logoUrl: col.logoUrl, displayOrder: col.displayOrder }),
     });
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Kaydedilemedi (HTTP ${res.status})`);
-    }
+    if (!res.ok) { const d = await res.json().catch(() => null); setError(d?.error ?? `Kaydedilemedi (HTTP ${res.status})`); }
     return res.ok;
   }
-
   async function moveCollab(kitId: number, index: number, dir: -1 | 1) {
     const other = index + dir;
     if (other < 0 || other >= collabs.length) return;
     const a = { ...collabs[index], displayOrder: other };
     const b = { ...collabs[other], displayOrder: index };
-    if ((await saveCollab(kitId, a)) && (await saveCollab(kitId, b))) {
-      await loadStatsPanel(kitId);
-    }
+    if ((await saveCollab(kitId, a)) && (await saveCollab(kitId, b))) await loadStatsPanel(kitId);
   }
-
   async function deleteCollab(kitId: number, collabId: number) {
     setError("");
-    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/collaborations/${collabId}`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-    if (res.status === 204) await loadStatsPanel(kitId);
-    else setError(`Silinemedi (HTTP ${res.status})`);
-  }
-
-  async function addStat(kitId: number, e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    const num = (v: string) => (v === "" ? null : Number(v));
-    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/stats`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({
-        platform: statForm.platform,
-        followers: num(statForm.followers),
-        avgViews: num(statForm.avgViews),
-        avgLikes: num(statForm.avgLikes),
-        avgComments: num(statForm.avgComments),
-      }),
-    });
-    if (res.status === 201) {
-      await loadStatsPanel(kitId);
-    } else {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Istatistik eklenemedi (HTTP ${res.status})`);
-    }
-  }
-
-  async function saveDemographics(kitId: number) {
-    setError("");
-    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/demographics`, {
-      method: "PUT",
-      headers: authHeaders(),
-      body: JSON.stringify({
-        entries: demoEntries.map((d) => ({ ...d, percentage: Number(d.percentage) })),
-      }),
-    });
-    if (res.ok) {
-      setDemoEntries(await res.json());
-    } else {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Demografi kaydedilemedi (HTTP ${res.status})`);
-    }
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/collaborations/${collabId}`, { method: "DELETE", headers: authHeaders() });
+    if (res.status === 204) await loadStatsPanel(kitId); else setError(`Silinemedi (HTTP ${res.status})`);
   }
 
   async function deleteKit(id: number) {
     setError("");
+    if (!window.confirm("Bu kiti silmek istediginize emin misiniz?")) return;
     const res = await fetch(`${BACKEND}/api/mediakits/${id}`, { method: "DELETE", headers: authHeaders() });
-    if (res.status === 204) await loadKits();
+    if (res.status === 204) { if (active?.kitId === id) setActive(null); await loadKits(); }
     else setError(`Silinemedi (HTTP ${res.status})`);
   }
 
   function updateKitField(id: number, field: keyof Kit, value: string) {
     setKits((prev) => prev.map((k) => (k.id === id ? { ...k, [field]: value } : k)));
   }
+  function logout() { localStorage.removeItem("token"); window.location.href = "/login"; }
 
-  function logout() {
-    localStorage.removeItem("token");
-    window.location.href = "/login";
+  async function openTab(kit: Kit, tab: Tab) {
+    setNotice(""); setError("");
+    if (active?.kitId === kit.id && active.tab === tab) { setActive(null); return; }
+    setActive({ kitId: kit.id, tab });
+    if (tab === "stats" || tab === "collabs") await loadStatsPanel(kit.id);
+    else if (tab === "analytics") await loadAnalytics(kit.id);
+    else if (tab === "versions") await loadVersions(kit.id);
+    else if (tab === "domain") await loadDomains(kit.id);
   }
 
   if (!me) {
     return (
-      <main style={{ fontFamily: "system-ui, sans-serif", padding: 40 }}>
-        <p style={{ color: "crimson" }}>{error || "Yukleniyor..."}</p>
-        <p><a href="/login">Giris yap</a></p>
+      <main className="grid min-h-screen place-items-center px-6 text-center">
+        <div>
+          <p className="text-muted">{error || "Yukleniyor..."}</p>
+          <Link href="/login" className="mt-3 inline-block font-medium text-brand hover:underline">Giris yap</Link>
+        </div>
       </main>
     );
   }
+  const isPro = me.plan === "PRO";
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: 40, maxWidth: 720 }}>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <div>Merhaba <strong>{me.displayName}</strong> ({me.plan}) — {me.email}</div>
-        <button onClick={logout}>Cikis</button>
-      </div>
-      <div style={{ border: "1px solid #ccc", padding: 10, marginTop: 10 }}>
-        {me.plan === "PRO" ? (
-          <div>
-            <strong>Plan: PRO</strong>
-            {billing?.currentPeriodEnd && (
-              <small> — donem sonu: {new Date(billing.currentPeriodEnd).toLocaleDateString("tr-TR")}</small>
-            )}
-            {billing?.subscriptionStatus && <small> — durum: {billing.subscriptionStatus}</small>}
-            {billing?.stripeEnabled ? (
-              <div><small>Iptal/degisiklik Stripe test panelinden yapilir.</small></div>
-            ) : (
-              <div style={{ marginTop: 4 }}>
-                <button onClick={() => demoPlanSwitch("demo-downgrade")}>
-                  FREE'ye don (demo)
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <span><strong>Plan: FREE</strong> — 1 kit, toplam sayac, sayfada rozet.</span>
-            <button onClick={startUpgrade} style={{ fontWeight: 600 }}>
-              {billing?.stripeEnabled
-                ? "PRO'ya gec — $7/ay (TEST MODU, gercek odeme yok)"
-                : "PRO'ya gec (demo — gercek odeme yok)"}
-            </button>
-          </div>
-        )}
-        {upgradeNote && <div style={{ color: "#15803d", marginTop: 6 }}>{upgradeNote}</div>}
-      </div>
-
-      <h2>Yeni medya kiti</h2>
-      <form onSubmit={createKit} style={{ display: "grid", gap: 6, maxWidth: 420 }}>
-        <input placeholder="baslik *" value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-        <input placeholder="headline" value={form.headline}
-          onChange={(e) => setForm({ ...form, headline: e.target.value })} />
-        <input placeholder="avatar url" value={form.avatarUrl}
-          onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} />
-        <input placeholder="tema (light/dark)" value={form.theme}
-          onChange={(e) => setForm({ ...form, theme: e.target.value })} />
-        <input placeholder="slug (opsiyonel)" value={form.slug}
-          onChange={(e) => setForm({ ...form, slug: e.target.value })} />
-        <button type="submit">Olustur</button>
-      </form>
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
-
-      <h2>Kitlerim ({kits.length})</h2>
-      {kits.map((kit) => (
-        <div key={kit.id} style={{ border: "1px solid #ccc", padding: 12, marginBottom: 10 }}>
-          <div>
-            <small>
-              #{kit.id} — durum: <strong>{kit.status}</strong>
-              {kit.passwordProtected && <> — 🔒 sifreli</>}
-              {kit.publishedSlug && (
-                <>
-                  {" — canli: "}
-                  <a href={`/${kit.publishedSlug}`} target="_blank" rel="noreferrer">
-                    /{kit.publishedSlug}
-                  </a>
-                </>
-              )}
-            </small>
-          </div>
-          <div style={{ display: "grid", gap: 6, maxWidth: 420, marginTop: 6 }}>
-            <input value={kit.title} onChange={(e) => updateKitField(kit.id, "title", e.target.value)} />
-            <input placeholder="headline" value={kit.headline ?? ""}
-              onChange={(e) => updateKitField(kit.id, "headline", e.target.value)} />
-            <input placeholder="avatar url" value={kit.avatarUrl ?? ""}
-              onChange={(e) => updateKitField(kit.id, "avatarUrl", e.target.value)} />
-            <input value={kit.theme} onChange={(e) => updateKitField(kit.id, "theme", e.target.value)} />
-            <input value={kit.slug} onChange={(e) => updateKitField(kit.id, "slug", e.target.value)} />
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => saveKit(kit)}>Kaydet</button>
-              <button onClick={() => publishKit(kit.id)} style={{ fontWeight: 600 }}>
-                Yayinla
-              </button>
-              <button onClick={() =>
-                versionsFor === kit.id ? setVersionsFor(null) : loadVersions(kit.id)
-              }>
-                Versiyonlar
-              </button>
-              <button onClick={() =>
-                statsFor === kit.id ? setStatsFor(null) : loadStatsPanel(kit.id)
-              }>
-                Istatistik & Kitle
-              </button>
-              <button onClick={() =>
-                analyticsFor === kit.id ? setAnalyticsFor(null) : loadAnalytics(kit.id)
-              }>
-                Analitik
-              </button>
-              {kit.passwordProtected ? (
-                <button onClick={() => removeKitPassword(kit.id)}>Sifreyi kaldir</button>
-              ) : (
-                <button onClick={() => setKitPassword(kit.id)}
-                  title={me.plan === "PRO" ? "" : "PRO ozelligi"}>
-                  🔒 Sifre koy{me.plan === "PRO" ? "" : " (PRO)"}
-                </button>
-              )}
-              <button onClick={() =>
-                domainsFor === kit.id ? setDomainsFor(null) : loadDomains(kit.id)
-              }>
-                Domain (yakinda)
-              </button>
-              <button onClick={() => deleteKit(kit.id)}>Sil</button>
-            </div>
-            {domainsFor === kit.id && (
-              <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
-                <strong style={{ fontSize: 14 }}>Custom domain</strong>{" "}
-                <span style={{
-                  fontSize: 11, padding: "1px 6px", borderRadius: 999,
-                  background: "#fef3c7", color: "#92400e",
-                }}>
-                  YAKINDA
-                </span>
-                <p style={{ fontSize: 12, color: "#666", margin: "4px 0" }}>
-                  Kendi alan adinizi baglama ozelligi gelistirme asamasinda. DNS dogrulama
-                  altyapisi (asenkron scheduled job) burada calisir; domain baglama henuz aktif degil.
-                </p>
-                <form onSubmit={(e) => addDomain(kit.id, e)} style={{ display: "flex", gap: 6 }}>
-                  <input placeholder="ornek: medyakit.alanadim.com" value={domainInput}
-                    onChange={(e) => setDomainInput(e.target.value)} style={{ width: 240 }} required />
-                  <button type="submit">Ekle</button>
-                </form>
-                {domains.map((d) => (
-                  <div key={d.id} style={{ marginTop: 6, fontSize: 13 }}>
-                    <div>
-                      <strong>{d.domain}</strong> —{" "}
-                      <span style={{
-                        color: d.status === "VERIFIED" ? "#15803d"
-                          : d.status === "FAILED" ? "#b91c1c" : "#92400e",
-                      }}>
-                        {d.status}
-                      </span>
-                      {d.lastCheckedAt && (
-                        <small style={{ color: "#666" }}>
-                          {" "}— son kontrol: {new Date(d.lastCheckedAt).toLocaleString("tr-TR")} ({d.attempts})
-                        </small>
-                      )}
-                    </div>
-                    {d.status !== "VERIFIED" && (
-                      <div style={{ fontSize: 12, color: "#444", background: "#f6f7f9", padding: 8, borderRadius: 6, marginTop: 4 }}>
-                        DNS saglayicaniza su kaydi ekleyin:
-                        <div><code>{d.dnsRecordType} {d.dnsRecordHost} = {d.dnsRecordValue}</code></div>
-                      </div>
-                    )}
-                    <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                      <button onClick={() => checkDomain(kit.id, d.id)}>Simdi kontrol et</button>
-                      <button onClick={() => deleteDomain(kit.id, d.id)}>Kaldir</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {analyticsFor === kit.id && analytics && (
-              <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
-                <strong style={{ fontSize: 14 }}>Ziyaretci analitigi</strong>
-                <div style={{ fontSize: 28, fontWeight: 700 }}>
-                  {analytics.totalViews.toLocaleString("tr-TR")}
-                  <span style={{ fontSize: 14, fontWeight: 400, color: "#666" }}> toplam goruntulenme</span>
-                </div>
-                {analytics.plan !== "PRO" && (
-                  <small style={{ color: "#666" }}>
-                    Tekil ziyaretci, gunluk grafik, referrer ve cihaz kirilimi PRO planda.
-                  </small>
-                )}
-                {analytics.plan === "PRO" && (
-                  <div style={{ fontSize: 13 }}>
-                    <div>Tekil ziyaretci: <strong>{analytics.uniqueVisitors?.toLocaleString("tr-TR")}</strong></div>
-                    {analytics.viewsByDay && analytics.viewsByDay.length > 0 && (
-                      <div style={{ marginTop: 6 }}>
-                        <div style={{ color: "#666" }}>Son 30 gun:</div>
-                        <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 60 }}>
-                          {analytics.viewsByDay.map((d) => {
-                            const max = Math.max(...analytics.viewsByDay!.map((x) => x.views));
-                            return (
-                              <div key={d.date}
-                                title={`${d.date}: ${d.views} goruntulenme, ${d.uniqueVisitors} tekil`}
-                                style={{
-                                  width: 14,
-                                  height: Math.max(4, (d.views / max) * 56),
-                                  background: "#2563eb",
-                                  borderRadius: 2,
-                                }} />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    {analytics.referrers && analytics.referrers.length > 0 && (
-                      <div style={{ marginTop: 6 }}>
-                        <span style={{ color: "#666" }}>Kaynaklar: </span>
-                        {analytics.referrers.map((r) => `${r.label} (${r.count})`).join(", ")}
-                      </div>
-                    )}
-                    {analytics.devices && analytics.devices.length > 0 && (
-                      <div>
-                        <span style={{ color: "#666" }}>Cihazlar: </span>
-                        {analytics.devices.map((d) => `${d.label} (${d.count})`).join(", ")}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-            {statsFor === kit.id && (
-              <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
-                <strong style={{ fontSize: 14 }}>Platform istatistikleri</strong>
-                {stats.length === 0 && <div><small>Henuz istatistik yok.</small></div>}
-                {stats.map((s) => (
-                  <div key={s.platform}>
-                    <small>
-                      {s.platform}: {s.followers.toLocaleString("tr-TR")} takipci
-                      {s.engagementRate != null && <> — etkilesim %{s.engagementRate}</>}
-                      {s.followerGrowth30d != null && (
-                        <> — 30 gun: {s.followerGrowth30d >= 0 ? "+" : ""}{s.followerGrowth30d}%</>
-                      )}
-                    </small>
-                  </div>
-                ))}
-                <form onSubmit={(e) => addStat(kit.id, e)}
-                  style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
-                  <select value={statForm.platform}
-                    onChange={(e) => setStatForm({ ...statForm, platform: e.target.value })}>
-                    {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                  <input required type="number" min={0} placeholder="takipci *" style={{ width: 90 }}
-                    value={statForm.followers}
-                    onChange={(e) => setStatForm({ ...statForm, followers: e.target.value })} />
-                  <input type="number" min={0} placeholder="ort. izlenme" style={{ width: 90 }}
-                    value={statForm.avgViews}
-                    onChange={(e) => setStatForm({ ...statForm, avgViews: e.target.value })} />
-                  <input type="number" min={0} placeholder="ort. begeni" style={{ width: 90 }}
-                    value={statForm.avgLikes}
-                    onChange={(e) => setStatForm({ ...statForm, avgLikes: e.target.value })} />
-                  <input type="number" min={0} placeholder="ort. yorum" style={{ width: 90 }}
-                    value={statForm.avgComments}
-                    onChange={(e) => setStatForm({ ...statForm, avgComments: e.target.value })} />
-                  <button type="submit">Olcum ekle</button>
-                </form>
-
-                <strong style={{ fontSize: 14, display: "block", marginTop: 10 }}>Kitle (demografi)</strong>
-                {demoEntries.map((d, i) => (
-                  <div key={i} style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                    <select value={d.category}
-                      onChange={(e) => setDemoEntries(demoEntries.map((x, j) =>
-                        j === i ? { ...x, category: e.target.value } : x))}>
-                      {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-                    </select>
-                    <input placeholder="etiket" value={d.label} style={{ width: 110 }}
-                      onChange={(e) => setDemoEntries(demoEntries.map((x, j) =>
-                        j === i ? { ...x, label: e.target.value } : x))} />
-                    <input type="number" min={0} max={100} step="0.1" placeholder="%" style={{ width: 70 }}
-                      value={d.percentage}
-                      onChange={(e) => setDemoEntries(demoEntries.map((x, j) =>
-                        j === i ? { ...x, percentage: e.target.value } : x))} />
-                    <button onClick={() => setDemoEntries(demoEntries.filter((_, j) => j !== i))}>
-                      Kaldir
-                    </button>
-                  </div>
-                ))}
-                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                  <button onClick={() =>
-                    setDemoEntries([...demoEntries, { category: "AGE", label: "", percentage: "" }])
-                  }>
-                    Satir ekle
-                  </button>
-                  <button onClick={() => saveDemographics(kit.id)}>Demografiyi kaydet</button>
-                </div>
-                <strong style={{ fontSize: 14, display: "block", marginTop: 10 }}>Marka isbirlikleri</strong>
-                {collabs.map((col, i) => (
-                  <div key={col.id} style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4, alignItems: "center" }}>
-                    <input value={col.brandName} placeholder="marka *" style={{ width: 110 }}
-                      onChange={(e) => setCollabs(collabs.map((x, j) => j === i ? { ...x, brandName: e.target.value } : x))} />
-                    <input value={col.campaign ?? ""} placeholder="kampanya" style={{ width: 130 }}
-                      onChange={(e) => setCollabs(collabs.map((x, j) => j === i ? { ...x, campaign: e.target.value } : x))} />
-                    <input value={col.period ?? ""} placeholder="donem" style={{ width: 80 }}
-                      onChange={(e) => setCollabs(collabs.map((x, j) => j === i ? { ...x, period: e.target.value } : x))} />
-                    <input value={col.resultNote ?? ""} placeholder="sonuc" style={{ width: 150 }}
-                      onChange={(e) => setCollabs(collabs.map((x, j) => j === i ? { ...x, resultNote: e.target.value } : x))} />
-                    <button onClick={() => saveCollab(kit.id, col)}>Kaydet</button>
-                    <button onClick={() => moveCollab(kit.id, i, -1)} disabled={i === 0}>↑</button>
-                    <button onClick={() => moveCollab(kit.id, i, 1)} disabled={i === collabs.length - 1}>↓</button>
-                    <button onClick={() => deleteCollab(kit.id, col.id)}>Sil</button>
-                  </div>
-                ))}
-                <form onSubmit={(e) => addCollab(kit.id, e)}
-                  style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
-                  <input required placeholder="marka *" style={{ width: 110 }} value={collabForm.brandName}
-                    onChange={(e) => setCollabForm({ ...collabForm, brandName: e.target.value })} />
-                  <input placeholder="kampanya" style={{ width: 130 }} value={collabForm.campaign}
-                    onChange={(e) => setCollabForm({ ...collabForm, campaign: e.target.value })} />
-                  <input placeholder="donem" style={{ width: 80 }} value={collabForm.period}
-                    onChange={(e) => setCollabForm({ ...collabForm, period: e.target.value })} />
-                  <input placeholder="sonuc" style={{ width: 150 }} value={collabForm.resultNote}
-                    onChange={(e) => setCollabForm({ ...collabForm, resultNote: e.target.value })} />
-                  <button type="submit">Isbirligi ekle</button>
-                </form>
-
-                <small style={{ color: "#666" }}>
-                  Not: degisiklikler public sayfaya ancak Yayinla ile yansir.
-                </small>
-              </div>
-            )}
-            {versionsFor === kit.id && (
-              <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
-                {versions.length === 0 && <small>Henuz yayinlanmamis.</small>}
-                {versions.map((v) => (
-                  <div key={v.version} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <small>
-                      v{v.version} — /{v.slug} — {new Date(v.publishedAt).toLocaleString("tr-TR")}
-                      {v.active && <strong> (yayinda)</strong>}
-                    </small>
-                    {!v.active && (
-                      <button onClick={() => activateVersion(kit.id, v.version)}>
-                        Bu versiyona don
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-10 border-b border-line bg-surface/80 backdrop-blur">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-3">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-strong text-xs font-bold text-white">LM</span>
+            <span className="font-semibold tracking-tight">LocalMediaKit</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Badge tone={isPro ? "brand" : "neutral"}>
+              {isPro && <Crown className="h-3 w-3" />} {me.plan}
+            </Badge>
+            <span className="hidden text-sm text-muted sm:inline">{me.displayName}</span>
+            <Button variant="ghost" size="sm" onClick={logout}><LogOut className="h-4 w-4" /> Cikis</Button>
           </div>
         </div>
-      ))}
-    </main>
+      </header>
+
+      <main className="mx-auto max-w-4xl px-5 py-8">
+        {/* Plan card */}
+        <Card className="mb-6 p-5">
+          {isPro ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 font-medium"><Crown className="h-4 w-4 text-brand" /> PRO plan</div>
+                <p className="mt-0.5 text-sm text-muted">
+                  Sinirsiz kit · detayli analitik · sifre korumasi · rozet yok
+                  {billing?.subscriptionStatus && <> · durum: {billing.subscriptionStatus}</>}
+                  {billing?.currentPeriodEnd && <> · donem sonu: {new Date(billing.currentPeriodEnd).toLocaleDateString("tr-TR")}</>}
+                </p>
+              </div>
+              {!billing?.stripeEnabled && (
+                <Button variant="secondary" size="sm" onClick={() => demoPlanSwitch("demo-downgrade")}>FREE&apos;ye don (demo)</Button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="font-medium">FREE plan</div>
+                <p className="mt-0.5 text-sm text-muted">1 kit · toplam sayac · sayfada rozet. PRO ile hepsi acilir.</p>
+              </div>
+              <Button onClick={startUpgrade}>
+                <Sparkles className="h-4 w-4" />
+                {billing?.stripeEnabled ? "PRO'ya gec — $7/ay (test)" : "PRO'ya gec (demo)"}
+              </Button>
+            </div>
+          )}
+          {notice && <p className="mt-3 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">{notice}</p>}
+          {error && <p className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        </Card>
+
+        {/* Create kit */}
+        <Card className="mb-6 p-5">
+          <h2 className="mb-3 font-semibold">Yeni medya kiti</h2>
+          <form onSubmit={createKit} className="grid gap-3 sm:grid-cols-2">
+            <Input placeholder="Baslik *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+            <Input placeholder="Headline" value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} />
+            <Input placeholder="Avatar URL" value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} />
+            <Select value={form.theme} onChange={(e) => setForm({ ...form, theme: e.target.value })}>
+              <option value="light">Acik tema</option>
+              <option value="dark">Koyu tema</option>
+            </Select>
+            <Input placeholder="Slug (opsiyonel)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+            <Button type="submit" className="sm:col-span-2 sm:justify-self-start"><Plus className="h-4 w-4" /> Olustur</Button>
+          </form>
+        </Card>
+
+        <h2 className="mb-3 px-1 text-sm font-medium text-muted">Kitlerim ({kits.length})</h2>
+        <div className="grid gap-4">
+          {kits.map((kit) => (
+            <Card key={kit.id} className="overflow-hidden">
+              {/* Header */}
+              <div className="flex flex-wrap items-center gap-3 p-4">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-weak font-semibold text-brand">
+                  {(kit.title || "?").charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-medium">{kit.title}</span>
+                    <Badge tone={kit.status === "PUBLISHED" ? "success" : "neutral"}>{kit.status}</Badge>
+                    {kit.passwordProtected && <Badge tone="warning"><Lock className="h-3 w-3" /> sifreli</Badge>}
+                  </div>
+                  {kit.publishedSlug && (
+                    <a href={`/${kit.publishedSlug}`} target="_blank" rel="noreferrer"
+                      className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted hover:text-brand">
+                      /{kit.publishedSlug} <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={() => publishKit(kit.id)}><Send className="h-3.5 w-3.5" /> Yayinla</Button>
+                  <Button size="sm" variant="danger" onClick={() => deleteKit(kit.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                </div>
+              </div>
+
+              {/* Tab strip */}
+              <div className="flex gap-1 overflow-x-auto border-t border-line px-2 py-1.5">
+                {TABS.map((t) => {
+                  const on = active?.kitId === kit.id && active.tab === t.id;
+                  return (
+                    <button key={t.id} onClick={() => openTab(kit, t.id)}
+                      className={`shrink-0 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                        on ? "bg-brand-weak font-medium text-brand" : "text-muted hover:text-fg hover:bg-page"}`}>
+                      {t.label}{t.id === "domain" ? " ·" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Tab content */}
+              {active?.kitId === kit.id && (
+                <div className="border-t border-line bg-page/40 p-4">
+                  {active.tab === "edit" && (
+                    <div className="grid max-w-xl gap-3">
+                      <div className="grid gap-1.5">
+                        <Label>Baslik</Label>
+                        <Input value={kit.title} onChange={(e) => updateKitField(kit.id, "title", e.target.value)} />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Headline</Label>
+                        <Input value={kit.headline ?? ""} onChange={(e) => updateKitField(kit.id, "headline", e.target.value)} />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Avatar URL</Label>
+                        <Input value={kit.avatarUrl ?? ""} onChange={(e) => updateKitField(kit.id, "avatarUrl", e.target.value)} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-1.5">
+                          <Label>Tema</Label>
+                          <Select value={kit.theme} onChange={(e) => updateKitField(kit.id, "theme", e.target.value)}>
+                            <option value="light">Acik</option>
+                            <option value="dark">Koyu</option>
+                          </Select>
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label>Slug</Label>
+                          <Input value={kit.slug} onChange={(e) => updateKitField(kit.id, "slug", e.target.value)} />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={() => saveKit(kit)}>Kaydet</Button>
+                        {kit.passwordProtected ? (
+                          <Button variant="secondary" onClick={() => removeKitPassword(kit.id)}><Unlock className="h-4 w-4" /> Sifreyi kaldir</Button>
+                        ) : (
+                          <Button variant="secondary" onClick={() => setKitPassword(kit.id)}>
+                            <Lock className="h-4 w-4" /> Sifre koy{isPro ? "" : " (PRO)"}
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs text-faint">Not: degisiklikler public sayfaya ancak Yayinla ile yansir.</p>
+                    </div>
+                  )}
+
+                  {active.tab === "stats" && (
+                    <div className="grid gap-5">
+                      <div>
+                        <div className="mb-2 text-sm font-medium">Platform istatistikleri</div>
+                        {stats.length === 0 && <p className="text-sm text-muted">Henuz istatistik yok.</p>}
+                        <div className="grid gap-2">
+                          {stats.map((s) => (
+                            <div key={s.platform} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
+                              <span className="font-medium">{s.platform}</span>
+                              <span className="tabular-nums text-muted">{nf(s.followers)} takipci</span>
+                              {s.engagementRate != null && <span className="text-muted">%{s.engagementRate} etkilesim</span>}
+                              {s.followerGrowth30d != null && (
+                                <span className={s.followerGrowth30d >= 0 ? "text-success" : "text-danger"}>
+                                  {s.followerGrowth30d >= 0 ? "+" : ""}{s.followerGrowth30d}% · 30g
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <form onSubmit={(e) => addStat(kit.id, e)} className="mt-3 flex flex-wrap items-center gap-2">
+                          <Select value={statForm.platform} onChange={(e) => setStatForm({ ...statForm, platform: e.target.value })}>
+                            {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
+                          </Select>
+                          <Input required type="number" min={0} placeholder="takipci *" className="w-28" value={statForm.followers} onChange={(e) => setStatForm({ ...statForm, followers: e.target.value })} />
+                          <Input type="number" min={0} placeholder="ort. izlenme" className="w-28" value={statForm.avgViews} onChange={(e) => setStatForm({ ...statForm, avgViews: e.target.value })} />
+                          <Input type="number" min={0} placeholder="ort. begeni" className="w-28" value={statForm.avgLikes} onChange={(e) => setStatForm({ ...statForm, avgLikes: e.target.value })} />
+                          <Input type="number" min={0} placeholder="ort. yorum" className="w-28" value={statForm.avgComments} onChange={(e) => setStatForm({ ...statForm, avgComments: e.target.value })} />
+                          <Button type="submit" size="sm"><Plus className="h-3.5 w-3.5" /> Olcum ekle</Button>
+                        </form>
+                      </div>
+                      <div>
+                        <div className="mb-2 text-sm font-medium">Kitle (demografi)</div>
+                        <div className="grid gap-2">
+                          {demoEntries.map((d, i) => (
+                            <div key={i} className="flex flex-wrap items-center gap-2">
+                              <Select value={d.category} onChange={(e) => setDemoEntries(demoEntries.map((x, j) => j === i ? { ...x, category: e.target.value } : x))}>
+                                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                              </Select>
+                              <Input placeholder="etiket" className="w-32" value={d.label} onChange={(e) => setDemoEntries(demoEntries.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} />
+                              <Input type="number" min={0} max={100} step="0.1" placeholder="%" className="w-20" value={d.percentage} onChange={(e) => setDemoEntries(demoEntries.map((x, j) => j === i ? { ...x, percentage: e.target.value } : x))} />
+                              <Button size="sm" variant="ghost" onClick={() => setDemoEntries(demoEntries.filter((_, j) => j !== i))}><X className="h-4 w-4" /></Button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => setDemoEntries([...demoEntries, { category: "AGE", label: "", percentage: "" }])}><Plus className="h-3.5 w-3.5" /> Satir ekle</Button>
+                          <Button size="sm" onClick={() => saveDemographics(kit.id)}>Demografiyi kaydet</Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {active.tab === "collabs" && (
+                    <div className="grid gap-3">
+                      <div className="text-sm font-medium">Marka isbirlikleri</div>
+                      {collabs.map((col, i) => (
+                        <div key={col.id} className="flex flex-wrap items-center gap-2">
+                          <Input placeholder="marka *" className="w-32" value={col.brandName} onChange={(e) => setCollabs(collabs.map((x, j) => j === i ? { ...x, brandName: e.target.value } : x))} />
+                          <Input placeholder="kampanya" className="w-40" value={col.campaign ?? ""} onChange={(e) => setCollabs(collabs.map((x, j) => j === i ? { ...x, campaign: e.target.value } : x))} />
+                          <Input placeholder="donem" className="w-24" value={col.period ?? ""} onChange={(e) => setCollabs(collabs.map((x, j) => j === i ? { ...x, period: e.target.value } : x))} />
+                          <Input placeholder="sonuc" className="w-44" value={col.resultNote ?? ""} onChange={(e) => setCollabs(collabs.map((x, j) => j === i ? { ...x, resultNote: e.target.value } : x))} />
+                          <Button size="sm" variant="secondary" onClick={() => saveCollab(kit.id, col)}>Kaydet</Button>
+                          <Button size="sm" variant="ghost" onClick={() => moveCollab(kit.id, i, -1)} disabled={i === 0}><ArrowUp className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => moveCollab(kit.id, i, 1)} disabled={i === collabs.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => deleteCollab(kit.id, col.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      ))}
+                      <form onSubmit={(e) => addCollab(kit.id, e)} className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                        <Input required placeholder="marka *" className="w-32" value={collabForm.brandName} onChange={(e) => setCollabForm({ ...collabForm, brandName: e.target.value })} />
+                        <Input placeholder="kampanya" className="w-40" value={collabForm.campaign} onChange={(e) => setCollabForm({ ...collabForm, campaign: e.target.value })} />
+                        <Input placeholder="donem" className="w-24" value={collabForm.period} onChange={(e) => setCollabForm({ ...collabForm, period: e.target.value })} />
+                        <Input placeholder="sonuc" className="w-44" value={collabForm.resultNote} onChange={(e) => setCollabForm({ ...collabForm, resultNote: e.target.value })} />
+                        <Button type="submit" size="sm"><Plus className="h-3.5 w-3.5" /> Ekle</Button>
+                      </form>
+                    </div>
+                  )}
+
+                  {active.tab === "analytics" && analytics && (
+                    <div className="grid gap-4">
+                      <div className="flex flex-wrap gap-3">
+                        <div className="rounded-xl border border-line bg-surface px-4 py-3">
+                          <div className="text-2xl font-semibold tabular-nums">{nf(analytics.totalViews)}</div>
+                          <div className="flex items-center gap-1 text-xs text-muted"><Eye className="h-3 w-3" /> toplam goruntulenme</div>
+                        </div>
+                        {analytics.plan === "PRO" && analytics.uniqueVisitors != null && (
+                          <div className="rounded-xl border border-line bg-surface px-4 py-3">
+                            <div className="text-2xl font-semibold tabular-nums">{nf(analytics.uniqueVisitors)}</div>
+                            <div className="text-xs text-muted">tekil ziyaretci</div>
+                          </div>
+                        )}
+                      </div>
+                      {analytics.plan !== "PRO" ? (
+                        <p className="rounded-lg bg-brand-weak px-3 py-2 text-sm text-brand">
+                          Gunluk grafik, referrer ve cihaz kirilimi PRO planda.
+                        </p>
+                      ) : (
+                        <div className="grid gap-4">
+                          {analytics.viewsByDay && analytics.viewsByDay.length > 0 && (
+                            <div>
+                              <div className="mb-1 text-xs font-medium uppercase tracking-wider text-faint">Son 30 gun</div>
+                              <ViewsTrend data={analytics.viewsByDay} />
+                            </div>
+                          )}
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            {analytics.referrers && analytics.referrers.length > 0 && (
+                              <div>
+                                <div className="mb-1 text-xs font-medium uppercase tracking-wider text-faint">Kaynaklar</div>
+                                <ReferrerBars data={analytics.referrers} />
+                              </div>
+                            )}
+                            {analytics.devices && analytics.devices.length > 0 && (
+                              <div>
+                                <div className="mb-1 text-xs font-medium uppercase tracking-wider text-faint">Cihazlar</div>
+                                <DeviceBars data={analytics.devices} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {active.tab === "versions" && (
+                    <div className="grid gap-2">
+                      {versions.length === 0 && <p className="text-sm text-muted">Henuz yayinlanmamis.</p>}
+                      {versions.map((v) => (
+                        <div key={v.version} className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
+                          <span className="font-medium">v{v.version}</span>
+                          <span className="text-muted">/{v.slug}</span>
+                          <span className="text-xs text-faint">{new Date(v.publishedAt).toLocaleString("tr-TR")}</span>
+                          {v.active ? <Badge tone="success">yayinda</Badge>
+                            : <Button size="sm" variant="secondary" onClick={() => activateVersion(kit.id, v.version)}>Bu versiyona don</Button>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {active.tab === "domain" && (
+                    <div className="grid gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Custom domain</span>
+                        <Badge tone="warning">YAKINDA</Badge>
+                      </div>
+                      <p className="text-xs text-muted">
+                        Kendi alan adinizi baglama ozelligi gelistirme asamasinda. DNS dogrulama altyapisi
+                        (asenkron scheduled job) burada calisir; domain baglama henuz aktif degil.
+                      </p>
+                      <form onSubmit={(e) => addDomain(kit.id, e)} className="flex flex-wrap gap-2">
+                        <Input placeholder="ornek: medyakit.alanadim.com" className="w-64" value={domainInput} onChange={(e) => setDomainInput(e.target.value)} required />
+                        <Button type="submit" size="sm"><Globe className="h-3.5 w-3.5" /> Ekle</Button>
+                      </form>
+                      {domains.map((d) => (
+                        <div key={d.id} className="rounded-lg border border-line bg-surface p-3 text-sm">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">{d.domain}</span>
+                            <Badge tone={d.status === "VERIFIED" ? "success" : d.status === "FAILED" ? "danger" : "warning"}>{d.status}</Badge>
+                            {d.lastCheckedAt && <span className="text-xs text-faint">son kontrol: {new Date(d.lastCheckedAt).toLocaleString("tr-TR")} ({d.attempts})</span>}
+                          </div>
+                          {d.status !== "VERIFIED" && (
+                            <div className="mt-2 rounded-lg bg-page p-2.5 text-xs text-muted">
+                              DNS saglayicaniza su TXT kaydini ekleyin:
+                              <div className="mt-1 break-all font-mono text-fg">{d.dnsRecordHost} = {d.dnsRecordValue}</div>
+                            </div>
+                          )}
+                          <div className="mt-2 flex gap-2">
+                            <Button size="sm" variant="secondary" onClick={() => checkDomain(kit.id, d.id)}><RefreshCw className="h-3.5 w-3.5" /> Simdi kontrol et</Button>
+                            <Button size="sm" variant="ghost" onClick={() => deleteDomain(kit.id, d.id)}>Kaldir</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      </main>
+    </div>
   );
 }
