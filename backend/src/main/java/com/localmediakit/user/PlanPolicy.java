@@ -34,6 +34,18 @@ public class PlanPolicy {
         return plan == Plan.PRO;
     }
 
+    /** Custom domains are a PRO feature (verification skeleton). */
+    public boolean customDomainEnabled(Plan plan) {
+        return plan == Plan.PRO;
+    }
+
+    public void assertCustomDomainAllowed(Plan plan) {
+        if (!customDomainEnabled(plan)) {
+            throw new PlanLimitExceededException(
+                    "Custom domains are a PRO feature. Upgrade to add one.");
+        }
+    }
+
     /** FREE sees only the most recent versions; PRO sees the full history. */
     public int maxVisibleVersions(Plan plan) {
         return plan == Plan.PRO ? Integer.MAX_VALUE : 2;

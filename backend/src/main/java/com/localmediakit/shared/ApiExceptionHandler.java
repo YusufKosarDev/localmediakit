@@ -6,6 +6,9 @@ import com.localmediakit.billing.BillingNotConfiguredException;
 import com.localmediakit.billing.DemoUpgradeDisabledException;
 import com.localmediakit.billing.InvalidWebhookSignatureException;
 import com.localmediakit.collab.CollaborationNotFoundException;
+import com.localmediakit.domain.DomainAlreadyExistsException;
+import com.localmediakit.domain.DomainNotFoundException;
+import com.localmediakit.domain.InvalidDomainException;
 import com.localmediakit.auth.InvalidCredentialsException;
 import com.localmediakit.mediakit.InvalidKitPasswordException;
 import com.localmediakit.mediakit.MediaKitNotFoundException;
@@ -99,6 +102,21 @@ public class ApiExceptionHandler {
     @ExceptionHandler(CollaborationNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleCollabNotFound(CollaborationNotFoundException ex) {
         return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(DomainNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleDomainNotFound(DomainNotFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(DomainAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleDomainExists(DomainAlreadyExistsException ex) {
+        return body(HttpStatus.CONFLICT, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(InvalidDomainException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidDomain(InvalidDomainException ex) {
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
     @ExceptionHandler(VersionNotFoundException.class)

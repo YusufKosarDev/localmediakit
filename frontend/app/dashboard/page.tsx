@@ -37,6 +37,17 @@ type Stat = {
 
 type DemoEntry = { category: string; label: string; percentage: number | string };
 
+type Domain = {
+  id: number;
+  domain: string;
+  status: string;
+  attempts: number;
+  lastCheckedAt: string | null;
+  dnsRecordType: string;
+  dnsRecordHost: string;
+  dnsRecordValue: string;
+};
+
 type Analytics = {
   plan: string;
   totalViews: number;
@@ -79,6 +90,9 @@ export default function DashboardPage() {
   const [collabs, setCollabs] = useState<Collab[]>([]);
   const [analyticsFor, setAnalyticsFor] = useState<number | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [domainsFor, setDomainsFor] = useState<number | null>(null);
+  const [domains, setDomains] = useState<Domain[]>([]);
+  const [domainInput, setDomainInput] = useState("");
   const [billing, setBilling] = useState<{ plan: string; subscriptionStatus: string | null; currentPeriodEnd: string | null; stripeEnabled: boolean } | null>(null);
   const [upgradeNote, setUpgradeNote] = useState("");
   const [collabForm, setCollabForm] = useState({ brandName: "", campaign: "", period: "", resultNote: "" });
@@ -222,6 +236,60 @@ export default function DashboardPage() {
       const data = await res.json().catch(() => null);
       setError(data?.error ?? `Versiyona donulemedi (HTTP ${res.status})`);
     }
+  }
+
+  async function loadDomains(kitId: number) {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/domains`, { headers: authHeaders() });
+    if (res.ok) {
+      setDomains(await res.json());
+      setDomainInput("");
+      setDomainsFor(kitId);
+    } else {
+      setError(`Domainler yuklenemedi (HTTP ${res.status})`);
+    }
+  }
+
+  async function addDomain(kitId: number, e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/domains`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ domain: domainInput }),
+    });
+    if (res.status === 201) {
+      setDomainInput("");
+      await loadDomains(kitId);
+    } else if (res.status === 403) {
+      setError("Custom domain PRO ozelligidir.");
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? `Domain eklenemedi (HTTP ${res.status})`);
+    }
+  }
+
+  async function checkDomain(kitId: number, domainId: number) {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/domains/${domainId}/check`, {
+      method: "POST",
+      headers: authHeaders(),
+    });
+    if (res.ok) {
+      await loadDomains(kitId);
+    } else {
+      setError(`Kontrol edilemedi (HTTP ${res.status})`);
+    }
+  }
+
+  async function deleteDomain(kitId: number, domainId: number) {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/domains/${domainId}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    if (res.status === 204) await loadDomains(kitId);
+    else setError(`Silinemedi (HTTP ${res.status})`);
   }
 
   async function setKitPassword(kitId: number) {
@@ -511,8 +579,61 @@ export default function DashboardPage() {
                   🔒 Sifre koy{me.plan === "PRO" ? "" : " (PRO)"}
                 </button>
               )}
+              <button onClick={() =>
+                domainsFor === kit.id ? setDomainsFor(null) : loadDomains(kit.id)
+              }>
+                Domain (yakinda)
+              </button>
               <button onClick={() => deleteKit(kit.id)}>Sil</button>
             </div>
+            {domainsFor === kit.id && (
+              <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
+                <strong style={{ fontSize: 14 }}>Custom domain</strong>{" "}
+                <span style={{
+                  fontSize: 11, padding: "1px 6px", borderRadius: 999,
+                  background: "#fef3c7", color: "#92400e",
+                }}>
+                  YAKINDA
+                </span>
+                <p style={{ fontSize: 12, color: "#666", margin: "4px 0" }}>
+                  Kendi alan adinizi baglama ozelligi gelistirme asamasinda. DNS dogrulama
+                  altyapisi (asenkron scheduled job) burada calisir; domain baglama henuz aktif degil.
+                </p>
+                <form onSubmit={(e) => addDomain(kit.id, e)} style={{ display: "flex", gap: 6 }}>
+                  <input placeholder="ornek: medyakit.alanadim.com" value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)} style={{ width: 240 }} required />
+                  <button type="submit">Ekle</button>
+                </form>
+                {domains.map((d) => (
+                  <div key={d.id} style={{ marginTop: 6, fontSize: 13 }}>
+                    <div>
+                      <strong>{d.domain}</strong> —{" "}
+                      <span style={{
+                        color: d.status === "VERIFIED" ? "#15803d"
+                          : d.status === "FAILED" ? "#b91c1c" : "#92400e",
+                      }}>
+                        {d.status}
+                      </span>
+                      {d.lastCheckedAt && (
+                        <small style={{ color: "#666" }}>
+                          {" "}— son kontrol: {new Date(d.lastCheckedAt).toLocaleString("tr-TR")} ({d.attempts})
+                        </small>
+                      )}
+                    </div>
+                    {d.status !== "VERIFIED" && (
+                      <div style={{ fontSize: 12, color: "#444", background: "#f6f7f9", padding: 8, borderRadius: 6, marginTop: 4 }}>
+                        DNS saglayicaniza su kaydi ekleyin:
+                        <div><code>{d.dnsRecordType} {d.dnsRecordHost} = {d.dnsRecordValue}</code></div>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                      <button onClick={() => checkDomain(kit.id, d.id)}>Simdi kontrol et</button>
+                      <button onClick={() => deleteDomain(kit.id, d.id)}>Kaldir</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {analyticsFor === kit.id && analytics && (
               <div style={{ marginTop: 8, borderTop: "1px dashed #ccc", paddingTop: 8 }}>
                 <strong style={{ fontSize: 14 }}>Ziyaretci analitigi</strong>

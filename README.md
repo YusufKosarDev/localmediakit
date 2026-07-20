@@ -74,6 +74,17 @@ Marka ziyaretci  ─────────────────────
       HIT. Sifre publish aninda snapshot'a donar (immutable snapshot prensibi).
     - Versiyon gecmisi: FREE son 2 versiyonu gorur ve yalnizca bu pencereye
       geri donebilir; PRO tam gecmis + her versiyona rollback (PlanPolicy).
+  - Custom domain DNS dogrulama (Adim 9, "yakinda" iskeleti): custom domain
+    URUN VAADI DEGIL; backend olgunluk gosterimi olarak async dogrulama altyapisi
+    kuruldu. `POST /api/mediakits/{id}/domains` (PRO) verification_token uretir
+    ve DNS TXT talimati doner; `@Scheduled` job (fixedDelay + overlap guard)
+    PENDING domainlerin `_localmediakit-verify.<domain>` TXT kaydini JDK'nin
+    yerleşik JNDI DNS provider'i (sifir bagimlilik, timeout'lu) ile cozer ve
+    token eslesirse VERIFIED, denemeler tukenirse FAILED yapar. Her domain kendi
+    transaction'inda + try/catch: biri patlarsa job cokmez. `POST .../check`
+    ayni mantigi senkron calistirir. DNS cozumleme `DnsResolver` arayuzuyle
+    soyutlandi (mantik gercek DNS'e cikmadan test edilir). Config env:
+    DOMAIN_JOB_INTERVAL_MS, DOMAIN_MAX_ATTEMPTS, DOMAIN_DNS_TIMEOUT_MS vb.
 - **frontend/** — Next.js App Router.
   - `app/[slug]` — on-demand ISR: ilk ziyarette uretilir, edge'de cache'lenir,
     yalnizca publish aninda yenilenir. Draft degisiklikleri public sayfayi etkilemez.

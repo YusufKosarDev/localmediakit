@@ -45,6 +45,15 @@ app:
     # Salts the anonymous visitor fingerprint (sha256 of ip|ua|day|salt).
     # Override with a real value in production so hashes are not guessable.
     salt: ${ANALYTICS_SALT:local-dev-analytics-salt}
+  domains:
+    # DNS verification job (custom-domain skeleton). Intervals in ms.
+    job-interval-ms: ${DOMAIN_JOB_INTERVAL_MS:60000}
+    job-initial-delay-ms: ${DOMAIN_JOB_INITIAL_DELAY_MS:30000}
+    recheck-interval-ms: ${DOMAIN_RECHECK_INTERVAL_MS:60000}
+    max-attempts: ${DOMAIN_MAX_ATTEMPTS:30}
+    dns-timeout-ms: ${DOMAIN_DNS_TIMEOUT_MS:3000}
+    dns-retries: ${DOMAIN_DNS_RETRIES:1}
+    verify-host-prefix: ${DOMAIN_VERIFY_HOST_PREFIX:_localmediakit-verify}
   stripe:
     # TEST MODE keys only; real values live in the host's env, never in the repo.
     # With the dummy default, checkout answers 503 (billing not configured).
