@@ -24,6 +24,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -137,6 +138,18 @@ public class ApiExceptionHandler {
     @ExceptionHandler(TooManyUnlockAttemptsException.class)
     public ResponseEntity<Map<String, Object>> handleTooManyUnlock(TooManyUnlockAttemptsException ex) {
         return body(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), null);
+    }
+
+    /**
+     * Normalise explicit ResponseStatusException (e.g. 401 unknown user) into
+     * the same {status, error} shape as the rest of the API. Left as a specific
+     * type on purpose — a broad Exception catch-all would swallow Spring's own
+     * 404/405 handling and mask it as 500. Stack-trace/message leakage is
+     * prevented by server.error.include-* in application.yml instead.
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
+        return body(HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason(), null);
     }
 
     private ResponseEntity<Map<String, Object>> body(HttpStatus status, String message, Object details) {

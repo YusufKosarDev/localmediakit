@@ -11,6 +11,9 @@ public interface MediaKitVersionRepository extends JpaRepository<MediaKitVersion
 
     List<MediaKitVersion> findByMediaKitIdOrderByVersionNumberDesc(Long mediaKitId);
 
+    /** Batch fetch by id — used to resolve many kits' published slugs in one query. */
+    List<MediaKitVersion> findByIdIn(List<Long> ids);
+
     Optional<MediaKitVersion> findTopByMediaKitIdOrderByVersionNumberDesc(Long mediaKitId);
 
     Optional<MediaKitVersion> findByMediaKitIdAndVersionNumber(Long mediaKitId, int versionNumber);

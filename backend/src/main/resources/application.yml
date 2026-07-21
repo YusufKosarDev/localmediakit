@@ -21,6 +21,15 @@ spring:
 
 server:
   port: ${PORT:8080}
+  # Never expose internals in error responses.
+  error:
+    include-stacktrace: never
+    include-message: never
+  # gzip API/JSON responses over the wire.
+  compression:
+    enabled: true
+    mime-types: application/json,text/plain,text/css,application/javascript
+    min-response-size: 1024
 
 management:
   endpoints:
@@ -37,7 +46,7 @@ app:
   jwt:
     # HS256 requires >= 32 bytes. Overridden by JWT_SECRET in every real environment.
     secret: ${JWT_SECRET:local-dev-jwt-secret-change-me-at-least-32-bytes-long}
-    expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:720}
   cors:
     # Comma-separated list of allowed browser origins (the dashboard).
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
@@ -55,7 +64,7 @@ app:
   demo:
     # Seed/reset the login-able demo account and purge @test.dev accounts.
     seed-on-startup: ${DEMO_SEED_ON_STARTUP:true}
-    reset-cron: ${DEMO_RESET_CRON:0 0 3 * * *}
+    reset-cron: ${DEMO_RESET_CRON:0 0 * * * *}
   domains:
     # DNS verification job (custom-domain skeleton). Intervals in ms.
     job-interval-ms: ${DOMAIN_JOB_INTERVAL_MS:60000}

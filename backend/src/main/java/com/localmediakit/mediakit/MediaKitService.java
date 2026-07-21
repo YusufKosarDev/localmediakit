@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -56,8 +57,25 @@ public class MediaKitService {
     @Transactional(readOnly = true)
     public List<MediaKitResponse> list(String userEmail) {
         User user = access.requireUser(userEmail);
-        return mediaKitRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream().map(this::toResponse).toList();
+        List<MediaKit> kits = mediaKitRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+
+        // Resolve every kit's published slug in ONE query instead of N.
+        List<Long> versionIds = kits.stream()
+                .map(MediaKit::getPublishedVersionId)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        Map<Long, String> slugByVersionId = versionIds.isEmpty()
+                ? Map.of()
+                : versionRepository.findByIdIn(versionIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                MediaKitVersion::getId, MediaKitVersion::getSlug));
+
+        return kits.stream().map(kit -> {
+            String publishedSlug = kit.getPublishedVersionId() == null
+                    ? null
+                    : slugByVersionId.get(kit.getPublishedVersionId());
+            return MediaKitResponse.from(kit, publishedSlug, kit.isPasswordProtected());
+        }).toList();
     }
 
     @Transactional(readOnly = true)

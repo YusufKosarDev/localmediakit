@@ -5,6 +5,15 @@ spring:
     url: ${DATABASE_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      # Small pool for Neon's free connection budget. Recycle connections well
+      # before Neon drops idle ones; keepalive holds the minimum idle open.
+      # For best results point DATABASE_URL at Neon's POOLED (pgBouncer) endpoint.
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 1
+      connection-timeout: 20000
+      keepalive-time: 150000
+      max-lifetime: 300000
   jpa:
     hibernate:
       ddl-auto: none

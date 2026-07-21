@@ -1,5 +1,6 @@
 package com.localmediakit.mediakit;
 
+import com.localmediakit.shared.ClientIp;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -40,15 +41,7 @@ public class PublicMediaKitController {
     public PublicKitResponse unlock(@PathVariable String slug,
                                     @Valid @RequestBody UnlockRequest request,
                                     HttpServletRequest http) {
-        String clientKey = slug + "|" + clientIp(http);
+        String clientKey = slug + "|" + ClientIp.resolve(http);
         return publicationService.unlock(slug, request.password(), clientKey);
-    }
-
-    private String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 }

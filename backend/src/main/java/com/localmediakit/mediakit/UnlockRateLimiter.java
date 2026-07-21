@@ -1,21 +1,22 @@
 package com.localmediakit.mediakit;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Brute-force guard for password unlock attempts. Sliding window of FAILED
  * attempts per key (slug + client ip): a legitimate visitor succeeds on the
  * first try and is never limited, while repeated wrong guesses are throttled.
  *
- * In-memory by design (attempts are cheap and transient; a restart simply
- * resets the counters, which is acceptable for this guard).
+ * Backed by a bounded, self-evicting Caffeine cache (idle keys expire after the
+ * window, total capped) so a flood of distinct keys cannot exhaust memory.
+ * In-memory by design; a restart simply resets the counters.
  */
 @Component
 public class UnlockRateLimiter {
@@ -23,11 +24,14 @@ public class UnlockRateLimiter {
     static final int MAX_FAILURES = 5;
     static final Duration WINDOW = Duration.ofMinutes(15);
 
-    private final Map<String, Deque<Instant>> failures = new ConcurrentHashMap<>();
+    private final Cache<String, Deque<Instant>> failures = Caffeine.newBuilder()
+            .expireAfterAccess(WINDOW)
+            .maximumSize(50_000)
+            .build();
 
     /** Throws if the key has already used up its failed-attempt budget. */
     public void checkAllowed(String key) {
-        Deque<Instant> attempts = failures.get(key);
+        Deque<Instant> attempts = failures.getIfPresent(key);
         if (attempts == null) {
             return;
         }
@@ -40,7 +44,7 @@ public class UnlockRateLimiter {
     }
 
     public void recordFailure(String key) {
-        Deque<Instant> attempts = failures.computeIfAbsent(key, k -> new ArrayDeque<>());
+        Deque<Instant> attempts = failures.get(key, k -> new ArrayDeque<>());
         synchronized (attempts) {
             prune(attempts);
             attempts.addLast(Instant.now());
@@ -49,7 +53,7 @@ public class UnlockRateLimiter {
 
     /** A correct password clears the budget so the visitor is not penalised. */
     public void reset(String key) {
-        failures.remove(key);
+        failures.invalidate(key);
     }
 
     private void prune(Deque<Instant> attempts) {

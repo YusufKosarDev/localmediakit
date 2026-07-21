@@ -22,14 +22,15 @@ public class DemoResetJob {
         this.demoDataService = demoDataService;
     }
 
-    /** Every day at 03:00 UTC. */
-    @Scheduled(cron = "${app.demo.reset-cron:0 0 3 * * *}", zone = "UTC")
-    public void nightlyReset() {
+    /** Every hour on the hour (UTC) — keeps the shared demo clean and shrinks
+     *  the window any misuse of the public demo account could stay live. */
+    @Scheduled(cron = "${app.demo.reset-cron:0 0 * * * *}", zone = "UTC")
+    public void periodicReset() {
         try {
             demoDataService.resetDemo();
-            log.info("Nightly demo reset complete");
+            log.info("Demo reset complete");
         } catch (Exception e) {
-            log.warn("Nightly demo reset failed: {}", e.getMessage());
+            log.warn("Demo reset failed: {}", e.getMessage());
         }
     }
 }

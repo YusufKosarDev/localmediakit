@@ -1,5 +1,6 @@
 package com.localmediakit.analytics;
 
+import com.localmediakit.shared.ClientIp;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -33,19 +34,10 @@ public class TrackController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void track(@Valid @RequestBody TrackRequest request, HttpServletRequest http) {
         try {
-            analyticsService.track(request, clientIp(http), http.getHeader("User-Agent"));
+            analyticsService.track(request, ClientIp.resolve(http), http.getHeader("User-Agent"));
         } catch (Exception e) {
             // Analytics must never fail the caller; drop and log.
             log.warn("Track ingestion failed for slug '{}': {}", request.slug(), e.getMessage());
         }
-    }
-
-    /** First X-Forwarded-For hop (set by the hosting proxy), else the socket address. */
-    private String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 }

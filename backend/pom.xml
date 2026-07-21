@@ -98,6 +98,12 @@
             <version>8.14.0</version>
         </dependency>
 
+        <!-- Bounded, self-evicting caches for the rate-limit buckets. -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- OpenAPI / Swagger UI. -->
         <dependency>
             <groupId>org.springdoc</groupId>
