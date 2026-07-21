@@ -86,6 +86,8 @@ export default function KitCard({ kit }: { kit: PublicKit }) {
                 alt={kit.displayName}
                 width={104}
                 height={104}
+                loading="lazy"
+                decoding="async"
                 className="h-26 w-26 rounded-full object-cover ring-1 ring-line"
                 style={{ height: 104, width: 104 }}
               />
@@ -195,6 +197,8 @@ export default function KitCard({ kit }: { kit: PublicKit }) {
                       <img
                         src={col.logoUrl}
                         alt={col.brandName}
+                        loading="lazy"
+                        decoding="async"
                         className="h-10 w-10 shrink-0 rounded-xl object-cover ring-1 ring-line"
                         style={{ height: 40, width: 40 }}
                       />

@@ -6,8 +6,16 @@ import {
   Send, Trash2, Lock, Unlock, ExternalLink, Plus, ArrowUp, ArrowDown,
   RefreshCw, Crown, LogOut, Eye, Sparkles, Globe, X,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { Button, Card, Input, Select, Badge, Label } from "@/app/_components/ui";
-import { ViewsTrend, ReferrerBars, DeviceBars } from "./_AnalyticsCharts";
+
+// recharts is heavy and only needed on the Analitik tab — load it on demand so
+// it stays out of the initial dashboard bundle (and never reaches other pages).
+const chartFallback = (h: number) => () =>
+  <div className="animate-pulse rounded-lg bg-page" style={{ height: h }} />;
+const ViewsTrend = dynamic(() => import("./_AnalyticsCharts").then((m) => m.ViewsTrend), { ssr: false, loading: chartFallback(180) });
+const ReferrerBars = dynamic(() => import("./_AnalyticsCharts").then((m) => m.ReferrerBars), { ssr: false, loading: chartFallback(120) });
+const DeviceBars = dynamic(() => import("./_AnalyticsCharts").then((m) => m.DeviceBars), { ssr: false, loading: chartFallback(90) });
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
