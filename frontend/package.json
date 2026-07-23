@@ -16,7 +16,7 @@
     "geist": "^1.7.2",
     "lucide-react": "^1.25.0",
     "next": "^15.5.20",
-    "postcss": "^8.5.20",
+    "postcss": "^8.5.22",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "recharts": "^3.9.2",
