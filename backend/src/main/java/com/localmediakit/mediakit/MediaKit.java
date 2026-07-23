@@ -48,6 +48,14 @@ public class MediaKit {
     @Column(name = "password_hash")
     private String passwordHash;
 
+    /**
+     * Contact-form ingestion switch. Disabling stops lead ingestion IMMEDIATELY
+     * (kill switch); the form itself leaves the public page on the next publish
+     * (frozen-snapshot rule).
+     */
+    @Column(name = "contact_enabled", nullable = false)
+    private boolean contactEnabled = true;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -81,6 +89,11 @@ public class MediaKit {
 
     public void changeSlug(String slug) {
         this.slug = slug;
+        this.updatedAt = Instant.now();
+    }
+
+    public void setContactEnabled(boolean contactEnabled) {
+        this.contactEnabled = contactEnabled;
         this.updatedAt = Instant.now();
     }
 
@@ -148,6 +161,10 @@ public class MediaKit {
 
     public boolean isPasswordProtected() {
         return passwordHash != null && !passwordHash.isBlank();
+    }
+
+    public boolean isContactEnabled() {
+        return contactEnabled;
     }
 
     public Instant getCreatedAt() {

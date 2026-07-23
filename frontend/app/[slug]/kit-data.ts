@@ -7,7 +7,7 @@ const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
 // Part of the fetch cache key. The Data Cache survives deployments, so cached
 // entries with the OLD response shape would break the new page; bumping this
 // whenever the public payload shape changes starts from a clean cache.
-export const PUBLIC_SCHEMA_VERSION = "5";
+export const PUBLIC_SCHEMA_VERSION = "6";
 
 export async function getKit(slug: string): Promise<PublicKit | null> {
   const res = await fetch(

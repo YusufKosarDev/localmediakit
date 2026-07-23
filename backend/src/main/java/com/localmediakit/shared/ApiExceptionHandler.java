@@ -6,6 +6,8 @@ import com.localmediakit.billing.BillingNotConfiguredException;
 import com.localmediakit.billing.DemoUpgradeDisabledException;
 import com.localmediakit.billing.InvalidWebhookSignatureException;
 import com.localmediakit.collab.CollaborationNotFoundException;
+import com.localmediakit.lead.LeadNotFoundException;
+import com.localmediakit.ratecard.RateCardItemNotFoundException;
 import com.localmediakit.domain.DomainAlreadyExistsException;
 import com.localmediakit.domain.DomainNotFoundException;
 import com.localmediakit.domain.InvalidDomainException;
@@ -102,6 +104,16 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(CollaborationNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleCollabNotFound(CollaborationNotFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(RateCardItemNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleRateCardItemNotFound(RateCardItemNotFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(LeadNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleLeadNotFound(LeadNotFoundException ex) {
         return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
     }
 

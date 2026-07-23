@@ -64,6 +64,7 @@ app:
     register-capacity: ${RATELIMIT_REGISTER:30}
     track-capacity: ${RATELIMIT_TRACK:120}
     unlock-capacity: ${RATELIMIT_UNLOCK:20}
+    contact-capacity: ${RATELIMIT_CONTACT:10}
   demo:
     # Seed/reset the login-able demo account and purge @test.dev accounts.
     seed-on-startup: ${DEMO_SEED_ON_STARTUP:true}

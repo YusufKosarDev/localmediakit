@@ -72,6 +72,14 @@ flowchart LR
   cozer: sayfa render'dan SONRA bloklamayan bir `POST /api/track` atilir; backend
   uyuyorsa sessizce duser, edge HIT bozulmaz. Anonim gunluk-donen ziyaretci hash'i
   (ham IP saklanmaz), 30 dk oturum penceresiyle dedup, bot filtresi.
+- **Marka iletisim formu (lead inbox)** — beacon'in anti-abuse modelinin ayni
+  disiplinle ikinci kullanimi: honeypot alani, bot filtresi, ziyaretci basina
+  pencere limiti, IP-bazli rate limit; uc HER durumda 202 doner (slug var mi,
+  form acik mi — hicbiri sizmaz). Kapatma anahtari cift katmanli: alim ANINDA
+  durur (draft bayragi), form ise donmus sayfadan ancak republish ile kalkar.
+- **Rate card** — hizmet basina fiyat listesi; istatistik/isbirlikleri gibi
+  publish aninda snapshot'a donar, taslak fiyat degisikligi yayindaki sayfayi
+  oynatmaz.
 - **Idempotent Stripe webhook** — event id ile dedup, etkilerle ayni transaction'da;
   Stripe redelivery'leri yutulur, imza dogrulanir (sahte webhook 400).
 - **Graceful-enable** — Stripe env'leri varsa gercek hosted Checkout; yoksa demo
@@ -90,6 +98,8 @@ flowchart LR
 | Istatistik + engagement + demografi | ✓ | ✓ |
 | Draft onizleme linki (30 dk) | ✓ | ✓ |
 | Uretilen sosyal paylasim karti (OG) | ✓ (rozetli) | ✓ (rozet yok) |
+| Rate card (calisma ucretleri) | ✓ | ✓ |
+| Marka iletisim formu + gelen kutusu | ✓ (son 10 teklif) | ✓ (tum gecmis) |
 | Analitik | Toplam sayac | Tekil ziyaretci + gunluk seri + referrer/cihaz |
 | Versiyon gecmisi | Son 2 + o pencereye rollback | Tam gecmis + her versiyona rollback |
 | PDF export | ✓ (rozetli) | ✓ (temiz) |
@@ -126,8 +136,9 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 90 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 117 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
+                             # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, ...
 ```
 
@@ -139,6 +150,8 @@ backend/  Spring Boot API
   mediakit              kit CRUD, slug, publish/snapshot/versiyon, sifre
   stats                 istatistik zaman serisi, engagement (Strategy), demografi
   collab                marka isbirlikleri
+  ratecard              calisma ucretleri (publish'te snapshot'a donar)
+  lead                  marka iletisim formu ingestion + gelen kutusu
   analytics             ziyaretci beacon ingestion + agregasyon
   billing               Stripe test-mode + graceful-enable demo upgrade
   domain                custom domain DNS dogrulama (scheduled job)

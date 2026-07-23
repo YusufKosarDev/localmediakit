@@ -51,6 +51,12 @@ public class PlanPolicy {
         return plan == Plan.PRO ? Integer.MAX_VALUE : 2;
     }
 
+    /** FREE inbox shows only the most recent leads (PRO teaser); PRO sees all.
+     *  Ingestion is never capped — leads are kept, only the view is limited. */
+    public int maxVisibleLeads(Plan plan) {
+        return plan == Plan.PRO ? Integer.MAX_VALUE : 10;
+    }
+
     public void assertPasswordProtectionAllowed(Plan plan) {
         if (!passwordProtectionEnabled(plan)) {
             throw new PlanLimitExceededException(

@@ -24,7 +24,11 @@ public record MediaKitSnapshot(
         List<DemographicSnapshot> demographics,
         List<CollaborationSnapshot> collaborations,
         /** Frozen at publish: FREE publishes carry the LocalMediaKit badge, PRO ones do not. */
-        Boolean showBadge) {
+        Boolean showBadge,
+        /** Array order IS the display order (frozen from display_order at publish). */
+        List<RateCardSnapshot> rateCard,
+        /** Frozen at publish: whether the public page renders the contact form. */
+        Boolean contactEnabled) {
 
     public record PlatformStatSnapshot(
             String platform,
@@ -51,6 +55,13 @@ public record MediaKitSnapshot(
             String logoUrl) {
     }
 
+    public record RateCardSnapshot(
+            String serviceName,
+            BigDecimal priceAmount,
+            String currency,
+            String note) {
+    }
+
     /** Older snapshots predate stats; normalize their absent lists to empty. */
     public List<PlatformStatSnapshot> platformsOrEmpty() {
         return platforms == null ? List.of() : platforms;
@@ -67,5 +78,14 @@ public record MediaKitSnapshot(
     /** Snapshots published before the badge existed default to showing it. */
     public boolean showBadgeOrDefault() {
         return showBadge == null || showBadge;
+    }
+
+    public List<RateCardSnapshot> rateCardOrEmpty() {
+        return rateCard == null ? List.of() : rateCard;
+    }
+
+    /** Snapshots published before the contact form existed never rendered it. */
+    public boolean contactEnabledOrDefault() {
+        return contactEnabled != null && contactEnabled;
     }
 }

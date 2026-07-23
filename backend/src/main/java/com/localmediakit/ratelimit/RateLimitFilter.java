@@ -23,16 +23,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final long registerCapacity;
     private final long trackCapacity;
     private final long unlockCapacity;
+    private final long contactCapacity;
 
     public RateLimitFilter(RateLimiterRegistry registry, boolean enabled,
                            long loginCapacity, long registerCapacity,
-                           long trackCapacity, long unlockCapacity) {
+                           long trackCapacity, long unlockCapacity,
+                           long contactCapacity) {
         this.registry = registry;
         this.enabled = enabled;
         this.loginCapacity = loginCapacity;
         this.registerCapacity = registerCapacity;
         this.trackCapacity = trackCapacity;
         this.unlockCapacity = unlockCapacity;
+        this.contactCapacity = contactCapacity;
     }
 
     @Override
@@ -65,6 +68,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
         if (path.startsWith("/api/public/kits/") && path.endsWith("/unlock")) {
             return new Rule("unlock", unlockCapacity);
+        }
+        if (path.startsWith("/api/public/kits/") && path.endsWith("/contact")) {
+            return new Rule("contact", contactCapacity);
         }
         return null;
     }

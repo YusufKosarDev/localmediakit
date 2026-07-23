@@ -1,6 +1,7 @@
 import { Play, Camera, Music, ArrowUpRight, ArrowDownRight, Globe } from "lucide-react";
 import TrackView from "./TrackView";
 import PrintButton from "./PrintButton";
+import ContactForm from "./ContactForm";
 
 // Presentational, framework-neutral: rendered by the server page for public
 // kits AND by the client PasswordGate after a protected kit is unlocked, so the
@@ -26,6 +27,13 @@ export type Collaboration = {
   logoUrl: string | null;
 };
 
+export type RateCardItem = {
+  serviceName: string;
+  priceAmount: number;
+  currency: string;
+  note: string | null;
+};
+
 export type PublicKit = {
   slug: string;
   title: string;
@@ -36,7 +44,9 @@ export type PublicKit = {
   platforms: PlatformStat[];
   demographics: Demographic[];
   collaborations: Collaboration[];
+  rateCard: RateCardItem[] | null;
   showBadge: boolean;
+  contactEnabled: boolean;
   isProtected: boolean;
   version: number;
   publishedAt: string;
@@ -59,6 +69,18 @@ function fmtPct(n: number): string {
   return n.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
 }
 
+function fmtPrice(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("tr-TR", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${amount.toLocaleString("tr-TR")} ${currency}`;
+  }
+}
+
 // preview: renders the same card for a live DRAFT (owner's short-lived link).
 // No analytics beacon (previews must not pollute visitor stats) and the footer
 // says so instead of showing a publish date.
@@ -72,6 +94,8 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
   const demographicsByCategory = ["AGE", "GENDER", "COUNTRY"]
     .map((category) => ({ category, entries: kit.demographics.filter((d) => d.category === category) }))
     .filter((g) => g.entries.length > 0);
+  // Older snapshots predate the rate card; normalize the absent list.
+  const rateCard = kit.rateCard ?? [];
 
   return (
     <div data-theme={dark ? "dark" : "light"} className={dark ? "dark" : ""}>
@@ -229,6 +253,33 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
                   </div>
                 ))}
               </div>
+            </Section>
+          )}
+
+          {/* Rate card */}
+          {rateCard.length > 0 && (
+            <Section title="Calisma Ucretleri" delay="0.24s">
+              <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                {rateCard.map((r, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-baseline justify-between gap-4 px-4 py-3 ${i > 0 ? "border-t border-line" : ""}`}
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium">{r.serviceName}</div>
+                      {r.note && <div className="text-[13px] text-muted">{r.note}</div>}
+                    </div>
+                    <div className="shrink-0 font-semibold tabular-nums">{fmtPrice(r.priceAmount, r.currency)}</div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* Contact form (frozen flag; previews never show it) */}
+          {kit.contactEnabled && !preview && (
+            <Section title="Iletisim" delay="0.3s">
+              <ContactForm slug={kit.slug} />
             </Section>
           )}
 

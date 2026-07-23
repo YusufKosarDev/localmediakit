@@ -9,6 +9,8 @@ import com.localmediakit.mediakit.MediaKitRepository;
 import com.localmediakit.mediakit.MediaKitResponse;
 import com.localmediakit.mediakit.MediaKitService;
 import com.localmediakit.mediakit.MediaKitPublicationService;
+import com.localmediakit.ratecard.RateCardRequest;
+import com.localmediakit.ratecard.RateCardService;
 import com.localmediakit.stats.DemographicCategory;
 import com.localmediakit.stats.DemographicEntry;
 import com.localmediakit.stats.DemographicsService;
@@ -53,6 +55,7 @@ public class DemoDataService {
     private final MediaKitService mediaKitService;
     private final DemographicsService demographicsService;
     private final CollaborationService collaborationService;
+    private final RateCardService rateCardService;
     private final MediaKitPublicationService publicationService;
 
     public DemoDataService(UserRepository userRepository,
@@ -63,6 +66,7 @@ public class DemoDataService {
                            MediaKitService mediaKitService,
                            DemographicsService demographicsService,
                            CollaborationService collaborationService,
+                           RateCardService rateCardService,
                            MediaKitPublicationService publicationService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -72,6 +76,7 @@ public class DemoDataService {
         this.mediaKitService = mediaKitService;
         this.demographicsService = demographicsService;
         this.collaborationService = collaborationService;
+        this.rateCardService = rateCardService;
         this.publicationService = publicationService;
     }
 
@@ -116,6 +121,12 @@ public class DemoDataService {
                 "Kahve Diyari", "Yeni urun lansmani", "2025 Q4", "1,1M goruntulenme", null, 0));
         collaborationService.create(email, kitId, new CollaborationRequest(
                 "GezginApp", "Seyahat vlog serisi", "2025 Q3", "3 video, 1,8M izlenme", null, 1));
+        rateCardService.create(email, kitId, new RateCardRequest(
+                "YouTube video sponsorlugu", new BigDecimal("25000"), "TRY", "60 sn'ye kadar entegrasyon", 0));
+        rateCardService.create(email, kitId, new RateCardRequest(
+                "Instagram Reels", new BigDecimal("9000"), "TRY", null, 1));
+        rateCardService.create(email, kitId, new RateCardRequest(
+                "TikTok video", new BigDecimal("12000"), "TRY", null, 2));
 
         publicationService.publish(email, kitId);
         log.info("Demo account reset: kit '{}' published", kit.slug());

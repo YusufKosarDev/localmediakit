@@ -91,6 +91,9 @@ public class MediaKitService {
     public MediaKitResponse update(String userEmail, Long id, UpdateMediaKitRequest request) {
         MediaKit kit = access.requireOwnedKit(userEmail, id);
         kit.updateDetails(request.title().trim(), request.headline(), request.avatarUrl(), request.theme());
+        if (request.contactEnabled() != null) {
+            kit.setContactEnabled(request.contactEnabled());
+        }
 
         if (request.slug() != null && !request.slug().isBlank()) {
             String desired = slugService.slugify(request.slug());

@@ -19,7 +19,9 @@ public record PublicKitResponse(
         List<MediaKitSnapshot.PlatformStatSnapshot> platforms,
         List<MediaKitSnapshot.DemographicSnapshot> demographics,
         List<MediaKitSnapshot.CollaborationSnapshot> collaborations,
+        List<MediaKitSnapshot.RateCardSnapshot> rateCard,
         boolean showBadge,
+        boolean contactEnabled,
         boolean isProtected,
         int version,
         String publishedAt) {
@@ -36,7 +38,9 @@ public record PublicKitResponse(
                 snapshot.platformsOrEmpty(),
                 snapshot.demographicsOrEmpty(),
                 snapshot.collaborationsOrEmpty(),
+                snapshot.rateCardOrEmpty(),
                 snapshot.showBadgeOrDefault(),
+                snapshot.contactEnabledOrDefault(),
                 false,
                 version.getVersionNumber(),
                 version.getPublishedAt().toString());
@@ -58,7 +62,9 @@ public record PublicKitResponse(
                 snapshot.platformsOrEmpty(),
                 snapshot.demographicsOrEmpty(),
                 snapshot.collaborationsOrEmpty(),
+                snapshot.rateCardOrEmpty(),
                 snapshot.showBadgeOrDefault(),
+                snapshot.contactEnabledOrDefault(),
                 false,
                 0,
                 java.time.Instant.now().toString());
@@ -70,8 +76,9 @@ public record PublicKitResponse(
                 snapshot.slug(),
                 snapshot.title(),
                 null, null, snapshot.theme(), null,
-                null, null, null,
+                null, null, null, null,
                 snapshot.showBadgeOrDefault(),
+                false,
                 true,
                 version.getVersionNumber(),
                 version.getPublishedAt().toString());

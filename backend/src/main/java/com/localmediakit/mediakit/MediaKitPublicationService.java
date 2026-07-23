@@ -3,6 +3,7 @@ package com.localmediakit.mediakit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.localmediakit.collab.CollaborationService;
+import com.localmediakit.ratecard.RateCardService;
 import com.localmediakit.stats.DemographicsService;
 import com.localmediakit.stats.StatsService;
 import com.localmediakit.user.PlanPolicy;
@@ -34,6 +35,7 @@ public class MediaKitPublicationService {
     private final StatsService statsService;
     private final DemographicsService demographicsService;
     private final CollaborationService collaborationService;
+    private final RateCardService rateCardService;
     private final PlanPolicy planPolicy;
     private final PasswordEncoder passwordEncoder;
     private final UnlockRateLimiter unlockRateLimiter;
@@ -47,6 +49,7 @@ public class MediaKitPublicationService {
                                       StatsService statsService,
                                       DemographicsService demographicsService,
                                       CollaborationService collaborationService,
+                                      RateCardService rateCardService,
                                       PlanPolicy planPolicy,
                                       PasswordEncoder passwordEncoder,
                                       UnlockRateLimiter unlockRateLimiter) {
@@ -59,6 +62,7 @@ public class MediaKitPublicationService {
         this.statsService = statsService;
         this.demographicsService = demographicsService;
         this.collaborationService = collaborationService;
+        this.rateCardService = rateCardService;
         this.planPolicy = planPolicy;
         this.passwordEncoder = passwordEncoder;
         this.unlockRateLimiter = unlockRateLimiter;
@@ -180,10 +184,14 @@ public class MediaKitPublicationService {
                         c.getBrandName(), c.getCampaign(), c.getPeriod(),
                         c.getResultNote(), c.getLogoUrl()))
                 .toList();
+        var rateCard = rateCardService.listForKit(kit.getId()).stream()
+                .map(r -> new MediaKitSnapshot.RateCardSnapshot(
+                        r.getServiceName(), r.getPriceAmount(), r.getCurrency(), r.getNote()))
+                .toList();
         return new MediaKitSnapshot(
                 kit.getSlug(), kit.getTitle(), kit.getHeadline(), kit.getAvatarUrl(),
                 kit.getTheme(), owner.getDisplayName(), platforms, demographics, collaborations,
-                planPolicy.showsBranding(owner.getPlan()));
+                planPolicy.showsBranding(owner.getPlan()), rateCard, kit.isContactEnabled());
     }
 
     private Activation activate(MediaKit kit, MediaKitVersion version) {

@@ -2,13 +2,17 @@ package com.localmediakit.analytics;
 
 import java.util.Locale;
 
-/** Coarse user-agent classification; we never store the raw string. */
-final class UserAgents {
+/**
+ * Coarse user-agent classification; we never store the raw string.
+ * Public because every anonymous public-write path (view beacon, contact form)
+ * shares the same bot gate.
+ */
+public final class UserAgents {
 
     private UserAgents() {
     }
 
-    static boolean isBot(String userAgent) {
+    public static boolean isBot(String userAgent) {
         if (userAgent == null || userAgent.isBlank()) {
             return true; // no UA at all: almost certainly not a real browser
         }

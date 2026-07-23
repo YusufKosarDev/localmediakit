@@ -10,6 +10,7 @@ public record MediaKitResponse(
         String status,
         String publishedSlug,
         boolean passwordProtected,
+        boolean contactEnabled,
         String createdAt,
         String updatedAt) {
 
@@ -24,6 +25,7 @@ public record MediaKitResponse(
                 kit.getStatus().name(),
                 publishedSlug,
                 passwordProtected,
+                kit.isContactEnabled(),
                 kit.getCreatedAt().toString(),
                 kit.getUpdatedAt().toString());
     }
