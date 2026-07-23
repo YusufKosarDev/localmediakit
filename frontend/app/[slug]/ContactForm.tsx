@@ -76,10 +76,12 @@ export default function ContactForm({ slug }: { slug: string }) {
           onChange={(e) => setForm({ ...form, message: e.target.value })}
           className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-fg placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
         />
-        {/* Honeypot: visually hidden, tab-skipped; bots that fill it are dropped. */}
+        {/* Honeypot: visually hidden, tab-skipped; bots that fill it are dropped.
+            Deliberately NO name/id attribute — browser autofill and password
+            managers key on those and could fill it for a real visitor, whose
+            submission would then be silently dropped. */}
         <input
           type="text"
-          name="website"
           value={website}
           onChange={(e) => setWebsite(e.target.value)}
           tabIndex={-1}

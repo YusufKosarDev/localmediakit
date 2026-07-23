@@ -377,9 +377,16 @@ export default function DashboardPage() {
   }
   async function saveRate(kitId: number, item: RateItem) {
     setError("");
+    // Guard the inline edit: an emptied field would coerce to 0 (Number("") === 0)
+    // and silently zero the price.
+    const price = Number(item.priceAmount);
+    if (String(item.priceAmount).trim() === "" || Number.isNaN(price) || price < 0) {
+      setError("Fiyat bos veya gecersiz olamaz.");
+      return;
+    }
     const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/ratecard/${item.id}`, {
       method: "PUT", headers: authHeaders(),
-      body: JSON.stringify({ serviceName: item.serviceName, priceAmount: Number(item.priceAmount), currency: item.currency, note: item.note || null, displayOrder: item.displayOrder }),
+      body: JSON.stringify({ serviceName: item.serviceName, priceAmount: price, currency: item.currency, note: item.note || null, displayOrder: item.displayOrder }),
     });
     if (res.ok) setNotice("Kaydedildi.");
     else { const d = await res.json().catch(() => null); setError(d?.error ?? `Kaydedilemedi (HTTP ${res.status})`); }
@@ -409,13 +416,19 @@ export default function DashboardPage() {
 
   async function openPreview(kitId: number) {
     setError("");
-    // Mint a short-lived signed link, then open it; the URL is built from our
-    // own origin so the backend needs no frontend-host config.
+    // Open the tab synchronously inside the click gesture — popup blockers
+    // (notably Safari) reject window.open fired after an awaited fetch. The
+    // target is our own same-origin /preview page, so no "noopener" needed
+    // (and passing it would make window.open return null).
+    const win = window.open("about:blank", "_blank");
     const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/preview-link`, { method: "POST", headers: authHeaders() });
     if (res.ok) {
       const data = await res.json();
-      window.open(`/preview/${data.token}`, "_blank", "noopener");
+      const url = `/preview/${data.token}`;
+      if (win) win.location.href = url;
+      else window.location.href = url; // blocker still won: navigate in place
     } else {
+      win?.close();
       const d = await res.json().catch(() => null);
       setError(d?.error ?? `Onizleme olusturulamadi (HTTP ${res.status})`);
     }

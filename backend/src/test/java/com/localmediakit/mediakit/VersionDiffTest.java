@@ -140,7 +140,9 @@ class VersionDiffTest {
                 .andExpect(jsonPath("$.fields[0].from").value("v1 hali"))
                 .andExpect(jsonPath("$.fields[0].to").value("v2 hali"))
                 .andExpect(jsonPath("$.platforms[0].platform").value("INSTAGRAM"))
-                .andExpect(jsonPath("$.platforms[0].kind").value("ADDED"));
+                .andExpect(jsonPath("$.platforms[0].kind").value("ADDED"))
+                // Regression: ListDiff must not leak accessor-derived fields.
+                .andExpect(jsonPath("$.rateCard.empty").doesNotExist());
     }
 
     @Test

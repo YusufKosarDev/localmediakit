@@ -27,11 +27,11 @@ public record VersionDiffResponse(
     public record PlatformDiff(String platform, String kind, List<MetricChange> changes) {
     }
 
-    /** Entries added/removed by display name; in-place edits as metric rows. */
+    /**
+     * Entries added/removed by display name; in-place edits as metric rows.
+     * No is/get-prefixed helpers here on purpose: Jackson would serialize them
+     * into the payload (an earlier isEmpty() leaked an "empty" field).
+     */
     public record ListDiff(List<String> added, List<String> removed, List<MetricChange> changed) {
-
-        public boolean isEmpty() {
-            return added.isEmpty() && removed.isEmpty() && changed.isEmpty();
-        }
     }
 }

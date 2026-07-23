@@ -36,6 +36,8 @@ class SlugServiceTest {
     void reservedWordsAreDetected() {
         assertThat(slugService.isReserved("admin")).isTrue();
         assertThat(slugService.isReserved("dashboard")).isTrue();
+        // Frontend route segments must never be claimable as kit slugs.
+        assertThat(slugService.isReserved("preview")).isTrue();
         assertThat(slugService.isReserved("alice")).isFalse();
     }
 

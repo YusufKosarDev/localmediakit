@@ -66,10 +66,19 @@ public class YouTubeStatsProvider implements StatsProvider {
         try {
             body = restClient.get().uri(uri).retrieve().body(JsonNode.class);
         } catch (HttpClientErrorException e) {
-            // 403 on this endpoint is the quota signal (the key itself was accepted).
+            // 403 covers several cases; only genuine quota reasons may abort the
+            // batch. Key restrictions / API-not-enabled are TRANSIENT with a
+            // diagnosis that points at the configuration, not the quota.
             if (e.getStatusCode().value() == 403) {
-                throw new StatsProviderException(StatsProviderException.Kind.QUOTA,
-                        "YouTube API quota exceeded");
+                String reason = e.getResponseBodyAsString();
+                if (reason.contains("quotaExceeded") || reason.contains("rateLimitExceeded")
+                        || reason.contains("dailyLimitExceeded")) {
+                    throw new StatsProviderException(StatsProviderException.Kind.QUOTA,
+                            "YouTube API quota exceeded");
+                }
+                throw new StatsProviderException(StatsProviderException.Kind.TRANSIENT,
+                        "YouTube API access denied - check that the key is unrestricted"
+                                + " and YouTube Data API v3 is enabled");
             }
             throw new StatsProviderException(StatsProviderException.Kind.TRANSIENT,
                     "YouTube API rejected the request (" + e.getStatusCode().value() + ")");

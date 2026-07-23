@@ -29,16 +29,15 @@ export default async function OgImage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  let kit = null;
-  try {
-    kit = await getKit(slug);
-  } catch {
-    // Backend unreachable and nothing cached: fall through to the generic card.
-  }
+  // Deliberately NO try/catch: this route's output is edge-cached, so a
+  // transient failure (backend asleep, cold cache) must THROW — an error
+  // response is never cached and the next crawler attempt retries. Catching
+  // here would freeze the generic card into the edge until the next publish.
+  const kit = await getKit(slug);
 
   const t = THEME[kit?.theme === "dark" ? "dark" : "light"];
 
-  // Missing kit (or fetch failure): a neutral brand card, nothing leaked.
+  // A real 404: a neutral brand card, nothing leaked.
   if (!kit) {
     return new ImageResponse(
       (
