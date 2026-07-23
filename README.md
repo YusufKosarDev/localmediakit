@@ -66,6 +66,13 @@ flowchart LR
   (Instagram takipci-bazli, YouTube/TikTok izlenme-bazli). `EngagementCalculator`
   arayuzu + platform basina implementasyon + registry: yeni platform = yeni sinif,
   mevcut kod degismez (Open/Closed).
+- **Otomatik istatistik senkronu — Strategy'nin ikizi.** `StatsProvider` arayuzu
+  + registry (yalniz KULLANILABILIR provider'lar: API key'siz provider hic yokmus
+  gibi davranir — graceful-enable). YouTube Data API v3 key ile abone/izlenme
+  ceker; baglarken dogrulayan fetch ilk olcumu de dusurur. Saatlik batch job
+  (overlap guard, kaynak basina transaction, QUOTA'da batch'i durdurma) yalniz
+  PRO sahiplerin kaynaklarini gunluk tazeler; her basarili fetch append-only
+  `platform_stats` serisine yazar — engagement/buyume bedavaya hesaplanir.
 - **Append-only zaman serisi** — `platform_stats` ve `page_views` her olcumde yeni
   satir ekler (upsert yok); trend/buyume ve analitik agregasyonu bundan hesaplanir.
 - **Versiyon diff** — append-only versiyon tablosunun ikinci getirisi: iki donmus
@@ -103,6 +110,7 @@ flowchart LR
 | Draft onizleme linki (30 dk) | ✓ | ✓ |
 | Uretilen sosyal paylasim karti (OG) | ✓ (rozetli) | ✓ (rozet yok) |
 | Rate card (calisma ucretleri) | ✓ | ✓ |
+| YouTube istatistik senkronu | Elle "simdi senkronla" | Gunluk otomatik |
 | Marka iletisim formu + gelen kutusu | ✓ (son 10 teklif) | ✓ (tum gecmis) |
 | Analitik | Toplam sayac | Tekil ziyaretci + gunluk seri + referrer/cihaz |
 | Versiyon gecmisi | Son 2 + o pencereye rollback | Tam gecmis + her versiyona rollback |
@@ -154,6 +162,7 @@ backend/  Spring Boot API
   auth, user            JWT kayit/giris, plan (PlanPolicy)
   mediakit              kit CRUD, slug, publish/snapshot/versiyon, sifre
   stats                 istatistik zaman serisi, engagement (Strategy), demografi
+  stats/sync            StatsProvider (YouTube API) + scheduled sync batch
   collab                marka isbirlikleri
   ratecard              calisma ucretleri (publish'te snapshot'a donar)
   lead                  marka iletisim formu ingestion + gelen kutusu

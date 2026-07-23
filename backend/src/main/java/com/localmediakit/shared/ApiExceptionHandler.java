@@ -19,6 +19,11 @@ import com.localmediakit.mediakit.TooManyUnlockAttemptsException;
 import com.localmediakit.mediakit.VersionNotFoundException;
 import com.localmediakit.mediakit.VersionNotVisibleException;
 import com.localmediakit.stats.InvalidDemographicsException;
+import com.localmediakit.stats.sync.ExternalAccountNotFoundException;
+import com.localmediakit.stats.sync.SyncCooldownException;
+import com.localmediakit.stats.sync.SyncNotConfiguredException;
+import com.localmediakit.stats.sync.SyncSourceNotFoundException;
+import com.localmediakit.stats.sync.SyncUpstreamException;
 import com.localmediakit.user.PlanLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -149,6 +154,31 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(TooManyUnlockAttemptsException.class)
     public ResponseEntity<Map<String, Object>> handleTooManyUnlock(TooManyUnlockAttemptsException ex) {
+        return body(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(SyncNotConfiguredException.class)
+    public ResponseEntity<Map<String, Object>> handleSyncNotConfigured(SyncNotConfiguredException ex) {
+        return body(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(SyncSourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleSyncSourceNotFound(SyncSourceNotFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(ExternalAccountNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleExternalAccountNotFound(ExternalAccountNotFoundException ex) {
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(SyncUpstreamException.class)
+    public ResponseEntity<Map<String, Object>> handleSyncUpstream(SyncUpstreamException ex) {
+        return body(HttpStatus.BAD_GATEWAY, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(SyncCooldownException.class)
+    public ResponseEntity<Map<String, Object>> handleSyncCooldown(SyncCooldownException ex) {
         return body(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), null);
     }
 

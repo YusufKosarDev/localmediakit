@@ -57,6 +57,11 @@ public class PlanPolicy {
         return plan == Plan.PRO ? Integer.MAX_VALUE : 10;
     }
 
+    /** Scheduled stat-source refresh is PRO; FREE connects and syncs manually. */
+    public boolean autoSyncEnabled(Plan plan) {
+        return plan == Plan.PRO;
+    }
+
     public void assertPasswordProtectionAllowed(Plan plan) {
         if (!passwordProtectionEnabled(plan)) {
             throw new PlanLimitExceededException(

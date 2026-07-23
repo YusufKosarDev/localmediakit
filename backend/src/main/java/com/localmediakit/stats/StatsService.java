@@ -41,6 +41,17 @@ public class StatsService {
         return toView(row);
     }
 
+    /**
+     * Append path for callers that have already established authorization
+     * (the sync pipeline: ownership checked at connect, batch is system-driven).
+     */
+    @Transactional
+    public void recordForKit(Long kitId, RecordStatsRequest request) {
+        repository.save(new PlatformStats(
+                kitId, request.platform(), request.followers(),
+                request.avgViews(), request.avgLikes(), request.avgComments()));
+    }
+
     @Transactional(readOnly = true)
     public List<PlatformStatView> latest(String userEmail, Long kitId) {
         MediaKit kit = access.requireOwnedKit(userEmail, kitId);

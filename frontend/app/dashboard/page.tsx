@@ -51,6 +51,8 @@ type RateItem = {
   currency: string; note: string | null; displayOrder: number;
 };
 type Lead = { id: number; brandName: string; email: string; message: string; status: string; createdAt: string };
+type SyncSource = { platform: string; externalId: string; lastSyncedAt: string | null; lastError: string | null };
+type SyncStatus = { availablePlatforms: string[]; autoSync: boolean; sources: SyncSource[] };
 type MetricChange = { metric: string; from: string | null; to: string | null };
 type VersionDiff = {
   fromVersion: number; toVersion: number;
@@ -103,6 +105,8 @@ export default function DashboardPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [diffSel, setDiffSel] = useState({ from: "", to: "" });
   const [diff, setDiff] = useState<VersionDiff | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [channelInput, setChannelInput] = useState("");
 
   const loadKits = useCallback(async () => {
     const res = await fetch(`${BACKEND}/api/mediakits`, { headers: authHeaders() });
@@ -262,16 +266,19 @@ export default function DashboardPage() {
   }
 
   async function loadStatsPanel(id: number) {
-    const [sRes, dRes, cRes, rRes] = await Promise.all([
+    const [sRes, dRes, cRes, rRes, syRes] = await Promise.all([
       fetch(`${BACKEND}/api/mediakits/${id}/stats`, { headers: authHeaders() }),
       fetch(`${BACKEND}/api/mediakits/${id}/demographics`, { headers: authHeaders() }),
       fetch(`${BACKEND}/api/mediakits/${id}/collaborations`, { headers: authHeaders() }),
       fetch(`${BACKEND}/api/mediakits/${id}/ratecard`, { headers: authHeaders() }),
+      fetch(`${BACKEND}/api/mediakits/${id}/sources`, { headers: authHeaders() }),
     ]);
     if (sRes.ok) setStats(await sRes.json());
     if (dRes.ok) setDemoEntries(await dRes.json());
     if (cRes.ok) setCollabs(await cRes.json());
     if (rRes.ok) setRates(await rRes.json());
+    if (syRes.ok) setSyncStatus(await syRes.json());
+    setChannelInput("");
     setStatForm({ ...emptyStatForm });
     setCollabForm({ brandName: "", campaign: "", period: "", resultNote: "" });
     setRateForm({ serviceName: "", priceAmount: "", currency: "TRY", note: "" });
@@ -329,6 +336,34 @@ export default function DashboardPage() {
     setError("");
     const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/collaborations/${collabId}`, { method: "DELETE", headers: authHeaders() });
     if (res.status === 204) await loadStatsPanel(kitId); else setError(`Silinemedi (HTTP ${res.status})`);
+  }
+
+  async function connectYouTube(kitId: number, e: React.FormEvent) {
+    e.preventDefault(); setError(""); setNotice("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/sources/YOUTUBE`, {
+      method: "PUT", headers: authHeaders(), body: JSON.stringify({ externalId: channelInput }),
+    });
+    if (res.ok) { setNotice("Kanal baglandi; ilk olcum kaydedildi."); await loadStatsPanel(kitId); }
+    else { const d = await res.json().catch(() => null); setError(d?.error ?? `Baglanamadi (HTTP ${res.status})`); }
+  }
+  async function syncSourceNow(kitId: number, platform: string) {
+    setError(""); setNotice("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/sources/${platform}/sync`, {
+      method: "POST", headers: authHeaders(),
+    });
+    if (res.ok) {
+      const data: SyncSource = await res.json();
+      setNotice(data.lastError ? `Senkron denendi: ${data.lastError}` : "Senkronlandi.");
+      await loadStatsPanel(kitId);
+    } else if (res.status === 429) setError("Cok kisa arayla senkron. Biraz bekleyin.");
+    else { const d = await res.json().catch(() => null); setError(d?.error ?? `Senkronlanamadi (HTTP ${res.status})`); }
+  }
+  async function disconnectSource(kitId: number, platform: string) {
+    setError("");
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/sources/${platform}`, {
+      method: "DELETE", headers: authHeaders(),
+    });
+    if (res.status === 204) await loadStatsPanel(kitId); else setError(`Kaldirilamadi (HTTP ${res.status})`);
   }
 
   async function addRate(kitId: number, e: React.FormEvent) {
@@ -588,6 +623,39 @@ export default function DashboardPage() {
 
                   {active.tab === "stats" && (
                     <div className="grid gap-5">
+                      {syncStatus && syncStatus.availablePlatforms.includes("YOUTUBE") && (
+                        <div className="rounded-lg border border-line bg-surface p-3">
+                          <div className="mb-1 flex items-center gap-2 text-sm font-medium">
+                            <RefreshCw className="h-3.5 w-3.5 text-brand" /> Otomatik veri kaynagi — YouTube
+                          </div>
+                          {(() => {
+                            const src = syncStatus.sources.find((s) => s.platform === "YOUTUBE");
+                            if (!src) {
+                              return (
+                                <form onSubmit={(e) => connectYouTube(kit.id, e)} className="flex flex-wrap items-center gap-2">
+                                  <Input required placeholder="@kanal-adi veya kanal ID" className="w-56"
+                                    value={channelInput} onChange={(e) => setChannelInput(e.target.value)} />
+                                  <Button type="submit" size="sm">Bagla</Button>
+                                  <span className="text-xs text-faint">Baglaninca abone sayisi otomatik cekilir{syncStatus.autoSync ? " (gunluk otomatik)" : "; gunluk otomatik senkron PRO'da"}.</span>
+                                </form>
+                              );
+                            }
+                            return (
+                              <div className="flex flex-wrap items-center gap-2 text-sm">
+                                <span className="font-mono text-muted">{src.externalId}</span>
+                                {src.lastError
+                                  ? <Badge tone="danger">hata: {src.lastError}</Badge>
+                                  : src.lastSyncedAt && <span className="text-xs text-faint">son senkron: {new Date(src.lastSyncedAt).toLocaleString("tr-TR")}</span>}
+                                {!syncStatus.autoSync && <Badge tone="warning">otomatik senkron PRO</Badge>}
+                                <Button size="sm" variant="secondary" onClick={() => syncSourceNow(kit.id, "YOUTUBE")}>
+                                  <RefreshCw className="h-3.5 w-3.5" /> Simdi senkronla
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => disconnectSource(kit.id, "YOUTUBE")}>Baglantiyi kes</Button>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
                       <div>
                         <div className="mb-2 text-sm font-medium">Platform istatistikleri</div>
                         {stats.length === 0 && <p className="text-sm text-muted">Henuz istatistik yok.</p>}
