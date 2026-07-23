@@ -155,7 +155,13 @@ cd backend && mvn test       # 129 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, ...
+
+cd frontend && npm test      # 12 test (Vitest + Testing Library): public sayfa
+                             # snapshot render'i (istatistik/rozet/preview/eski
+                             # snapshot), sifre gate, auth hata eslemesi
 ```
+
+Her ikisi de her push'ta CI'da kosar (bkz. yukaridaki CI rozeti).
 
 ## Proje yapisi
 
