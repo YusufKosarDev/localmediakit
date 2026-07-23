@@ -297,6 +297,20 @@ export default function DashboardPage() {
     if (res.status === 204) await loadStatsPanel(kitId); else setError(`Silinemedi (HTTP ${res.status})`);
   }
 
+  async function openPreview(kitId: number) {
+    setError("");
+    // Mint a short-lived signed link, then open it; the URL is built from our
+    // own origin so the backend needs no frontend-host config.
+    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/preview-link`, { method: "POST", headers: authHeaders() });
+    if (res.ok) {
+      const data = await res.json();
+      window.open(`/preview/${data.token}`, "_blank", "noopener");
+    } else {
+      const d = await res.json().catch(() => null);
+      setError(d?.error ?? `Onizleme olusturulamadi (HTTP ${res.status})`);
+    }
+  }
+
   async function deleteKit(id: number) {
     setError("");
     if (!window.confirm("Bu kiti silmek istediginize emin misiniz?")) return;
@@ -422,6 +436,7 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => openPreview(kit.id)}><Eye className="h-3.5 w-3.5" /> Onizle</Button>
                   <Button size="sm" onClick={() => publishKit(kit.id)}><Send className="h-3.5 w-3.5" /> Yayinla</Button>
                   <Button size="sm" variant="danger" onClick={() => deleteKit(kit.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>

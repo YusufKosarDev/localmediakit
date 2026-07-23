@@ -42,6 +42,28 @@ public record PublicKitResponse(
                 version.getPublishedAt().toString());
     }
 
+    /**
+     * Draft preview — same shape as a full response so the frontend renders it
+     * with the exact same component. version 0 marks "not a published version";
+     * publishedAt carries the render time (previews are never cached anyway).
+     */
+    public static PublicKitResponse preview(MediaKitSnapshot snapshot) {
+        return new PublicKitResponse(
+                snapshot.slug(),
+                snapshot.title(),
+                snapshot.headline(),
+                snapshot.avatarUrl(),
+                snapshot.theme(),
+                snapshot.displayName(),
+                snapshot.platformsOrEmpty(),
+                snapshot.demographicsOrEmpty(),
+                snapshot.collaborationsOrEmpty(),
+                snapshot.showBadgeOrDefault(),
+                false,
+                0,
+                java.time.Instant.now().toString());
+    }
+
     /** Locked gate — only what a password prompt needs; no sensitive data. */
     public static PublicKitResponse locked(MediaKitSnapshot snapshot, MediaKitVersion version) {
         return new PublicKitResponse(

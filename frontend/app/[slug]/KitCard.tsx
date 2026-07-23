@@ -59,7 +59,10 @@ function fmtPct(n: number): string {
   return n.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
 }
 
-export default function KitCard({ kit }: { kit: PublicKit }) {
+// preview: renders the same card for a live DRAFT (owner's short-lived link).
+// No analytics beacon (previews must not pollute visitor stats) and the footer
+// says so instead of showing a publish date.
+export default function KitCard({ kit, preview = false }: { kit: PublicKit; preview?: boolean }) {
   const dark = kit.theme === "dark";
   const publishedDate = new Date(kit.publishedAt).toLocaleDateString("tr-TR", {
     year: "numeric",
@@ -73,7 +76,12 @@ export default function KitCard({ kit }: { kit: PublicKit }) {
   return (
     <div data-theme={dark ? "dark" : "light"} className={dark ? "dark" : ""}>
       <main className="kit-root min-h-screen bg-page text-fg">
-        <TrackView slug={kit.slug} />
+        {!preview && <TrackView slug={kit.slug} />}
+        {preview && (
+          <div className="no-print sticky top-0 z-10 border-b border-line bg-brand-weak px-4 py-2 text-center text-xs font-medium text-brand">
+            ONIZLEME — bu sayfa yayinlanmamis taslagi gosterir; link kisa sureli ve gecicidir.
+          </div>
+        )}
         <div className="mx-auto w-full max-w-2xl px-5 py-12 sm:py-16">
           <PrintButton />
 
@@ -225,7 +233,7 @@ export default function KitCard({ kit }: { kit: PublicKit }) {
           )}
 
           <footer className="mt-10 border-t border-line pt-5 text-center text-xs text-faint">
-            {publishedDate} tarihinde yayinlandi
+            {preview ? "Onizleme — henuz yayinlanmadi" : `${publishedDate} tarihinde yayinlandi`}
             {kit.showBadge !== false && (
               <>
                 {" · "}

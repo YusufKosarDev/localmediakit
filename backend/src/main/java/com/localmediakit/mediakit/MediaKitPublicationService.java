@@ -160,8 +160,11 @@ public class MediaKitPublicationService {
      * Freezes the full publishable state: draft fields plus the CURRENT stats
      * (with engagement/growth already computed) and demographics. The public
      * page reads only this, so later stat entries never move a published page.
+     *
+     * Package-private on purpose: {@link KitPreviewService} renders the exact
+     * same assembly from the live draft, so preview and publish can never drift.
      */
-    private MediaKitSnapshot buildSnapshot(MediaKit kit, User owner) {
+    MediaKitSnapshot buildSnapshot(MediaKit kit, User owner) {
         var platforms = statsService.latestForKit(kit.getId()).stream()
                 .map(v -> new MediaKitSnapshot.PlatformStatSnapshot(
                         v.platform().name(), v.followers(), v.avgViews(), v.avgLikes(),

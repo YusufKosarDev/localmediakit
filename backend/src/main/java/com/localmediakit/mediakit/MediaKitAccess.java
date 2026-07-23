@@ -32,4 +32,14 @@ public class MediaKitAccess {
         return mediaKitRepository.findByIdAndUserId(kitId, user.getId())
                 .orElseThrow(MediaKitNotFoundException::new);
     }
+
+    /**
+     * Resolves a kit's owner when the caller is authorized by something other
+     * than a session (e.g. a signed preview token). A missing owner presents
+     * as a missing kit — same no-leak rule as everywhere else.
+     */
+    public User requireOwner(MediaKit kit) {
+        return userRepository.findById(kit.getUserId())
+                .orElseThrow(MediaKitNotFoundException::new);
+    }
 }

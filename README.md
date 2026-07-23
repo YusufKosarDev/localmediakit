@@ -53,6 +53,15 @@ flowchart LR
 - **Edge HIT + immutable snapshot** — yukaridaki write/read ayrimi. Sifreli kitler
   bu kuralin tek istisnasi: hassas veri edge'e hic girmez, kilit acma per-request
   backend'den gelir; **normal kitler yine de edge HIT.**
+- **Draft onizleme — publish'in bilincli tersi.** Sahip kisa omurlu imzali bir
+  link uretir (`typ=preview` claim'li JWT; oturum tokeni olarak ASLA kabul
+  edilmez, tersi de gecerli); link CANLI taslagi per-request, `no-store` ile
+  gosterir. Yayinli sayfa donmus snapshot + edge cache iken onizleme taze veri +
+  sifir cache — ayni `KitCard` bileseni, iki zit servis stratejisi.
+- **Uretilen OG gorseli** — `opengraph-image.tsx` sayfayla AYNI tag'li fetch'i
+  okur: publish tek revalidate ile sayfayi da sosyal karti da tazeler, gorsel
+  uyuyan backend'i uyandirmaz. Donan "powered by" rozet kurali kartta da gecerli;
+  sifreli kitin kartina istatistik/headline hic girmez.
 - **Engagement motoru — Strategy pattern.** Her platformun formulu farkli
   (Instagram takipci-bazli, YouTube/TikTok izlenme-bazli). `EngagementCalculator`
   arayuzu + platform basina implementasyon + registry: yeni platform = yeni sinif,
@@ -79,6 +88,8 @@ flowchart LR
 | Medya kiti | 1 | Sinirsiz |
 | Public sayfa | ✓ ("powered by" rozetli) | ✓ (rozet yok) |
 | Istatistik + engagement + demografi | ✓ | ✓ |
+| Draft onizleme linki (30 dk) | ✓ | ✓ |
+| Uretilen sosyal paylasim karti (OG) | ✓ (rozetli) | ✓ (rozet yok) |
 | Analitik | Toplam sayac | Tekil ziyaretci + gunluk seri + referrer/cihaz |
 | Versiyon gecmisi | Son 2 + o pencereye rollback | Tam gecmis + her versiyona rollback |
 | PDF export | ✓ (rozetli) | ✓ (temiz) |
@@ -134,7 +145,8 @@ backend/  Spring Boot API
   ratelimit             Bucket4j filtresi
   demo                  demo hesap seed + test-hesabi temizligi
 frontend/ Next.js App Router
-  app/[slug]            public sayfa (edge), KitCard, PasswordGate, PrintButton, beacon
+  app/[slug]            public sayfa (edge), KitCard, PasswordGate, PrintButton, beacon, OG gorseli
+  app/preview/[token]   draft onizleme (per-request, no-store, noindex)
   app/dashboard         kit editoru + istatistik/analitik/versiyon/domain panelleri
   app/api/revalidate    secret korumali on-demand revalidation
 ```

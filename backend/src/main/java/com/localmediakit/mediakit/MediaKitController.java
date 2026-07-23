@@ -21,11 +21,14 @@ public class MediaKitController {
 
     private final MediaKitService mediaKitService;
     private final MediaKitPublicationService publicationService;
+    private final KitPreviewService previewService;
 
     public MediaKitController(MediaKitService mediaKitService,
-                              MediaKitPublicationService publicationService) {
+                              MediaKitPublicationService publicationService,
+                              KitPreviewService previewService) {
         this.mediaKitService = mediaKitService;
         this.publicationService = publicationService;
+        this.previewService = previewService;
     }
 
     @PostMapping
@@ -55,6 +58,11 @@ public class MediaKitController {
     @PostMapping("/{id}/publish")
     public PublishResponse publish(Authentication authentication, @PathVariable Long id) {
         return publicationService.publish(currentEmail(authentication), id);
+    }
+
+    @PostMapping("/{id}/preview-link")
+    public PreviewLinkResponse previewLink(Authentication authentication, @PathVariable Long id) {
+        return previewService.createLink(currentEmail(authentication), id);
     }
 
     @GetMapping("/{id}/versions")
