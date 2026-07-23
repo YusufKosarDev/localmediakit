@@ -51,6 +51,15 @@ type RateItem = {
   currency: string; note: string | null; displayOrder: number;
 };
 type Lead = { id: number; brandName: string; email: string; message: string; status: string; createdAt: string };
+type MetricChange = { metric: string; from: string | null; to: string | null };
+type VersionDiff = {
+  fromVersion: number; toVersion: number;
+  fields: { field: string; from: string | null; to: string | null }[];
+  platforms: { platform: string; kind: string; changes: MetricChange[] }[];
+  collaborations: { added: string[]; removed: string[]; changed: MetricChange[] };
+  rateCard: { added: string[]; removed: string[]; changed: MetricChange[] };
+  demographics: { added: string[]; removed: string[]; changed: MetricChange[] };
+};
 type Tab = "edit" | "stats" | "collabs" | "leads" | "analytics" | "versions" | "domain";
 
 const PLATFORMS = ["YOUTUBE", "INSTAGRAM", "TIKTOK"];
@@ -92,6 +101,8 @@ export default function DashboardPage() {
   const [rates, setRates] = useState<RateItem[]>([]);
   const [rateForm, setRateForm] = useState({ serviceName: "", priceAmount: "", currency: "TRY", note: "" });
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [diffSel, setDiffSel] = useState({ from: "", to: "" });
+  const [diff, setDiff] = useState<VersionDiff | null>(null);
 
   const loadKits = useCallback(async () => {
     const res = await fetch(`${BACKEND}/api/mediakits`, { headers: authHeaders() });
@@ -189,6 +200,17 @@ export default function DashboardPage() {
   async function loadVersions(id: number) {
     const res = await fetch(`${BACKEND}/api/mediakits/${id}/versions`, { headers: authHeaders() });
     if (res.ok) setVersions(await res.json());
+    setDiff(null);
+    setDiffSel({ from: "", to: "" });
+  }
+  async function loadDiff(kitId: number) {
+    setError(""); setDiff(null);
+    const res = await fetch(
+      `${BACKEND}/api/mediakits/${kitId}/versions/diff?from=${diffSel.from}&to=${diffSel.to}`,
+      { headers: authHeaders() });
+    if (res.ok) setDiff(await res.json());
+    else if (res.status === 403) setError("Bu versiyon FREE gorunurluk penceresinin disinda (PRO ile tum gecmis).");
+    else setError(`Karsilastirilamadi (HTTP ${res.status})`);
   }
   async function activateVersion(kitId: number, version: number) {
     setError("");
@@ -755,6 +777,69 @@ export default function DashboardPage() {
                             : <Button size="sm" variant="secondary" onClick={() => activateVersion(kit.id, v.version)}>Bu versiyona don</Button>}
                         </div>
                       ))}
+
+                      {versions.length >= 2 && (
+                        <div className="mt-2 rounded-lg border border-line bg-surface p-3">
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <span className="font-medium">Karsilastir:</span>
+                            <Select value={diffSel.from} onChange={(e) => setDiffSel({ ...diffSel, from: e.target.value })}>
+                              <option value="">eski...</option>
+                              {versions.map((v) => <option key={v.version} value={v.version}>v{v.version}</option>)}
+                            </Select>
+                            <span className="text-muted">→</span>
+                            <Select value={diffSel.to} onChange={(e) => setDiffSel({ ...diffSel, to: e.target.value })}>
+                              <option value="">yeni...</option>
+                              {versions.map((v) => <option key={v.version} value={v.version}>v{v.version}</option>)}
+                            </Select>
+                            <Button size="sm" disabled={!diffSel.from || !diffSel.to || diffSel.from === diffSel.to}
+                              onClick={() => loadDiff(kit.id)}>Goster</Button>
+                          </div>
+
+                          {diff && (
+                            <div className="mt-3 grid gap-1.5 border-t border-line pt-3 text-sm">
+                              {diff.fields.length === 0 && diff.platforms.length === 0
+                                && diff.collaborations.added.length + diff.collaborations.removed.length === 0
+                                && diff.rateCard.added.length + diff.rateCard.removed.length + diff.rateCard.changed.length === 0
+                                && diff.demographics.added.length + diff.demographics.removed.length + diff.demographics.changed.length === 0 && (
+                                <p className="text-muted">v{diff.fromVersion} ile v{diff.toVersion} arasinda icerik farki yok.</p>
+                              )}
+                              {diff.fields.map((f) => (
+                                <div key={f.field}>
+                                  <span className="text-faint">{f.field}:</span>{" "}
+                                  <span className="text-danger line-through">{f.from ?? "—"}</span>{" "}
+                                  <span className="text-success">{f.to ?? "—"}</span>
+                                </div>
+                              ))}
+                              {diff.platforms.map((p) => (
+                                <div key={p.platform}>
+                                  <span className="font-medium">{p.platform}</span>{" "}
+                                  {p.kind === "ADDED" && <Badge tone="success">eklendi</Badge>}
+                                  {p.kind === "REMOVED" && <Badge tone="danger">cikti</Badge>}
+                                  {p.changes.map((c) => (
+                                    <span key={c.metric} className="ml-2 text-muted">
+                                      {c.metric}: {c.from ?? "—"} → <span className="text-fg">{c.to ?? "—"}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              ))}
+                              {([["Isbirlikleri", diff.collaborations], ["Ucretler", diff.rateCard], ["Demografi", diff.demographics]] as const)
+                                .filter(([, d]) => d.added.length + d.removed.length + d.changed.length > 0)
+                                .map(([label, d]) => (
+                                  <div key={label}>
+                                    <span className="font-medium">{label}:</span>{" "}
+                                    {d.added.length > 0 && <span className="text-success">+{d.added.join(", ")}</span>}{" "}
+                                    {d.removed.length > 0 && <span className="text-danger">−{d.removed.join(", ")}</span>}{" "}
+                                    {d.changed.map((c) => (
+                                      <span key={c.metric} className="ml-1 text-muted">
+                                        {c.metric}: {c.from} → <span className="text-fg">{c.to}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 

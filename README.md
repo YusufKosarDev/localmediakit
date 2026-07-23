@@ -68,6 +68,10 @@ flowchart LR
   mevcut kod degismez (Open/Closed).
 - **Append-only zaman serisi** — `platform_stats` ve `page_views` her olcumde yeni
   satir ekler (upsert yok); trend/buyume ve analitik agregasyonu bundan hesaplanir.
+- **Versiyon diff** — append-only versiyon tablosunun ikinci getirisi: iki donmus
+  snapshot arasindaki fark saf bir fonksiyon (sifir yeni durum). Eski sema
+  nesillerinden snapshot'lar da diff'lenir (eksik listeler normalize edilir);
+  gorunurluk kurali gecmis listesiyle ayni (FREE pencere ici, PRO tum gecmis).
 - **Fire-and-forget analytics beacon** — statik-edge ile analitik gerginligini
   cozer: sayfa render'dan SONRA bloklamayan bir `POST /api/track` atilir; backend
   uyuyorsa sessizce duser, edge HIT bozulmaz. Anonim gunluk-donen ziyaretci hash'i
@@ -102,6 +106,7 @@ flowchart LR
 | Marka iletisim formu + gelen kutusu | ✓ (son 10 teklif) | ✓ (tum gecmis) |
 | Analitik | Toplam sayac | Tekil ziyaretci + gunluk seri + referrer/cihaz |
 | Versiyon gecmisi | Son 2 + o pencereye rollback | Tam gecmis + her versiyona rollback |
+| Versiyon karsilastirma (diff) | Pencere icinde | Herhangi iki versiyon |
 | PDF export | ✓ (rozetli) | ✓ (temiz) |
 | Sifre korumasi | — | ✓ |
 | Custom domain (yakinda) | — | ✓ (DNS dogrulama iskeleti) |

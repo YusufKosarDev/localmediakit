@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,13 +23,16 @@ public class MediaKitController {
     private final MediaKitService mediaKitService;
     private final MediaKitPublicationService publicationService;
     private final KitPreviewService previewService;
+    private final VersionDiffService versionDiffService;
 
     public MediaKitController(MediaKitService mediaKitService,
                               MediaKitPublicationService publicationService,
-                              KitPreviewService previewService) {
+                              KitPreviewService previewService,
+                              VersionDiffService versionDiffService) {
         this.mediaKitService = mediaKitService;
         this.publicationService = publicationService;
         this.previewService = previewService;
+        this.versionDiffService = versionDiffService;
     }
 
     @PostMapping
@@ -68,6 +72,14 @@ public class MediaKitController {
     @GetMapping("/{id}/versions")
     public List<VersionResponse> versions(Authentication authentication, @PathVariable Long id) {
         return publicationService.listVersions(currentEmail(authentication), id);
+    }
+
+    @GetMapping("/{id}/versions/diff")
+    public VersionDiffResponse diffVersions(Authentication authentication,
+                                            @PathVariable Long id,
+                                            @RequestParam int from,
+                                            @RequestParam int to) {
+        return versionDiffService.diff(currentEmail(authentication), id, from, to);
     }
 
     @PostMapping("/{id}/versions/{versionNumber}/activate")
