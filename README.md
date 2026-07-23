@@ -1,5 +1,7 @@
 # LocalMediaKit
 
+[![CI](https://github.com/YusufKosarDev/localmediakit/actions/workflows/ci.yml/badge.svg)](https://github.com/YusufKosarDev/localmediakit/actions/workflows/ci.yml)
+
 Icerik ureticileri (influencer) icin **canli medya kiti** platformu. Uretici;
 takipci/etkilesim istatistiklerini, kitle demografisini ve gecmis marka
 isbirliklerini tek bir sayfada toplar ve markalarla paylasilabilir bir link
@@ -149,7 +151,7 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 117 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 129 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, ...

@@ -11,8 +11,12 @@ import { Button, Card, Input, Select, Badge, Label } from "@/app/_components/ui"
 
 // recharts is heavy and only needed on the Analitik tab — load it on demand so
 // it stays out of the initial dashboard bundle (and never reaches other pages).
-const chartFallback = (h: number) => () =>
-  <div className="animate-pulse rounded-lg bg-page" style={{ height: h }} />;
+const chartFallback = (h: number) => {
+  const ChartFallback = () => (
+    <div className="animate-pulse rounded-lg bg-page" style={{ height: h }} />
+  );
+  return ChartFallback;
+};
 const ViewsTrend = dynamic(() => import("./_AnalyticsCharts").then((m) => m.ViewsTrend), { ssr: false, loading: chartFallback(180) });
 const ReferrerBars = dynamic(() => import("./_AnalyticsCharts").then((m) => m.ReferrerBars), { ssr: false, loading: chartFallback(120) });
 const DeviceBars = dynamic(() => import("./_AnalyticsCharts").then((m) => m.DeviceBars), { ssr: false, loading: chartFallback(90) });

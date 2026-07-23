@@ -11,3 +11,6 @@ next-env.d.ts
 
 *.log
 .DS_Store
+
+# TypeScript incremental build cache
+*.tsbuildinfo
