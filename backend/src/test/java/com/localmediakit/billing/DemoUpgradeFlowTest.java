@@ -54,7 +54,8 @@ class DemoUpgradeFlowTest {
         mockMvc.perform(get("/api/billing").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stripeEnabled").value(false))
-                .andExpect(jsonPath("$.plan").value("FREE"));
+                // Accounts now default to PRO.
+                .andExpect(jsonPath("$.plan").value("PRO"));
     }
 
     @Test

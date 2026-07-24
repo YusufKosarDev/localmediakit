@@ -285,12 +285,6 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
 
           <footer className="mt-10 border-t border-line pt-5 text-center text-xs text-faint">
             {preview ? "Onizleme — henuz yayinlanmadi" : `${publishedDate} tarihinde yayinlandi`}
-            {kit.showBadge !== false && (
-              <>
-                {" · "}
-                <span className="font-medium text-muted">LocalMediaKit</span>
-              </>
-            )}
           </footer>
         </div>
       </main>

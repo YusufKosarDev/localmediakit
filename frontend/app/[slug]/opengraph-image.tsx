@@ -4,7 +4,6 @@ import { getKit } from "./kit-data";
 // Generated social card for a kit. Reads the SAME cached fetch (same tag) as
 // the page, so a publish revalidates page and image together, and rendering
 // never wakes a sleeping backend once the snapshot is in the Data Cache.
-// The frozen showBadge rule applies here too: FREE cards carry the wordmark.
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = "Medya kiti";
@@ -107,12 +106,9 @@ export default async function OgImage({
           ))}
         </div>
 
-        {/* Footer: wordmark only when the frozen badge rule says so */}
+        {/* Footer: just the slug. Branding badge removed product-wide. */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `2px solid ${t.line}`, paddingTop: 28 }}>
           <div style={{ display: "flex", fontSize: 26, color: t.muted }}>/{kit.slug}</div>
-          {kit.showBadge !== false && (
-            <div style={{ display: "flex", fontSize: 26, fontWeight: 600, color: t.brand }}>LocalMediaKit</div>
-          )}
         </div>
       </div>
     ),

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Send, Trash2, Lock, Unlock, ExternalLink, Plus, ArrowUp, ArrowDown,
-  RefreshCw, Crown, LogOut, Eye, Sparkles, Globe, X,
+  RefreshCw, LogOut, Eye, Globe, X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Button, Card, Input, Select, Badge, Label } from "@/app/_components/ui";
@@ -49,7 +49,6 @@ type Collab = {
   id: number; brandName: string; campaign: string | null; period: string | null;
   resultNote: string | null; logoUrl: string | null; displayOrder: number;
 };
-type Billing = { plan: string; subscriptionStatus: string | null; currentPeriodEnd: string | null; stripeEnabled: boolean };
 type RateItem = {
   id: number; serviceName: string; priceAmount: number | string;
   currency: string; note: string | null; displayOrder: number;
@@ -102,7 +101,6 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [domains, setDomains] = useState<Domain[]>([]);
   const [domainInput, setDomainInput] = useState("");
-  const [billing, setBilling] = useState<Billing | null>(null);
   const [collabForm, setCollabForm] = useState({ brandName: "", campaign: "", period: "", resultNote: "" });
   const [rates, setRates] = useState<RateItem[]>([]);
   const [rateForm, setRateForm] = useState({ serviceName: "", priceAmount: "", currency: "TRY", note: "" });
@@ -130,45 +128,7 @@ export default function DashboardPage() {
         return loadKits();
       })
       .catch(() => setError("Oturum gecersiz veya suresi dolmus."));
-    fetch(`${BACKEND}/api/billing`, { headers: authHeaders() })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => data && setBilling(data))
-      .catch(() => {});
-    const upgrade = new URLSearchParams(window.location.search).get("upgrade");
-    if (upgrade === "success") setNotice("Odeme alindi (test modu). Plan birkac saniye icinde PRO olur; yenileyin.");
-    else if (upgrade === "cancelled") setNotice("Odeme iptal edildi; plan degismedi.");
   }, [loadKits]);
-
-  async function startUpgrade() {
-    setError("");
-    if (billing?.stripeEnabled) {
-      const res = await fetch(`${BACKEND}/api/billing/checkout`, { method: "POST", headers: authHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        window.location.href = data.url;
-      } else {
-        const data = await res.json().catch(() => null);
-        setError(data?.error ?? `Upgrade baslatilamadi (HTTP ${res.status})`);
-      }
-      return;
-    }
-    await demoPlanSwitch("demo-upgrade");
-  }
-
-  async function demoPlanSwitch(path: "demo-upgrade" | "demo-downgrade") {
-    setError("");
-    const res = await fetch(`${BACKEND}/api/billing/${path}`, { method: "POST", headers: authHeaders() });
-    if (res.ok) {
-      const data = await res.json();
-      setBilling(data);
-      setMe((prev) => (prev ? { ...prev, plan: data.plan } : prev));
-      setNotice(data.plan === "PRO" ? "Plan PRO yapildi (demo modu — gercek odeme yok)." : "Plan FREE yapildi (demo modu).");
-      await loadKits();
-    } else {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? `Plan degistirilemedi (HTTP ${res.status})`);
-    }
-  }
 
   async function createKit(e: React.FormEvent) {
     e.preventDefault();
@@ -217,7 +177,6 @@ export default function DashboardPage() {
       `${BACKEND}/api/mediakits/${kitId}/versions/diff?from=${diffSel.from}&to=${diffSel.to}`,
       { headers: authHeaders() });
     if (res.ok) setDiff(await res.json());
-    else if (res.status === 403) setError("Bu versiyon FREE gorunurluk penceresinin disinda (PRO ile tum gecmis).");
     else setError(`Karsilastirilamadi (HTTP ${res.status})`);
   }
   async function activateVersion(kitId: number, version: number) {
@@ -237,7 +196,6 @@ export default function DashboardPage() {
       method: "POST", headers: authHeaders(), body: JSON.stringify({ domain: domainInput }),
     });
     if (res.status === 201) { setDomainInput(""); await loadDomains(kitId); }
-    else if (res.status === 403) setError("Custom domain PRO ozelligidir.");
     else { const d = await res.json().catch(() => null); setError(d?.error ?? `Domain eklenemedi (HTTP ${res.status})`); }
   }
   async function checkDomain(kitId: number, domainId: number) {
@@ -259,7 +217,6 @@ export default function DashboardPage() {
       method: "PUT", headers: authHeaders(), body: JSON.stringify({ password: pw }),
     });
     if (res.status === 204) { await loadKits(); setNotice("Sifre kaydedildi. Public sayfaya yansimasi icin Yayinla."); }
-    else if (res.status === 403) setError("Sifre korumasi PRO ozelligidir.");
     else { const d = await res.json().catch(() => null); setError(d?.error ?? `Sifre belirlenemedi (HTTP ${res.status})`); }
   }
   async function removeKitPassword(kitId: number) {
@@ -472,7 +429,6 @@ export default function DashboardPage() {
       </main>
     );
   }
-  const isPro = me.plan === "PRO";
 
   return (
     <div className="min-h-screen">
@@ -483,9 +439,6 @@ export default function DashboardPage() {
             <span className="font-semibold tracking-tight">LocalMediaKit</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Badge tone={isPro ? "brand" : "neutral"}>
-              {isPro && <Crown className="h-3 w-3" />} {me.plan}
-            </Badge>
             <span className="hidden text-sm text-muted sm:inline">{me.displayName}</span>
             <Button variant="ghost" size="sm" onClick={logout}><LogOut className="h-4 w-4" /> Cikis</Button>
           </div>
@@ -493,37 +446,13 @@ export default function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-5 py-8">
-        {/* Plan card */}
-        <Card className="mb-6 p-5">
-          {isPro ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2 font-medium"><Crown className="h-4 w-4 text-brand" /> PRO plan</div>
-                <p className="mt-0.5 text-sm text-muted">
-                  Sinirsiz kit · detayli analitik · sifre korumasi · rozet yok
-                  {billing?.subscriptionStatus && <> · durum: {billing.subscriptionStatus}</>}
-                  {billing?.currentPeriodEnd && <> · donem sonu: {new Date(billing.currentPeriodEnd).toLocaleDateString("tr-TR")}</>}
-                </p>
-              </div>
-              {!billing?.stripeEnabled && (
-                <Button variant="secondary" size="sm" onClick={() => demoPlanSwitch("demo-downgrade")}>FREE&apos;ye don (demo)</Button>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="font-medium">FREE plan</div>
-                <p className="mt-0.5 text-sm text-muted">1 kit · toplam sayac · sayfada rozet. PRO ile hepsi acilir.</p>
-              </div>
-              <Button onClick={startUpgrade}>
-                <Sparkles className="h-4 w-4" />
-                {billing?.stripeEnabled ? "PRO'ya gec — $7/ay (test)" : "PRO'ya gec (demo)"}
-              </Button>
-            </div>
-          )}
-          {notice && <p className="mt-3 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">{notice}</p>}
-          {error && <p className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
-        </Card>
+        {/* Notices / errors from any action below */}
+        {(notice || error) && (
+          <Card className="mb-6 p-4">
+            {notice && <p className="rounded-lg bg-success/10 px-3 py-2 text-sm text-success">{notice}</p>}
+            {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+          </Card>
+        )}
 
         {/* Create kit */}
         <Card className="mb-6 p-5">
@@ -630,7 +559,7 @@ export default function DashboardPage() {
                           <Button variant="secondary" onClick={() => removeKitPassword(kit.id)}><Unlock className="h-4 w-4" /> Sifreyi kaldir</Button>
                         ) : (
                           <Button variant="secondary" onClick={() => setKitPassword(kit.id)}>
-                            <Lock className="h-4 w-4" /> Sifre koy{isPro ? "" : " (PRO)"}
+                            <Lock className="h-4 w-4" /> Sifre koy
                           </Button>
                         )}
                       </div>
@@ -653,7 +582,7 @@ export default function DashboardPage() {
                                   <Input required placeholder="@kanal-adi veya kanal ID" className="w-56"
                                     value={channelInput} onChange={(e) => setChannelInput(e.target.value)} />
                                   <Button type="submit" size="sm">Bagla</Button>
-                                  <span className="text-xs text-faint">Baglaninca abone sayisi otomatik cekilir{syncStatus.autoSync ? " (gunluk otomatik)" : "; gunluk otomatik senkron PRO'da"}.</span>
+                                  <span className="text-xs text-faint">Baglaninca abone sayisi otomatik cekilir (gunluk otomatik).</span>
                                 </form>
                               );
                             }
@@ -663,7 +592,6 @@ export default function DashboardPage() {
                                 {src.lastError
                                   ? <Badge tone="danger">hata: {src.lastError}</Badge>
                                   : src.lastSyncedAt && <span className="text-xs text-faint">son senkron: {new Date(src.lastSyncedAt).toLocaleString("tr-TR")}</span>}
-                                {!syncStatus.autoSync && <Badge tone="warning">otomatik senkron PRO</Badge>}
                                 <Button size="sm" variant="secondary" onClick={() => syncSourceNow(kit.id, "YOUTUBE")}>
                                   <RefreshCw className="h-3.5 w-3.5" /> Simdi senkronla
                                 </Button>
@@ -778,9 +706,6 @@ export default function DashboardPage() {
                       {leads.length === 0 && (
                         <p className="text-sm text-muted">Henuz marka teklifi yok. Public sayfadaki iletisim formundan gelen teklifler burada listelenir.</p>
                       )}
-                      {!isPro && leads.length >= 10 && (
-                        <p className="rounded-lg bg-brand-weak px-3 py-2 text-sm text-brand">Son 10 teklif gosteriliyor — tum gecmis PRO planda.</p>
-                      )}
                       {leads.map((l) => (
                         <div key={l.id} className={`rounded-lg border border-line bg-surface p-3 text-sm ${l.status === "ARCHIVED" ? "opacity-60" : ""}`}>
                           <div className="flex flex-wrap items-center gap-2">
@@ -812,19 +737,14 @@ export default function DashboardPage() {
                           <div className="text-2xl font-semibold tabular-nums">{nf(analytics.totalViews)}</div>
                           <div className="flex items-center gap-1 text-xs text-muted"><Eye className="h-3 w-3" /> toplam goruntulenme</div>
                         </div>
-                        {analytics.plan === "PRO" && analytics.uniqueVisitors != null && (
+                        {analytics.uniqueVisitors != null && (
                           <div className="rounded-xl border border-line bg-surface px-4 py-3">
                             <div className="text-2xl font-semibold tabular-nums">{nf(analytics.uniqueVisitors)}</div>
                             <div className="text-xs text-muted">tekil ziyaretci</div>
                           </div>
                         )}
                       </div>
-                      {analytics.plan !== "PRO" ? (
-                        <p className="rounded-lg bg-brand-weak px-3 py-2 text-sm text-brand">
-                          Gunluk grafik, referrer ve cihaz kirilimi PRO planda.
-                        </p>
-                      ) : (
-                        <div className="grid gap-4">
+                      <div className="grid gap-4">
                           {analytics.viewsByDay && analytics.viewsByDay.length > 0 && (
                             <div>
                               <div className="mb-1 text-xs font-medium uppercase tracking-wider text-faint">Son 30 gun</div>
@@ -846,7 +766,6 @@ export default function DashboardPage() {
                             )}
                           </div>
                         </div>
-                      )}
                     </div>
                   )}
 

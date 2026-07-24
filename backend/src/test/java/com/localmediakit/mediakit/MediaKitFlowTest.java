@@ -67,6 +67,10 @@ class MediaKitFlowTest {
     @Test
     void freePlanAllowsOnlyOneKit() throws Exception {
         String token = register("limit-owner@example.com");
+        // Accounts now default to PRO; drop to FREE to exercise the plan limit.
+        mockMvc.perform(post("/api/billing/demo-downgrade")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
         mockMvc.perform(post("/api/mediakits")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

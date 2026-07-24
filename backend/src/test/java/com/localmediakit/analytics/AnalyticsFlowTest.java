@@ -135,6 +135,10 @@ class AnalyticsFlowTest {
     @Test
     void freePlanSeesOnlyTheTotalCounter() throws Exception {
         String token = register("track-free@example.com");
+        // Accounts now default to PRO; drop to FREE to exercise the limited view.
+        mockMvc.perform(post("/api/billing/demo-downgrade")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
         long kitId = createPublishedKit(token, "Free Analitik");
         mockMvc.perform(beacon("free-analitik", "203.0.113.40", BROWSER_UA))
                 .andExpect(status().isAccepted());

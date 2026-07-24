@@ -36,9 +36,11 @@ describe("KitCard (public snapshot page)", () => {
     expect(screen.queryByText("+8,2%")).not.toBeInTheDocument();
   });
 
-  it("enforces the plan badge rule: 'LocalMediaKit' shows for FREE, hidden for PRO", () => {
+  it("never shows the 'LocalMediaKit' branding badge (product is fully free)", () => {
+    // The badge was the FREE-tier marker; branding is gone product-wide, so it
+    // must not render regardless of the (now legacy) showBadge flag.
     const { unmount } = render(<KitCard kit={makeKit({ showBadge: true })} />);
-    expect(screen.getByText("LocalMediaKit")).toBeInTheDocument();
+    expect(screen.queryByText("LocalMediaKit")).not.toBeInTheDocument();
     unmount();
 
     render(<KitCard kit={makeKit({ showBadge: false })} />);

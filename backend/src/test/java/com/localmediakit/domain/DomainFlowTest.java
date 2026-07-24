@@ -84,6 +84,10 @@ class DomainFlowTest {
     @Test
     void addingADomainIsAProFeature() throws Exception {
         String token = register("dom-free@example.com");
+        // Accounts now default to PRO; drop to FREE to exercise the gate.
+        mockMvc.perform(post("/api/billing/demo-downgrade")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
         long kitId = createKit(token, "Free Domain Kit");
         mockMvc.perform(post("/api/mediakits/" + kitId + "/domains")
                         .header("Authorization", "Bearer " + token)

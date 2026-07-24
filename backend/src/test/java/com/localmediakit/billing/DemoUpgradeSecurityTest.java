@@ -52,8 +52,8 @@ class DemoUpgradeSecurityTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
 
-        // Plan untouched.
+        // Plan untouched (the default PRO): the blocked switch changed nothing.
         mockMvc.perform(get("/api/me").header("Authorization", "Bearer " + token))
-                .andExpect(jsonPath("$.plan").value("FREE"));
+                .andExpect(jsonPath("$.plan").value("PRO"));
     }
 }

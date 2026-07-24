@@ -114,6 +114,10 @@ class BillingFlowTest {
     void checkoutCompletedUpgradesToProExactlyOnce() throws Exception {
         String token = register("billing-pro@example.com");
         long uid = userId(token);
+        // Accounts now default to PRO; drop to FREE so the checkout upgrade is observable.
+        mockMvc.perform(post("/api/billing/demo-downgrade")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
         assertEquals("FREE", planOf(token));
 
         sendWebhook(checkoutCompleted("evt_up_1", uid, "sub_first"));
@@ -198,6 +202,10 @@ class BillingFlowTest {
     void badgeIsFrozenByPlanAtPublishTime() throws Exception {
         String token = register("billing-badge@example.com");
         long uid = userId(token);
+        // Accounts now default to PRO; drop to FREE so the badge freezes on at publish.
+        mockMvc.perform(post("/api/billing/demo-downgrade")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
         long kitId = createKit(token, "Rozet Kit");
 
         // FREE publish -> badge on.

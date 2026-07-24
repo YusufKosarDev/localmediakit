@@ -83,6 +83,10 @@ class PasswordProtectionFlowTest {
     @Test
     void settingPasswordIsAProFeature() throws Exception {
         String token = register("pw-free@example.com");
+        // Accounts now default to PRO; drop to FREE to exercise the gate.
+        mockMvc.perform(post("/api/billing/demo-downgrade")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
         long kitId = createKit(token, "Free Gizli");
         mockMvc.perform(put("/api/mediakits/" + kitId + "/password")
                         .header("Authorization", "Bearer " + token)

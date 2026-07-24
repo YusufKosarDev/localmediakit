@@ -50,7 +50,8 @@ class AuthFlowTest {
         mockMvc.perform(get("/api/me").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("alice@example.com"))
-                .andExpect(jsonPath("$.plan").value("FREE"));
+                // The product is fully free: new accounts start on PRO.
+                .andExpect(jsonPath("$.plan").value("PRO"));
 
         // Login with a wrong password -> 401
         mockMvc.perform(post("/api/auth/login")

@@ -43,7 +43,11 @@ public class User {
         this.email = email;
         this.passwordHash = passwordHash;
         this.displayName = displayName;
-        this.plan = Plan.FREE;
+        // The product is fully free: every account starts on PRO. The FREE tier
+        // and the PlanPolicy gating around it remain in the codebase (and are
+        // still exercised by tests) so paid plans can be reintroduced by
+        // flipping this default back — no gating logic was torn out.
+        this.plan = Plan.PRO;
         this.createdAt = Instant.now();
     }
 

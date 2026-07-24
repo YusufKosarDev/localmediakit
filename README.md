@@ -7,10 +7,14 @@ takipci/etkilesim istatistiklerini, kitle demografisini ve gecmis marka
 isbirliklerini tek bir sayfada toplar ve markalarla paylasilabilir bir link
 olarak **yayinlar**. Marka bu sayfaya baktiginda uretici bunu analitikten gorur.
 
-> **Egitim / portfolyo projesi.** Odeme akisi Stripe **test modunda** calisir —
-> gercek para akmaz, gercek kart kabul edilmez. "Custom domain" ozelligi bir
-> vaat degil, backend olgunlugunu gosteren bir DNS-dogrulama **iskeletidir**
-> ("yakinda" olarak isaretli).
+> **Egitim / portfolyo projesi.** Uygulama tamamen **ucretsiz** — tum ozellikler
+> herkese acik, arayuzde hicbir odeme/yukseltme ogesi yok. Stripe abonelik
+> entegrasyonu (idempotent webhook, imza dogrulama, hosted Checkout, plan durum
+> makinesi) kodda **butunuyle duruyor ama devre disi**: `PlanPolicy` katmani ve
+> FREE/PRO ayrimi mimari olarak korunur, yeni hesaplar PRO baslar. Ucretli
+> planlar ileride yalnizca varsayilani geri alarak yeniden acilabilir. "Custom
+> domain" ozelligi bir vaat degil, backend olgunlugunu gosteren bir DNS-dogrulama
+> **iskeletidir** ("yakinda" olarak isaretli).
 
 ## Canli demo
 
@@ -45,8 +49,9 @@ flowchart LR
 
 - **Publish** = mevcut draft'tan **degismez (immutable) snapshot** uretir
   (`media_kit_versions.content_json`). Draft sonradan degisse bile public sayfa
-  republish'e kadar sabit kalir. Istatistik, demografi, isbirlikleri ve "powered
-  by" rozeti hep publish anindaki degerleriyle **donar**.
+  republish'e kadar sabit kalir. Istatistik, demografi, isbirlikleri ve rate card
+  hep publish anindaki degerleriyle **donar**. (Snapshot hala bir `showBadge`
+  bayragi tasir ama urun ucretsize donunce rozet arayuzden kaldirildi.)
 - **Public okuma** her zaman AKTIF snapshot'tan; ziyaretci akisi backend'e bagli
   degil (Adim 0'da `X-Vercel-Cache: HIT` ile kanitlandi).
 
@@ -62,8 +67,7 @@ flowchart LR
   sifir cache — ayni `KitCard` bileseni, iki zit servis stratejisi.
 - **Uretilen OG gorseli** — `opengraph-image.tsx` sayfayla AYNI tag'li fetch'i
   okur: publish tek revalidate ile sayfayi da sosyal karti da tazeler, gorsel
-  uyuyan backend'i uyandirmaz. Donan "powered by" rozet kurali kartta da gecerli;
-  sifreli kitin kartina istatistik/headline hic girmez.
+  uyuyan backend'i uyandirmaz. Sifreli kitin kartina istatistik/headline hic girmez.
 - **Engagement motoru — Strategy pattern.** Her platformun formulu farkli
   (Instagram takipci-bazli, YouTube/TikTok izlenme-bazli). `EngagementCalculator`
   arayuzu + platform basina implementasyon + registry: yeni platform = yeni sinif,
@@ -97,29 +101,30 @@ flowchart LR
   Stripe redelivery'leri yutulur, imza dogrulanir (sahte webhook 400).
 - **Graceful-enable** — Stripe env'leri varsa gercek hosted Checkout; yoksa demo
   plan-degistirme ucu devrede (gercek billing aktifken bu uc 403 — odeme bypass'i
-  olamaz). Ayni desen tum opsiyonel entegrasyonlarda.
+  olamaz). Ayni desen tum opsiyonel entegrasyonlarda. Urun ucretsize donunce bu
+  akisin **arayuzu kaldirildi**; backend uclari (webhook/checkout/demo-switch)
+  dormant olarak kodda kalir, boylece entegrasyon okunabilir.
 - **Async DNS dogrulama job'u** — `@Scheduled` batch, overlap guard, per-domain
   transaction + try/catch (biri patlarsa job cokmez), JNDI ile timeout'lu DNS
   cozumleme, `DnsResolver` arayuzuyle test edilebilir durum makinesi.
 
-## Ozellikler (plan bazli)
+## Ozellikler (hepsi ucretsiz, herkese acik)
 
-| | FREE | PRO |
-|---|---|---|
-| Medya kiti | 1 | Sinirsiz |
-| Public sayfa | ✓ ("powered by" rozetli) | ✓ (rozet yok) |
-| Istatistik + engagement + demografi | ✓ | ✓ |
-| Draft onizleme linki (30 dk) | ✓ | ✓ |
-| Uretilen sosyal paylasim karti (OG) | ✓ (rozetli) | ✓ (rozet yok) |
-| Rate card (calisma ucretleri) | ✓ | ✓ |
-| YouTube istatistik senkronu | Elle "simdi senkronla" | Gunluk otomatik |
-| Marka iletisim formu + gelen kutusu | ✓ (son 10 teklif) | ✓ (tum gecmis) |
-| Analitik | Toplam sayac | Tekil ziyaretci + gunluk seri + referrer/cihaz |
-| Versiyon gecmisi | Son 2 + o pencereye rollback | Tam gecmis + her versiyona rollback |
-| Versiyon karsilastirma (diff) | Pencere icinde | Herhangi iki versiyon |
-| PDF export | ✓ (rozetli) | ✓ (temiz) |
-| Sifre korumasi | — | ✓ |
-| Custom domain (yakinda) | — | ✓ (DNS dogrulama iskeleti) |
+- Sinirsiz medya kiti
+- Public sayfa (rozet yok) + uretilen sosyal paylasim karti (OG)
+- Istatistik + engagement + demografi
+- Draft onizleme linki (30 dk)
+- Rate card (calisma ucretleri)
+- YouTube istatistik senkronu — elle "simdi senkronla" + gunluk otomatik
+- Marka iletisim formu + gelen kutusu (tum gecmis)
+- Analitik — tekil ziyaretci + gunluk seri + referrer/cihaz kirilimi
+- Versiyon gecmisi (tam) + her versiyona rollback + versiyon karsilastirma (diff)
+- PDF export (temiz) + sifre korumasi
+- Custom domain (yakinda) — DNS dogrulama iskeleti
+
+> Kodda `PlanPolicy` hala FREE/PRO ayrimini tanimlar ve testler her iki dali da
+> dogrular; urun karari geregi herkes PRO oldugu icin bu limitler pratikte
+> tetiklenmez. Ucretli planlar `User` varsayilanini geri alarak yeniden acilir.
 
 ## Teknoloji
 

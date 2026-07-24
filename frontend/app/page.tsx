@@ -85,7 +85,7 @@ export default function Home() {
 
       <footer className="mt-auto flex flex-wrap items-center gap-2 border-t border-line py-6 text-xs text-faint">
         <ShieldCheck className="h-3.5 w-3.5" />
-        Egitim / portfolyo projesi. Odeme akisi Stripe test modunda calisir; gercek odeme alinmaz.
+        Ucretsiz medya kiti araci — tum ozellikler herkese acik.
       </footer>
     </main>
   );

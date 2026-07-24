@@ -157,6 +157,10 @@ class LeadFlowTest {
     @Test
     void freeInboxShowsOnlyTheMostRecentLeadsUntilPro() throws Exception {
         String token = register("lead-plan@example.com");
+        // Accounts now default to PRO; drop to FREE to exercise the capped view.
+        mockMvc.perform(post("/api/billing/demo-downgrade")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
         long kitId = createAndPublish(token, "Dolu Kutu");
 
         // 12 leads from 12 distinct visitors (distinct UA => distinct fingerprint).

@@ -148,6 +148,10 @@ class VersionDiffTest {
     @Test
     void freeCannotDiffOutsideItsVisibleWindow() throws Exception {
         String token = register("diff-window@example.com");
+        // Accounts now default to PRO; drop to FREE to exercise the visible window.
+        mockMvc.perform(post("/api/billing/demo-downgrade")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
         long kitId = createKit(token, "{\"title\":\"Pencere Kit\"}");
         publish(token, kitId); // v1
         publish(token, kitId); // v2

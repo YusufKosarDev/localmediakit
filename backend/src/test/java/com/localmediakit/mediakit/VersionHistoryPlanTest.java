@@ -47,6 +47,13 @@ class VersionHistoryPlanTest {
         userRepository.save(user);
     }
 
+    // Accounts default to PRO now; the FREE-tier tests opt down explicitly.
+    private void makeFree(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        user.changePlan(Plan.FREE);
+        userRepository.save(user);
+    }
+
     private long createKit(String token, String title) throws Exception {
         String created = mockMvc.perform(post("/api/mediakits")
                         .header("Authorization", "Bearer " + token)
@@ -71,6 +78,7 @@ class VersionHistoryPlanTest {
     @Test
     void freeSeesLimitedHistoryProSeesFull() throws Exception {
         String freeToken = register("hist-free@example.com");
+        makeFree("hist-free@example.com");
         long freeKit = createKit(freeToken, "Free History");
         editAndPublish(freeToken, freeKit, "Free History", "v1");
         editAndPublish(freeToken, freeKit, "Free History", "v2");
@@ -99,6 +107,7 @@ class VersionHistoryPlanTest {
     @Test
     void freeRollbackIsLimitedToVisibleWindowProIsNot() throws Exception {
         String freeToken = register("rb-free@example.com");
+        makeFree("rb-free@example.com");
         long freeKit = createKit(freeToken, "Free Rollback");
         editAndPublish(freeToken, freeKit, "Free Rollback", "v1");
         editAndPublish(freeToken, freeKit, "Free Rollback", "v2");

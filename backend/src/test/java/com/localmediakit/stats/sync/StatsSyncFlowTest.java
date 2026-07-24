@@ -200,6 +200,10 @@ class StatsSyncFlowTest {
     @Test
     void scheduledBatchRefreshesOnlyProOwnersDueSources() throws Exception {
         String token = register("sync-batch@example.com");
+        // Accounts now default to PRO; drop to FREE for the "skipped" half of the test.
+        mockMvc.perform(post("/api/billing/demo-downgrade")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
         long kitId = createKit(token, "Batch Kit");
         connect(token, kitId, "@kanalim");
         backdateLastSync(kitId);
