@@ -15,6 +15,16 @@ import { getKit } from "./kit-data";
 export const dynamicParams = true;
 export const dynamic = "force-static";
 
+// Absolute base for canonical + structured-data URLs. Not a secret; overridable
+// per environment.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://localmediakit.vercel.app";
+
+const PLATFORM_LABELS: Record<string, string> = {
+  YOUTUBE: "YouTube",
+  INSTAGRAM: "Instagram",
+  TIKTOK: "TikTok",
+};
+
 export async function generateStaticParams() {
   return [];
 }
@@ -40,9 +50,11 @@ export async function generateMetadata({
   return {
     title: `${kit.title} — ${kit.displayName}`,
     description,
+    alternates: { canonical: `${SITE_URL}/${slug}` },
     openGraph: {
       title: `${kit.title} — ${kit.displayName}`,
       description,
+      url: `${SITE_URL}/${slug}`,
       type: "profile",
     },
     twitter: {
@@ -65,5 +77,40 @@ export default async function KitPage({
   if (kit.isProtected) {
     return <PasswordGate slug={kit.slug} title={kit.title} theme={kit.theme} />;
   }
-  return <KitCard kit={kit} />;
+
+  // ProfilePage + Person structured data for a public creator kit — baked into
+  // the static HTML (no extra fetch, no edge-cache impact). Follower counts map
+  // to schema.org InteractionCounter, the recommended shape for a profile page.
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    url: `${SITE_URL}/${kit.slug}`,
+    dateModified: kit.publishedAt,
+    mainEntity: {
+      "@type": "Person",
+      name: kit.displayName,
+      ...(kit.headline ? { description: kit.headline } : {}),
+      ...(kit.avatarUrl ? { image: kit.avatarUrl } : {}),
+      ...(kit.platforms.length > 0
+        ? {
+            interactionStatistic: kit.platforms.map((p) => ({
+              "@type": "InteractionCounter",
+              interactionType: "https://schema.org/FollowAction",
+              userInteractionCount: p.followers,
+              name: PLATFORM_LABELS[p.platform] ?? p.platform,
+            })),
+          }
+        : {}),
+    },
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <KitCard kit={kit} />
+    </>
+  );
 }
