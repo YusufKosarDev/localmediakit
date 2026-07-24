@@ -36,13 +36,13 @@
   --elevated: #ffffff;
   --fg: #0b0b0f;
   --muted: #62636b;
-  --faint: #9698a1;
+  --faint: #6f7079;         /* WCAG AA (>=4.5:1) on both page and surface */
   --line: #e8e8ec;
   /* violet-indigo accent */
   --brand: #6d40e6;         /* links / accent text / icons (light) */
   --brand-strong: #6d40e6;  /* solid button bg — white text passes in both modes */
   --brand-weak: #f2ecfe;    /* wash background */
-  --success: #15803d;
+  --success: #137a39;       /* AA on the success-weak growth badge wash */
   --danger: #b91c1c;
 }
 
@@ -52,7 +52,7 @@
   --elevated: #1c1c22;
   --fg: #f4f4f6;
   --muted: #a2a2ab;
-  --faint: #6f7079;
+  --faint: #82838c;         /* WCAG AA (>=4.5:1) on both dark page and surface */
   --line: #26262c;
   --brand: #a998f8;         /* lighter accent text on dark */
   --brand-strong: #6d40e6;

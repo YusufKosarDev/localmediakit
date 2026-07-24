@@ -318,7 +318,7 @@ function GrowthBadge({ value }: { value: number }) {
       {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
       {up ? "+" : ""}
       {fmtPct(value)}%
-      <span className="text-[10px] font-normal opacity-70">30g</span>
+      <span className="text-[10px] font-normal">30g</span>
     </span>
   );
 }
