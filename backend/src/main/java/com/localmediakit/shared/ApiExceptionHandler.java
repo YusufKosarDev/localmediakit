@@ -25,6 +25,7 @@ import com.localmediakit.stats.sync.SyncNotConfiguredException;
 import com.localmediakit.stats.sync.SyncSourceNotFoundException;
 import com.localmediakit.stats.sync.SyncUpstreamException;
 import com.localmediakit.user.PlanLimitExceededException;
+import com.localmediakit.user.ProtectedAccountException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -74,6 +75,12 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(PlanLimitExceededException.class)
     public ResponseEntity<Map<String, Object>> handlePlanLimit(PlanLimitExceededException ex) {
+        return body(HttpStatus.FORBIDDEN, ex.getMessage(), null);
+    }
+
+    /** Destructive settings op aimed at the shared demo account. */
+    @ExceptionHandler(ProtectedAccountException.class)
+    public ResponseEntity<Map<String, Object>> handleProtectedAccount(ProtectedAccountException ex) {
         return body(HttpStatus.FORBIDDEN, ex.getMessage(), null);
     }
 

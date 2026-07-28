@@ -24,11 +24,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final long trackCapacity;
     private final long unlockCapacity;
     private final long contactCapacity;
+    private final long accountCapacity;
 
     public RateLimitFilter(RateLimiterRegistry registry, boolean enabled,
                            long loginCapacity, long registerCapacity,
                            long trackCapacity, long unlockCapacity,
-                           long contactCapacity) {
+                           long contactCapacity, long accountCapacity) {
         this.registry = registry;
         this.enabled = enabled;
         this.loginCapacity = loginCapacity;
@@ -36,6 +37,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         this.trackCapacity = trackCapacity;
         this.unlockCapacity = unlockCapacity;
         this.contactCapacity = contactCapacity;
+        this.accountCapacity = accountCapacity;
     }
 
     @Override
@@ -53,10 +55,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private Rule ruleFor(HttpServletRequest request) {
-        if (!"POST".equalsIgnoreCase(request.getMethod())) {
+        String method = request.getMethod();
+        String path = request.getRequestURI();
+
+        // Sensitive account operations. Each one verifies the current
+        // password, which makes them a credential oracle if left unthrottled —
+        // so they are limited even though the caller is already authenticated.
+        // Account deletion is a DELETE, hence the method check comes first.
+        if (isAccountOperation(method, path)) {
+            return new Rule("account", accountCapacity);
+        }
+        if (!"POST".equalsIgnoreCase(method)) {
             return null;
         }
-        String path = request.getRequestURI();
         if (path.equals("/api/auth/login")) {
             return new Rule("login", loginCapacity);
         }
@@ -73,6 +84,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return new Rule("contact", contactCapacity);
         }
         return null;
+    }
+
+    /**
+     * Password change, email change and account deletion — the three routes
+     * that take a password. Profile edits (PUT /api/me) are not included:
+     * they verify nothing, so throttling them would only slow honest use.
+     */
+    private boolean isAccountOperation(String method, String path) {
+        if ("POST".equalsIgnoreCase(method)) {
+            return path.equals("/api/me/password") || path.equals("/api/me/email");
+        }
+        return "DELETE".equalsIgnoreCase(method) && path.equals("/api/me");
     }
 
     private void reject(HttpServletResponse response) throws IOException {

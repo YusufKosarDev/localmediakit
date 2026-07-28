@@ -21,10 +21,11 @@ public class RateLimitConfig {
             @Value("${app.ratelimit.register-capacity:30}") long registerCapacity,
             @Value("${app.ratelimit.track-capacity:120}") long trackCapacity,
             @Value("${app.ratelimit.unlock-capacity:20}") long unlockCapacity,
-            @Value("${app.ratelimit.contact-capacity:10}") long contactCapacity) {
+            @Value("${app.ratelimit.contact-capacity:10}") long contactCapacity,
+            @Value("${app.ratelimit.account-capacity:10}") long accountCapacity) {
         FilterRegistrationBean<RateLimitFilter> bean = new FilterRegistrationBean<>(
                 new RateLimitFilter(registry, enabled, loginCapacity, registerCapacity,
-                        trackCapacity, unlockCapacity, contactCapacity));
+                        trackCapacity, unlockCapacity, contactCapacity, accountCapacity));
         bean.addUrlPatterns("/api/*");
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return bean;

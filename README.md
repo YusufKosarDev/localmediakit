@@ -107,6 +107,21 @@ flowchart LR
 - **Async DNS dogrulama job'u** — `@Scheduled` batch, overlap guard, per-domain
   transaction + try/catch (biri patlarsa job cokmez), JNDI ile timeout'lu DNS
   cozumleme, `DnsResolver` arayuzuyle test edilebilir durum makinesi.
+- **IDOR'un temsil edilemez olmasi** — hesap uclarinin tamami `/api/me` altinda
+  ve ozneyi yalnizca JWT principal'indan cozer. `/api/users/{id}` karsiligi
+  bilerek yok: path'te, query'de veya govdede kullanici kimligi kabul edilmedigi
+  icin bir kullanici digerini adresleyemez. Kit uclarindaki `findByIdAndUserId`
+  sahiplik sorgusunun ayni fikri.
+- **Hesap silme = public iz birakmama** — silme, kitleri toplu sorguyla degil
+  tek tek `MediaKitService.delete` uzerinden kaldirir: yayin isaretcisini ayirir,
+  cascade'i calistirir ve commit'ten sonra slug'i revalidate ederek public
+  sayfayi edge'den duserur. Silinen bir hesabin medya kitinin acik web'de
+  erisilebilir kalmasi bu islemin asla uretmemesi gereken sonuc.
+- **Paylasilan demo hesabinin korunmasi** — demo kimlik bilgileri giris
+  sayfasinda yaziyor, dolayisiyla yikici ayar islemleri (sifre/e-posta degisimi,
+  hesap silme) o hesapta 403 doner; aksi halde ilk ziyaretci sifreyi degistirip
+  digerlerini gecelik reset'e kadar disarida birakabilirdi. Zararsiz profil
+  duzenlemeleri acik kalir.
 
 ## Ozellikler (hepsi ucretsiz, herkese acik)
 
@@ -121,10 +136,26 @@ flowchart LR
 - Versiyon gecmisi (tam) + her versiyona rollback + versiyon karsilastirma (diff)
 - PDF export (temiz) + sifre korumasi
 - Custom domain (yakinda) — DNS dogrulama iskeleti
+- Hesap ayarlari — profil (ad/avatar/pano temasi), sifre ve e-posta degistirme,
+  hesap silme
 
 > Kodda `PlanPolicy` hala FREE/PRO ayrimini tanimlar ve testler her iki dali da
 > dogrular; urun karari geregi herkes PRO oldugu icin bu limitler pratikte
 > tetiklenmez. Ucretli planlar `User` varsayilanini geri alarak yeniden acilir.
+
+> **Bilinen sinir — e-posta degisimi dogrulanmaz.** Projede mail gonderici yok,
+> dolayisiyla onay linki atilamiyor. Degisim bunun yerine **mevcut sifreyle**
+> onaylanir: bu, acik kalmis bir oturumun hesabi sessizce baska bir adrese
+> tasimasini engelleyen asil kontrol. Ancak kullanici adresi yanlis yazarsa
+> bunu yakalayacak bir mekanizma yok (sifre sifirlama akisi da olmadigi icin
+> model kendi icinde tutarli). Gercek dogrulama icin `pending_email` +
+> token kolonu ve bir mail saglayici gerekir.
+>
+> **Avatar bir URL'dir, yukleme degil.** Barindirma ucretsiz katmanda calisiyor
+> ve diski her deploy'da siliniyor; nesne deposu eklemek ya ucretli bir servis
+> ya da sessizce veri kaybeden bir cozum olurdu. Kit avatari zaten ayni kurali
+> (`https://` zorunlu) kullaniyor, boylece tek bir zihinsel model var. Ileride
+> yukleme eklenirse kolon degismeden kalir.
 
 ## Teknoloji
 
@@ -184,10 +215,12 @@ backend/  Spring Boot API
   domain                custom domain DNS dogrulama (scheduled job)
   ratelimit             Bucket4j filtresi
   demo                  demo hesap seed + test-hesabi temizligi
+  user                  plan politikasi + hesap ayarlari (profil/sifre/e-posta/silme)
 frontend/ Next.js App Router
   app/[slug]            public sayfa (edge), KitCard, PasswordGate, PrintButton, beacon, OG gorseli
   app/preview/[token]   draft onizleme (per-request, no-store, noindex)
   app/dashboard         kit editoru + istatistik/analitik/versiyon/domain panelleri
+  app/dashboard/settings profil, sifre/e-posta degisimi, hesap silme
   app/api/revalidate    secret korumali on-demand revalidation
 ```
 

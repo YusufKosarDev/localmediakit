@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Send, Trash2, Lock, Unlock, ExternalLink, Plus, ArrowUp, ArrowDown,
-  RefreshCw, LogOut, Eye, Globe, X,
+  RefreshCw, LogOut, Eye, Globe, X, Settings,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Button, Card, Input, Select, Badge, Label } from "@/app/_components/ui";
@@ -23,7 +23,10 @@ const DeviceBars = dynamic(() => import("./_AnalyticsCharts").then((m) => m.Devi
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
-type Me = { id: number; email: string; displayName: string; plan: string };
+type Me = {
+  id: number; email: string; displayName: string;
+  avatarUrl: string | null; theme: string; plan: string;
+};
 type Kit = {
   id: number; slug: string; title: string; headline: string | null;
   avatarUrl: string | null; theme: string; status: string;
@@ -129,6 +132,15 @@ export default function DashboardPage() {
       })
       .catch(() => setError("Oturum gecersiz veya suresi dolmus."));
   }, [loadKits]);
+
+  // Account-level appearance preference, applied to the dashboard only. The
+  // public media-kit page stamps its own per-kit theme on an inner scope, so a
+  // visitor still sees the theme the kit's owner chose for it.
+  useEffect(() => {
+    if (!me) return;
+    document.documentElement.setAttribute("data-theme", me.theme === "DARK" ? "dark" : "light");
+    return () => document.documentElement.removeAttribute("data-theme");
+  }, [me]);
 
   async function createKit(e: React.FormEvent) {
     e.preventDefault();
@@ -440,6 +452,9 @@ export default function DashboardPage() {
           </Link>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted sm:inline">{me.displayName}</span>
+            <Link href="/dashboard/settings">
+              <Button variant="ghost" size="sm"><Settings className="h-4 w-4" /> Ayarlar</Button>
+            </Link>
             <Button variant="ghost" size="sm" onClick={logout}><LogOut className="h-4 w-4" /> Cikis</Button>
           </div>
         </div>

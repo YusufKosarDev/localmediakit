@@ -65,10 +65,16 @@ app:
     track-capacity: ${RATELIMIT_TRACK:120}
     unlock-capacity: ${RATELIMIT_UNLOCK:20}
     contact-capacity: ${RATELIMIT_CONTACT:10}
+    # Password/email change and account deletion — each verifies the current
+    # password, so an unthrottled endpoint would be a credential oracle.
+    account-capacity: ${RATELIMIT_ACCOUNT:10}
   demo:
     # Seed/reset the login-able demo account and purge @test.dev accounts.
     seed-on-startup: ${DEMO_SEED_ON_STARTUP:true}
     reset-cron: ${DEMO_RESET_CRON:0 0 * * * *}
+    # Shared, publicly-advertised login. Destructive settings operations are
+    # refused on it so a visitor cannot lock everyone else out or delete it.
+    email: ${DEMO_EMAIL:demo@localmediakit.app}
   domains:
     # DNS verification job (custom-domain skeleton). Intervals in ms.
     job-interval-ms: ${DOMAIN_JOB_INTERVAL_MS:60000}
