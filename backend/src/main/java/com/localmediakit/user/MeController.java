@@ -59,7 +59,8 @@ public class MeController {
     public ChangeEmailResponse changeEmail(Authentication authentication,
                                            @Valid @RequestBody ChangeEmailRequest request) {
         String token = accountService.changeEmail(email(authentication), request);
-        return new ChangeEmailResponse(token, accountService.me(request.newEmail().trim().toLowerCase()));
+        return new ChangeEmailResponse(token,
+                accountService.me(AccountService.normalizeEmail(request.newEmail())));
     }
 
     /** Irreversible: takes every published page of this account offline too. */

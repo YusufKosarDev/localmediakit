@@ -7,6 +7,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
+
 @Service
 public class AuthService {
 
@@ -49,7 +51,12 @@ public class AuthService {
         return new AuthResponse(token, user.getEmail(), user.getDisplayName());
     }
 
-    private String normalizeEmail(String email) {
-        return email.trim().toLowerCase();
+    /**
+     * Locale.ROOT is deliberate: the default-locale overload lowercases "I" to
+     * a dotless "ı" on a Turkish JVM, so the same address would normalize
+     * differently depending on where the server happens to run.
+     */
+    public static String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

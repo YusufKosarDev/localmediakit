@@ -1,5 +1,6 @@
 package com.localmediakit.user;
 
+import com.localmediakit.auth.AuthService;
 import com.localmediakit.auth.EmailAlreadyUsedException;
 import com.localmediakit.auth.InvalidCredentialsException;
 import com.localmediakit.billing.Subscription;
@@ -161,7 +162,12 @@ public class AccountService {
         }
     }
 
-    private String normalizeEmail(String email) {
-        return email.trim().toLowerCase();
+    /**
+     * Shared with registration and login on purpose: if this drifted, the
+     * uniqueness check here and the lookup that signs a user in would disagree
+     * about which addresses are the same address.
+     */
+    public static String normalizeEmail(String email) {
+        return AuthService.normalizeEmail(email);
     }
 }
