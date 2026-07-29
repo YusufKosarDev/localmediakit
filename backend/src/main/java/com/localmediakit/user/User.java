@@ -52,6 +52,14 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /**
+     * When the user dismissed the onboarding guidance; null while it should
+     * still be offered. Only the dismissal lives here — the individual steps
+     * are derived from the account's real data, so they cannot go stale.
+     */
+    @Column(name = "onboarding_completed_at")
+    private Instant onboardingCompletedAt;
+
     protected User() {
         // for JPA
     }
@@ -124,6 +132,17 @@ public class User {
     public void changeEmail(String email) {
         this.email = email;
         touch();
+    }
+
+    public Instant getOnboardingCompletedAt() {
+        return onboardingCompletedAt;
+    }
+
+    /** Idempotent: dismissing again keeps the original timestamp. */
+    public void dismissOnboarding() {
+        if (this.onboardingCompletedAt == null) {
+            this.onboardingCompletedAt = Instant.now();
+        }
     }
 
     private void touch() {

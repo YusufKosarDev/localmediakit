@@ -13,6 +13,9 @@ public interface PlatformStatsRepository extends JpaRepository<PlatformStats, Lo
     @Query("select distinct s.platform from PlatformStats s where s.mediaKitId = :kitId")
     List<Platform> platformsWithData(@Param("kitId") Long kitId);
 
+    /** Whether any of these kits has a measurement — one query for the whole set. */
+    boolean existsByMediaKitIdIn(List<Long> mediaKitIds);
+
     Optional<PlatformStats> findFirstByMediaKitIdAndPlatformOrderByRecordedAtDescIdDesc(
             Long mediaKitId, Platform platform);
 

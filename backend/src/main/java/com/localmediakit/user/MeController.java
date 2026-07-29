@@ -28,9 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class MeController {
 
     private final AccountService accountService;
+    private final OnboardingService onboardingService;
 
-    public MeController(AccountService accountService) {
+    public MeController(AccountService accountService, OnboardingService onboardingService) {
         this.accountService = accountService;
+        this.onboardingService = onboardingService;
     }
 
     @GetMapping
@@ -61,6 +63,19 @@ public class MeController {
         String token = accountService.changeEmail(email(authentication), request);
         return new ChangeEmailResponse(token,
                 accountService.me(AccountService.normalizeEmail(request.newEmail())));
+    }
+
+    /** Getting-started progress, derived from the account's own data. */
+    @GetMapping("/onboarding")
+    public OnboardingResponse onboarding(Authentication authentication) {
+        return onboardingService.status(email(authentication));
+    }
+
+    /** "Don't show me this again." Skipping is always allowed. */
+    @PostMapping("/onboarding/dismiss")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void dismissOnboarding(Authentication authentication) {
+        onboardingService.dismiss(email(authentication));
     }
 
     /** Irreversible: takes every published page of this account offline too. */

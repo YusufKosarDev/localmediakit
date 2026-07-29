@@ -117,6 +117,18 @@ flowchart LR
   cascade'i calistirir ve commit'ten sonra slug'i revalidate ederek public
   sayfayi edge'den duserur. Silinen bir hesabin medya kitinin acik web'de
   erisilebilir kalmasi bu islemin asla uretmemesi gereken sonuc.
+- **Onboarding durumu saklanmaz, turetilir** — kontrol listesinin adimlari
+  (kit var mi / istatistik var mi / yayinlandi mi) hesabin gercek verisinden
+  okunur; saklanan tek sey "kapatildi" bilgisi. Boylece bir kit silindiginde
+  liste hala tamamlandi iddiasinda bulunamaz. Adimlar `MediaKitResponse`'a
+  eklenmedi — kit listeleme yolu sekli ve sorgu sayisi degismesin diye ayri bir
+  `/api/me/onboarding` ucunda 2 sorguda hesaplanir.
+- **Demo hesabinda onboarding bilerek kalicilastirilmaz** — demo tek bir hesap
+  ama arkasindan surekli farkli insanlar geziyor. Ilk ziyaretcinin "bir daha
+  gosterme" tercihi kaydedilseydi ondan sonraki herkes urunun ne oldugu
+  anlatilmamis bir panoya duserdi. Kayit tutulmadigi icin her yeni ziyaretci
+  tanitimi gorur; ayni tarayicida tekrarlamasin diye istemci tarafinda
+  bastirilir. Gece reset'i turu tetiklemez — sifirlanacak bir kayit yoktur.
 - **Paylasilan demo hesabinin korunmasi** — demo kimlik bilgileri giris
   sayfasinda yaziyor, dolayisiyla yikici ayar islemleri (sifre/e-posta degisimi,
   hesap silme) o hesapta 403 doner; aksi halde ilk ziyaretci sifreyi degistirip
@@ -138,6 +150,7 @@ flowchart LR
 - Custom domain (yakinda) — DNS dogrulama iskeleti
 - Hesap ayarlari — profil (ad/avatar/pano temasi), sifre ve e-posta degistirme,
   hesap silme
+- Onboarding — karsilama turu + veriden turetilen baslangic kontrol listesi
 
 > Kodda `PlanPolicy` hala FREE/PRO ayrimini tanimlar ve testler her iki dali da
 > dogrular; urun karari geregi herkes PRO oldugu icin bu limitler pratikte

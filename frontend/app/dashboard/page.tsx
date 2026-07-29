@@ -4,8 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Send, Trash2, Lock, Unlock, ExternalLink, Plus, ArrowUp, ArrowDown,
-  RefreshCw, LogOut, Eye, Globe, X, Settings,
+  RefreshCw, LogOut, Eye, Globe, X, Settings, HelpCircle,
 } from "lucide-react";
+import {
+  WelcomeTour, OnboardingChecklist, EmptyKitState, useTourVisibility,
+  type OnboardingState,
+} from "./_Onboarding";
 import dynamic from "next/dynamic";
 import { Button, Card, Input, Select, Badge, Label } from "@/app/_components/ui";
 
@@ -22,6 +26,7 @@ const ReferrerBars = dynamic(() => import("./_AnalyticsCharts").then((m) => m.Re
 const DeviceBars = dynamic(() => import("./_AnalyticsCharts").then((m) => m.DeviceBars), { ssr: false, loading: chartFallback(90) });
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
+const DEMO_EMAIL = "demo@localmediakit.app";
 
 type Me = {
   id: number; email: string; displayName: string;
@@ -112,11 +117,31 @@ export default function DashboardPage() {
   const [diff, setDiff] = useState<VersionDiff | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [channelInput, setChannelInput] = useState("");
+  const [onboarding, setOnboarding] = useState<OnboardingState | null>(null);
+  const [quickStartBusy, setQuickStartBusy] = useState(false);
+
+  const loadOnboarding = useCallback(async () => {
+    const res = await fetch(`${BACKEND}/api/me/onboarding`, { headers: authHeaders() });
+    if (res.ok) setOnboarding(await res.json());
+  }, []);
+
+  // The demo account intentionally never stores a dismissal server-side, so
+  // each new visitor is introduced to the product. This keeps it from
+  // reappearing on every reload for the visitor who already skipped it.
+  const demoKey = me && me.email === DEMO_EMAIL ? "lmk.tour.demo" : null;
+  const tour = useTourVisibility(onboarding, demoKey);
 
   const loadKits = useCallback(async () => {
     const res = await fetch(`${BACKEND}/api/mediakits`, { headers: authHeaders() });
     if (res.ok) setKits(await res.json());
   }, []);
+
+  // Creating, publishing and deleting all go through loadKits, so refreshing
+  // the checklist here keeps it in step with the kit list without every
+  // handler having to remember.
+  const refreshKitsAndProgress = useCallback(async () => {
+    await Promise.all([loadKits(), loadOnboarding()]);
+  }, [loadKits, loadOnboarding]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -128,10 +153,10 @@ export default function DashboardPage() {
       .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
       .then((data: Me) => {
         setMe(data);
-        return loadKits();
+        return Promise.all([loadKits(), loadOnboarding()]);
       })
       .catch(() => setError("Oturum gecersiz veya suresi dolmus."));
-  }, [loadKits]);
+  }, [loadKits, loadOnboarding]);
 
   // Account-level appearance preference, applied to the dashboard only. The
   // public media-kit page stamps its own per-kit theme on an inner scope, so a
@@ -150,7 +175,7 @@ export default function DashboardPage() {
     });
     if (res.status === 201) {
       setForm({ title: "", headline: "", avatarUrl: "", theme: "light", slug: "" });
-      await loadKits();
+      await refreshKitsAndProgress();
     } else {
       const data = await res.json().catch(() => null);
       setError(data?.error ?? `Olusturulamadi (HTTP ${res.status})`);
@@ -172,7 +197,7 @@ export default function DashboardPage() {
     const res = await fetch(`${BACKEND}/api/mediakits/${id}/publish`, { method: "POST", headers: authHeaders() });
     if (res.ok) {
       setNotice("Yayinlandi.");
-      await loadKits();
+      await refreshKitsAndProgress();
       if (active?.kitId === id && active.tab === "versions") await loadVersions(id);
     } else { const d = await res.json().catch(() => null); setError(d?.error ?? `Yayinlanamadi (HTTP ${res.status})`); }
   }
@@ -269,7 +294,7 @@ export default function DashboardPage() {
       method: "POST", headers: authHeaders(),
       body: JSON.stringify({ platform: statForm.platform, followers: num(statForm.followers), avgViews: num(statForm.avgViews), avgLikes: num(statForm.avgLikes), avgComments: num(statForm.avgComments) }),
     });
-    if (res.status === 201) await loadStatsPanel(kitId);
+    if (res.status === 201) { await loadStatsPanel(kitId); await loadOnboarding(); }
     else { const d = await res.json().catch(() => null); setError(d?.error ?? `Istatistik eklenemedi (HTTP ${res.status})`); }
   }
   async function saveDemographics(kitId: number) {
@@ -411,7 +436,7 @@ export default function DashboardPage() {
     setError("");
     if (!window.confirm("Bu kiti silmek istediginize emin misiniz?")) return;
     const res = await fetch(`${BACKEND}/api/mediakits/${id}`, { method: "DELETE", headers: authHeaders() });
-    if (res.status === 204) { if (active?.kitId === id) setActive(null); await loadKits(); }
+    if (res.status === 204) { if (active?.kitId === id) setActive(null); await refreshKitsAndProgress(); }
     else setError(`Silinemedi (HTTP ${res.status})`);
   }
 
@@ -419,6 +444,55 @@ export default function DashboardPage() {
     setKits((prev) => prev.map((k) => (k.id === id ? { ...k, [field]: value } : k)));
   }
   function logout() { localStorage.removeItem("token"); window.location.href = "/login"; }
+
+  /** Skipping is never blocked; the server records it, the UI hides it at once. */
+  async function dismissOnboarding() {
+    setOnboarding((prev) => (prev ? { ...prev, dismissed: true } : prev));
+    if (demoKey) localStorage.setItem(demoKey, "1");
+    await fetch(`${BACKEND}/api/me/onboarding/dismiss`, { method: "POST", headers: authHeaders() });
+    await loadOnboarding();
+  }
+
+  function focusCreateForm() {
+    document.getElementById("create-kit-title")?.focus();
+    document.getElementById("create-kit")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  /**
+   * Builds a first kit that already has something in it, so a new user can see
+   * a real page and try Yayinla immediately instead of staring at empty
+   * fields. Uses the ordinary endpoints — the content is a starting point to
+   * edit, not seeded demo data.
+   */
+  async function quickStart() {
+    setError(""); setQuickStartBusy(true);
+    try {
+      const res = await fetch(`${BACKEND}/api/mediakits`, {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({
+          title: me?.displayName || "Medya Kitim",
+          headline: "Icerik ureticisi — isbirligi icin iletisime gecin",
+          theme: "light",
+        }),
+      });
+      if (res.status !== 201) {
+        const d = await res.json().catch(() => null);
+        setError(d?.error ?? `Olusturulamadi (HTTP ${res.status})`);
+        return;
+      }
+      const kit: Kit = await res.json();
+      // Best-effort: a failed sample stat must not cost the user their kit.
+      await fetch(`${BACKEND}/api/mediakits/${kit.id}/stats`, {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ platform: "YOUTUBE", followers: 1000, avgViews: 500, avgLikes: 50, avgComments: 10 }),
+      }).catch(() => null);
+      await refreshKitsAndProgress();
+      openTab(kit, "edit");
+      setNotice("Ornek kitiniz hazir. Bilgileri duzenleyip Yayinla deyin.");
+    } finally {
+      setQuickStartBusy(false);
+    }
+  }
 
   async function openTab(kit: Kit, tab: Tab) {
     setNotice(""); setError("");
@@ -444,6 +518,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen">
+      {tour.open && <WelcomeTour onClose={tour.close} />}
       <header className="sticky top-0 z-10 border-b border-line bg-surface/80 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-3">
           <Link href="/" className="flex items-center gap-2">
@@ -452,6 +527,9 @@ export default function DashboardPage() {
           </Link>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted sm:inline">{me.displayName}</span>
+            <Button variant="ghost" size="sm" onClick={() => tour.setOpen(true)} title="Tanitimi yeniden gor">
+              <HelpCircle className="h-4 w-4" /> <span className="hidden sm:inline">Tanitim</span>
+            </Button>
             <Link href="/dashboard/settings">
               <Button variant="ghost" size="sm"><Settings className="h-4 w-4" /> Ayarlar</Button>
             </Link>
@@ -469,11 +547,20 @@ export default function DashboardPage() {
           </Card>
         )}
 
+        {/* Getting started — hidden once dismissed, so it never nags. */}
+        {onboarding && !onboarding.dismissed && (
+          <OnboardingChecklist
+            state={onboarding}
+            onStartFirstKit={focusCreateForm}
+            onDismiss={dismissOnboarding}
+          />
+        )}
+
         {/* Create kit */}
-        <Card className="mb-6 p-5">
+        <Card id="create-kit" className="mb-6 p-5">
           <h2 className="mb-3 font-semibold">Yeni medya kiti</h2>
           <form onSubmit={createKit} className="grid gap-3 sm:grid-cols-2">
-            <Input placeholder="Baslik *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+            <Input id="create-kit-title" placeholder="Baslik *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
             <Input placeholder="Headline" value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} />
             <Input placeholder="Avatar URL" value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} />
             <Select value={form.theme} onChange={(e) => setForm({ ...form, theme: e.target.value })}>
@@ -486,6 +573,13 @@ export default function DashboardPage() {
         </Card>
 
         <h2 className="mb-3 px-1 text-sm font-medium text-muted">Kitlerim ({kits.length})</h2>
+        {kits.length === 0 && (
+          <EmptyKitState
+            onStart={focusCreateForm}
+            onQuickStart={quickStart}
+            quickStartBusy={quickStartBusy}
+          />
+        )}
         <div className="grid gap-4">
           {kits.map((kit) => (
             <Card key={kit.id} className="overflow-hidden">
