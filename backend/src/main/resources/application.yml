@@ -50,6 +50,14 @@ management:
     web:
       exposure:
         include: health
+  health:
+    mail:
+      # Adding the mail starter auto-registers a health indicator that opens an
+      # SMTP connection. Lead notifications are an optional integration, so an
+      # unconfigured (or briefly unreachable) provider must not make the whole
+      # application report DOWN — the platform restarts on a failed health
+      # check, which would turn a dark feature into an outage.
+      enabled: false
 
 app:
   # Frontend on-demand revalidation target. Overridden by env vars in every real
