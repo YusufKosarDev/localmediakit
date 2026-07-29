@@ -1,0 +1,43 @@
+{
+  "name": "LocalMediaKit",
+  "short_name": "LocalMediaKit",
+  "description": "Icerik ureticileri icin canli medya kiti panosu.",
+  "lang": "tr",
+  "dir": "ltr",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f6f6f8",
+  "theme_color": "#6d40e6",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Panom",
+      "url": "/dashboard"
+    },
+    {
+      "name": "Hesap ayarlari",
+      "url": "/dashboard/settings"
+    }
+  ]
+}

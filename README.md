@@ -117,6 +117,16 @@ flowchart LR
   cascade'i calistirir ve commit'ten sonra slug'i revalidate ederek public
   sayfayi edge'den duserur. Silinen bir hesabin medya kitinin acik web'de
   erisilebilir kalmasi bu islemin asla uretmemesi gereken sonuc.
+- **Service worker public snapshot'lara dokunamaz** — yayinlanmis kitler edge'de
+  cache'lenen ve publish ile degisen anlik goruntuler. Bir service worker bu
+  mekanizmanin onunde durur: cache'ledigi seyi tarayicidan servis eder ve hicbir
+  revalidation oraya ulasamaz. Bu yuzden worker cache'lemeyi opt-in kabul eder;
+  yalnizca tanidigi URL'ler (hash'li build ciktilari + sabit app rota listesi)
+  icin `respondWith` cagirir, kalan her sey — public kit sayfalari, `/api/*`,
+  OG gorselleri, backend origin'i — hic dokunulmadan aga gider. Kara liste
+  olsaydi yarin eklenen bir public rota sessizce cache'lenirdi. Ustelik worker
+  **yalnizca giris yapilmis yuzeylerden** kaydedilir: sadece bir kit linki acan
+  ziyaretcinin tarayicisinda hic service worker olusmaz.
 - **Onboarding durumu saklanmaz, turetilir** — kontrol listesinin adimlari
   (kit var mi / istatistik var mi / yayinlandi mi) hesabin gercek verisinden
   okunur; saklanan tek sey "kapatildi" bilgisi. Boylece bir kit silindiginde
@@ -151,6 +161,7 @@ flowchart LR
 - Hesap ayarlari — profil (ad/avatar/pano temasi), sifre ve e-posta degistirme,
   hesap silme
 - Onboarding — karsilama turu + veriden turetilen baslangic kontrol listesi
+- Kurulabilir pano (PWA) — ana ekrana eklenip uygulama gibi acilir
 
 > Kodda `PlanPolicy` hala FREE/PRO ayrimini tanimlar ve testler her iki dali da
 > dogrular; urun karari geregi herkes PRO oldugu icin bu limitler pratikte
@@ -164,6 +175,16 @@ flowchart LR
 > model kendi icinde tutarli). Gercek dogrulama icin `pending_email` +
 > token kolonu ve bir mail saglayici gerekir.
 >
+> **PWA'nin bu urundeki degeri sinirli — abartmiyorum.** Urunun ana yuzeyi
+> birine gonderdiginiz bir link; kimse bir linki gormek icin uygulama kurmaz ve
+> o sayfalar zaten service worker kapsaminin disinda. Pano ise tablo, grafik ve
+> cok sekmeli form girisi, yani buyuk olcude masa basi isi. Kurulabilirligin
+> gercek karsiligi tek bir dar senaryoda: uretici telefonundan "marka kitime
+> bakti mi?" diye analitige goz atiyor — kisa, tekrarlayan bir is ve ana ekran
+> kisayolu bunu kisaltiyor. Cevrimdisi calisma iddiasi yok: panodaki her sey
+> backend'den canli okunur, bu yuzden baglanti yoksa yapilan tek sey bunu
+> durustce soyleyen bir ekran gostermek.
+
 > **Avatar bir URL'dir, yukleme degil.** Barindirma ucretsiz katmanda calisiyor
 > ve diski her deploy'da siliniyor; nesne deposu eklemek ya ucretli bir servis
 > ya da sessizce veri kaybeden bir cozum olurdu. Kit avatari zaten ayni kurali

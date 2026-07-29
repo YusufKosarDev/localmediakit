@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 
@@ -20,6 +20,22 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary",
   },
+  // Installability metadata. The manifest is linked site-wide because the
+  // browser reads it before deciding anything, but the service worker that
+  // backs it is registered only from the signed-in surfaces.
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "LocalMediaKit",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#6d40e6",
 };
 
 export default function RootLayout({

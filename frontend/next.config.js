@@ -18,6 +18,10 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline'",
   "font-src 'self'",
+  // The service worker is same-origin and must stay that way; spelled out
+  // rather than left to the script-src fallback so it cannot widen by accident.
+  "worker-src 'self'",
+  "manifest-src 'self'",
 ].join("; ");
 
 const securityHeaders = [
@@ -33,7 +37,18 @@ const securityHeaders = [
 
 const nextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        // A stale worker is a worker that keeps enforcing yesterday's rules,
+        // so it must always be revalidated before use.
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
   },
 };
 

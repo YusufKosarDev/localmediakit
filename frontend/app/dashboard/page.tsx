@@ -10,6 +10,8 @@ import {
   WelcomeTour, OnboardingChecklist, EmptyKitState, useTourVisibility,
   type OnboardingState,
 } from "./_Onboarding";
+import { ServiceWorker } from "@/app/_components/ServiceWorker";
+import { InstallPrompt } from "@/app/_components/InstallPrompt";
 import dynamic from "next/dynamic";
 import { Button, Card, Input, Select, Badge, Label } from "@/app/_components/ui";
 
@@ -518,6 +520,9 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Registered from the signed-in surfaces only — never from the public
+          kit page, so a brand viewing a snapshot gets no worker at all. */}
+      <ServiceWorker />
       {tour.open && <WelcomeTour onClose={tour.close} />}
       <header className="sticky top-0 z-10 border-b border-line bg-surface/80 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-3">
@@ -996,6 +1001,9 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
+
+        {/* Only renders if the browser judged the app installable. */}
+        <InstallPrompt />
       </main>
     </div>
   );
