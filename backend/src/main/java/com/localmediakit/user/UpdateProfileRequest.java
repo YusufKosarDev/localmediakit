@@ -16,5 +16,8 @@ public record UpdateProfileRequest(
         @Size(max = 1000)
         @Pattern(regexp = "^(https://.+)?$", message = "avatarUrl must start with https://")
         String avatarUrl,
-        Theme theme) {
+        Theme theme,
+        /** Null keeps the current setting, so an older client cannot silently
+         *  switch someone's lead emails off by omitting the field. */
+        Boolean leadNotificationsEnabled) {
 }

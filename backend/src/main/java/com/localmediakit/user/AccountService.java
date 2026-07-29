@@ -70,7 +70,10 @@ public class AccountService {
     public MeResponse updateProfile(String email, UpdateProfileRequest request) {
         User user = require(email);
         Theme theme = request.theme() == null ? user.getTheme() : request.theme();
-        user.updateProfile(request.displayName().trim(), request.avatarUrl(), theme);
+        boolean leadEmails = request.leadNotificationsEnabled() == null
+                ? user.isLeadNotificationsEnabled()
+                : request.leadNotificationsEnabled();
+        user.updateProfile(request.displayName().trim(), request.avatarUrl(), theme, leadEmails);
         return MeResponse.from(user);
     }
 

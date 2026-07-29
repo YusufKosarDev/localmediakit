@@ -8,6 +8,20 @@ spring:
     url: jdbc:h2:mem:localmediakit;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     username: sa
     password: ""
+  # SMTP for lead notifications. Blank host = feature off (graceful-enable).
+  # Any provider works: these are the standard SMTP settings, so switching
+  # vendor never touches code. Credentials live only in the environment.
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
   jpa:
     # Flyway owns the schema; Hibernate never generates or alters DDL.
     hibernate:
@@ -84,6 +98,17 @@ app:
     dns-timeout-ms: ${DOMAIN_DNS_TIMEOUT_MS:3000}
     dns-retries: ${DOMAIN_DNS_RETRIES:1}
     verify-host-prefix: ${DOMAIN_VERIFY_HOST_PREFIX:_localmediakit-verify}
+  notifications:
+    # Lead notification emails. Graceful-enable: with spring.mail.host or
+    # app.mail.from blank the feature is dark — nothing is queued and nothing
+    # is sent. Provider-neutral, so switching vendor is env-only.
+    hourly-cap: ${NOTIFY_HOURLY_CAP:12}
+    batch-size: ${NOTIFY_BATCH_SIZE:20}
+    job-interval-ms: ${NOTIFY_JOB_INTERVAL_MS:60000}
+    job-initial-delay-ms: ${NOTIFY_JOB_INITIAL_DELAY_MS:20000}
+  mail:
+    from: ${MAIL_FROM:}
+    from-name: ${MAIL_FROM_NAME:LocalMediaKit}
   youtube:
     # YouTube Data API v3 key. Graceful-enable: blank = the YouTube sync
     # feature stays dark (connect answers 503, no UI is offered).

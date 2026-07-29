@@ -117,6 +117,20 @@ flowchart LR
   cascade'i calistirir ve commit'ten sonra slug'i revalidate ederek public
   sayfayi edge'den duserur. Silinen bir hesabin medya kitinin acik web'de
   erisilebilir kalmasi bu islemin asla uretmemesi gereken sonuc.
+- **Bildirim outbox'i — lead asla e-postaya bagli degil** — bir marka formu
+  doldurdugunda bildirim satiri lead ile **ayni transaction'da** yazilir (ucuz
+  bir insert, ag cagrisi yok); gonderim sonradan zamanlanmis bir batch'te olur.
+  Yani mail saglayicisi markanin gonderimi islenirken hic devreye girmez: onu
+  yavaslatamaz, basarisiz edemez, lead'i kaybettiremez. SMTP coktugunde olan
+  tek sey satirlarin PENDING beklemesidir. Batch her satiri kendi
+  transaction'inda isler (bir kotu adres digerlerini geri almaz), ustel
+  backoff'la yeniden dener ve butce bitince FAILED olarak kayda gecer.
+  `@Async` yerine outbox secildi: Render'in ucretsiz instance'i uykuya gectigi
+  icin ucustaki bir gonderim sessizce kaybolurdu.
+- **Mail saglayicisi koda yazilmadi** — entegrasyon vendor SDK'si degil duz
+  SMTP uzerinden. Aday saglayicilarin hepsi (Brevo, SendGrid, Resend, Mailgun)
+  SMTP konusuyor, dolayisiyla saglayici degistirmek yalnizca ortam degiskeni
+  degisikligi. Host/gonderen bos birakilirsa ozellik sessizce kapali kalir.
 - **Service worker public snapshot'lara dokunamaz** — yayinlanmis kitler edge'de
   cache'lenen ve publish ile degisen anlik goruntuler. Bir service worker bu
   mekanizmanin onunde durur: cache'ledigi seyi tarayicidan servis eder ve hicbir
@@ -162,6 +176,7 @@ flowchart LR
   hesap silme
 - Onboarding — karsilama turu + veriden turetilen baslangic kontrol listesi
 - Kurulabilir pano (PWA) — ana ekrana eklenip uygulama gibi acilir
+- Lead bildirimi — marka formu doldurunca e-posta (ayarlardan kapatilabilir)
 
 > Kodda `PlanPolicy` hala FREE/PRO ayrimini tanimlar ve testler her iki dali da
 > dogrular; urun karari geregi herkes PRO oldugu icin bu limitler pratikte
@@ -175,6 +190,22 @@ flowchart LR
 > model kendi icinde tutarli). Gercek dogrulama icin `pending_email` +
 > token kolonu ve bir mail saglayici gerekir.
 >
+> **Lead bildirimleri ucuncu taraf bir servisten geciyor.** Bir marka iletisim
+> formunu doldurdugunda uretici e-posta alir; bu e-posta yapilandirilmis SMTP
+> saglayicisi uzerinden gonderilir, yani **uretici hesabinin e-posta adresi o
+> saglayiciya gider**. Icerik bilerek eksik tutulur: marka adi, kit basligi ve
+> mesajin kisaltilmis hali gonderilir; **markanin e-posta adresi gonderilmez**
+> (gereksiz yere ucuncu tarafa aktarilmasin diye — uretici panodan gorur).
+> Ziyaretci parmak izi, IP veya token hicbir sekilde yer almaz. Bildirimler
+> hesap ayarlarindan kapatilabilir; kapatildiginda lead'ler yine Gelen
+> Kutusu'na duser, sadece e-posta gitmez.
+>
+> **Domain dogrulamasi yapilamiyor, bu yuzden teslimat kalitesi sinirli.**
+> Uygulama `localmediakit.vercel.app` uzerinde ve o domain bize ait olmadigi
+> icin SPF/DKIM kaydi eklenemiyor. Saglayicida yalnizca **tek gonderen adres**
+> dogrulanabiliyor, dolayisiyla e-postalar spam klasorune dusebilir. Bu, ozel
+> bir domain alinana kadar yapisal bir sinir — gizlenecek bir sey degil.
+
 > **PWA'nin bu urundeki degeri sinirli — abartmiyorum.** Urunun ana yuzeyi
 > birine gonderdiginiz bir link; kimse bir linki gormek icin uygulama kurmaz ve
 > o sayfalar zaten service worker kapsaminin disinda. Pano ise tablo, grafik ve

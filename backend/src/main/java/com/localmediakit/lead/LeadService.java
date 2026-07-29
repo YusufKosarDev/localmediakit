@@ -6,6 +6,7 @@ import com.localmediakit.mediakit.MediaKit;
 import com.localmediakit.mediakit.MediaKitAccess;
 import com.localmediakit.mediakit.MediaKitRepository;
 import com.localmediakit.mediakit.MediaKitVersionRepository;
+import com.localmediakit.notification.LeadNotificationService;
 import com.localmediakit.user.PlanPolicy;
 import com.localmediakit.user.User;
 import org.springframework.stereotype.Service;
@@ -29,19 +30,22 @@ public class LeadService {
     private final MediaKitAccess access;
     private final VisitorFingerprint fingerprint;
     private final PlanPolicy planPolicy;
+    private final LeadNotificationService notificationService;
 
     public LeadService(KitLeadRepository leadRepository,
                        MediaKitRepository mediaKitRepository,
                        MediaKitVersionRepository versionRepository,
                        MediaKitAccess access,
                        VisitorFingerprint fingerprint,
-                       PlanPolicy planPolicy) {
+                       PlanPolicy planPolicy,
+                       LeadNotificationService notificationService) {
         this.leadRepository = leadRepository;
         this.mediaKitRepository = mediaKitRepository;
         this.versionRepository = versionRepository;
         this.access = access;
         this.fingerprint = fingerprint;
         this.planPolicy = planPolicy;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -76,9 +80,15 @@ public class LeadService {
         if (recent >= MAX_PER_WINDOW) {
             return;
         }
-        leadRepository.save(new KitLead(
+        KitLead lead = leadRepository.save(new KitLead(
                 kitId, request.brandName().trim(), request.email().trim(),
                 request.message().trim(), visitor));
+
+        // Queued in this same transaction — a cheap insert, no network call.
+        // Delivery happens later in a background batch, so the mail provider
+        // is never in the path of a brand's submission and cannot cost us the
+        // lead we just saved.
+        notificationService.enqueueFor(lead, kit);
     }
 
     /** Owner inbox; FREE sees only the most recent leads (PRO teaser), PRO all. */

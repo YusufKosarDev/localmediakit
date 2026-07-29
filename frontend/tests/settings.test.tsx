@@ -10,6 +10,7 @@ const ME = {
   avatarUrl: null,
   theme: "LIGHT",
   plan: "PRO",
+  leadNotificationsEnabled: true,
 };
 
 function json(body: unknown, status = 200) {
@@ -134,6 +135,36 @@ describe("SettingsPage", () => {
     ).toBeInTheDocument();
     // A rejected change must not disturb the working session.
     expect(localStorage.getItem("token")).toBe("jwt-old");
+  });
+
+  it("turns lead emails off and says the leads themselves keep arriving", async () => {
+    const fetchSpy = mockFetch((url, init) => {
+      if (url.endsWith("/api/me") && init?.method === "PUT") {
+        return json({ ...ME, leadNotificationsEnabled: false });
+      }
+      return json({}, 404);
+    });
+    render(<SettingsPage />);
+
+    const toggle = await screen.findByLabelText(/Yeni marka teklifi e-postasi/);
+    expect(toggle).toBeChecked();
+
+    // Switching notifications off must not read as "stop receiving offers".
+    expect(
+      screen.getByText(/teklifler yine de Gelen Kutusu sekmenize duser/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(toggle);
+    await userEvent.click(screen.getByRole("button", { name: "Bildirim tercihini kaydet" }));
+
+    await vi.waitFor(() => {
+      const put = fetchSpy.mock.calls.find(
+        ([, init]) => (init as RequestInit | undefined)?.method === "PUT"
+      );
+      expect(JSON.parse(String((put?.[1] as RequestInit).body))).toMatchObject({
+        leadNotificationsEnabled: false,
+      });
+    });
   });
 
   it("saves the profile and states that kits are unaffected", async () => {

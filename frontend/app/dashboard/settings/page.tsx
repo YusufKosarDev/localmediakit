@@ -17,6 +17,7 @@ type Me = {
   avatarUrl: string | null;
   theme: string;
   plan: string;
+  leadNotificationsEnabled: boolean;
 };
 
 function authHeaders(): HeadersInit {
@@ -39,7 +40,9 @@ export default function SettingsPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [profile, setProfile] = useState({ displayName: "", avatarUrl: "", theme: "LIGHT" });
+  const [profile, setProfile] = useState({
+    displayName: "", avatarUrl: "", theme: "LIGHT", leadNotificationsEnabled: true,
+  });
   const [profileMsg, setProfileMsg] = useState({ ok: "", err: "" });
   const [profileBusy, setProfileBusy] = useState(false);
 
@@ -61,6 +64,7 @@ export default function SettingsPage() {
       displayName: data.displayName,
       avatarUrl: data.avatarUrl ?? "",
       theme: data.theme,
+      leadNotificationsEnabled: data.leadNotificationsEnabled,
     });
   }, []);
 
@@ -303,6 +307,45 @@ export default function SettingsPage() {
               {profileMsg.err && <span className="text-sm text-danger">{profileMsg.err}</span>}
             </div>
           </form>
+        </Card>
+
+        {/* ---------- Notifications ---------- */}
+        <Card className="mt-6 p-6">
+          <h2 className="font-semibold">Bildirimler</h2>
+          <p className="mt-1 text-sm text-muted">
+            Bir marka medya kitinizdeki iletisim formunu doldurdugunda e-posta alin.
+          </p>
+
+          <label
+            htmlFor="leadNotifications"
+            className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-line p-3"
+          >
+            <input
+              id="leadNotifications"
+              type="checkbox"
+              checked={profile.leadNotificationsEnabled}
+              onChange={(e) =>
+                setProfile({ ...profile, leadNotificationsEnabled: e.target.checked })
+              }
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--brand-strong)]"
+            />
+            <span>
+              <span className="text-sm font-medium">Yeni marka teklifi e-postasi</span>
+              <span className="mt-0.5 block text-xs text-muted">
+                Kapatirsaniz teklifler yine de Gelen Kutusu sekmenize duser — sadece
+                e-posta gonderilmez.
+              </span>
+            </span>
+          </label>
+
+          <div className="mt-4 flex items-center gap-3">
+            <Button type="button" onClick={saveProfile} disabled={profileBusy}>
+              {profileBusy ? "..." : "Bildirim tercihini kaydet"}
+            </Button>
+            <span className="text-xs text-faint">
+              E-postalar ucuncu taraf bir gonderim servisi uzerinden iletilir.
+            </span>
+          </div>
         </Card>
 
         {/* ---------- Password ---------- */}

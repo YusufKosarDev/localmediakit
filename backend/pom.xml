@@ -111,6 +111,14 @@
             <version>2.6.0</version>
         </dependency>
 
+        <!-- Lead notifications. Plain SMTP rather than a provider SDK: every
+             candidate (Brevo, SendGrid, Resend, Mailgun) speaks it, so changing
+             provider is a change of environment variables, not of code. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

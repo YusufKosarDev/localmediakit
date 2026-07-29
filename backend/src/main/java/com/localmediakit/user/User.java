@@ -60,6 +60,13 @@ public class User {
     @Column(name = "onboarding_completed_at")
     private Instant onboardingCompletedAt;
 
+    /**
+     * Whether to email this user when a brand submits their contact form.
+     * Defaults on: publishing a contact form is asking to be contacted.
+     */
+    @Column(name = "lead_notifications_enabled", nullable = false)
+    private boolean leadNotificationsEnabled;
+
     protected User() {
         // for JPA
     }
@@ -74,6 +81,7 @@ public class User {
         // flipping this default back — no gating logic was torn out.
         this.plan = Plan.PRO;
         this.theme = Theme.LIGHT;
+        this.leadNotificationsEnabled = true;
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
@@ -102,6 +110,10 @@ public class User {
         return theme;
     }
 
+    public boolean isLeadNotificationsEnabled() {
+        return leadNotificationsEnabled;
+    }
+
     public Plan getPlan() {
         return plan;
     }
@@ -115,10 +127,12 @@ public class User {
      * Editable profile fields, applied together so updatedAt can never drift
      * from the change that caused it. A blank avatar clears the field.
      */
-    public void updateProfile(String displayName, String avatarUrl, Theme theme) {
+    public void updateProfile(String displayName, String avatarUrl, Theme theme,
+                              boolean leadNotificationsEnabled) {
         this.displayName = displayName;
         this.avatarUrl = (avatarUrl == null || avatarUrl.isBlank()) ? null : avatarUrl.trim();
         this.theme = theme;
+        this.leadNotificationsEnabled = leadNotificationsEnabled;
         touch();
     }
 
