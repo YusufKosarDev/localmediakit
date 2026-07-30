@@ -14,6 +14,21 @@ const THEME = {
   dark: { page: "#0a0a0c", surface: "#151519", fg: "#f4f4f6", muted: "#a2a2ab", line: "#26262c", brand: "#a998f8", brandWeak: "#1d1730" },
 };
 
+/**
+ * The accent overrides, restated because satori has no CSS. Duplicating them
+ * risks drifting from globals.css, so tests/palette.test.ts parses both and
+ * fails if a value here stops matching the stylesheet.
+ *
+ * "violet" is absent on purpose: it is the base palette in THEME above.
+ */
+export const OG_ACCENTS: Record<string, { light: { brand: string; brandWeak: string }; dark: { brand: string; brandWeak: string } }> = {
+  ocean: { light: { brand: "#407796", brandWeak: "#f4f8fa" }, dark: { brand: "#42b7fa", brandWeak: "#0e2939" } },
+  forest: { light: { brand: "#367d5c", brandWeak: "#f4faf8" }, dark: { brand: "#42faa4", brandWeak: "#0e3925" } },
+  amber: { light: { brand: "#98653a", brandWeak: "#fbf7f4" }, dark: { brand: "#fa9842", brandWeak: "#39220e" } },
+  rose: { light: { brand: "#c14469", brandWeak: "#fbf4f6" }, dark: { brand: "#fa4279", brandWeak: "#390e1b" } },
+  graphite: { light: { brand: "#5f7195", brandWeak: "#f6f7f9" }, dark: { brand: "#919db6", brandWeak: "#1f2229" } },
+};
+
 const PLATFORM_NAMES: Record<string, string> = {
   YOUTUBE: "YouTube",
   INSTAGRAM: "Instagram",
@@ -34,7 +49,11 @@ export default async function OgImage({
   // here would freeze the generic card into the edge until the next publish.
   const kit = await getKit(slug);
 
-  const t = THEME[kit?.theme === "dark" ? "dark" : "light"];
+  const mode = kit?.theme === "dark" ? "dark" : "light";
+  // The social card carries the kit's accent too, so a shared link looks like
+  // the page it opens. An unknown accent falls back to the base palette.
+  const override = kit?.accent ? OG_ACCENTS[kit.accent]?.[mode] : undefined;
+  const t = { ...THEME[mode], ...(override ?? {}) };
 
   // A real 404: a neutral brand card, nothing leaked.
   if (!kit) {

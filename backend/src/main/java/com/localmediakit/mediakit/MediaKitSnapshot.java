@@ -19,6 +19,10 @@ public record MediaKitSnapshot(
         String headline,
         String avatarUrl,
         String theme,
+        /** Curated accent, frozen at publish. Absent in snapshots taken before it existed. */
+        String accent,
+        /** Curated layout variant, frozen at publish. Absent in older snapshots. */
+        String layout,
         String displayName,
         List<PlatformStatSnapshot> platforms,
         List<DemographicSnapshot> demographics,
@@ -82,6 +86,18 @@ public record MediaKitSnapshot(
 
     public List<RateCardSnapshot> rateCardOrEmpty() {
         return rateCard == null ? List.of() : rateCard;
+    }
+
+    /**
+     * Snapshots predating the appearance options render exactly as they always
+     * did: the original violet accent and the original centred layout.
+     */
+    public String accentOrDefault() {
+        return accent == null || accent.isBlank() ? KitAppearance.DEFAULT_ACCENT : accent;
+    }
+
+    public String layoutOrDefault() {
+        return layout == null || layout.isBlank() ? KitAppearance.DEFAULT_LAYOUT : layout;
     }
 
     /** Snapshots published before the contact form existed never rendered it. */

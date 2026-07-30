@@ -88,6 +88,8 @@ public class VersionDiffService {
         addFieldIfChanged(out, "headline", a.headline(), b.headline());
         addFieldIfChanged(out, "avatarUrl", a.avatarUrl(), b.avatarUrl());
         addFieldIfChanged(out, "theme", a.theme(), b.theme());
+        addFieldIfChanged(out, "accent", a.accentOrDefault(), b.accentOrDefault());
+        addFieldIfChanged(out, "layout", a.layoutOrDefault(), b.layoutOrDefault());
         addFieldIfChanged(out, "displayName", a.displayName(), b.displayName());
         addFieldIfChanged(out, "showBadge",
                 String.valueOf(a.showBadgeOrDefault()), String.valueOf(b.showBadgeOrDefault()));

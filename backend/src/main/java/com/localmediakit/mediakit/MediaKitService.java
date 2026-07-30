@@ -49,7 +49,8 @@ public class MediaKitService {
         String slug = resolveSlug(request.slug(), request.title(), null);
         MediaKit kit = new MediaKit(
                 user.getId(), slug, request.title().trim(),
-                request.headline(), request.avatarUrl(), request.theme());
+                request.headline(), request.avatarUrl(),
+                request.theme(), request.accent(), request.layout());
         mediaKitRepository.save(kit);
         return toResponse(kit);
     }
@@ -90,7 +91,8 @@ public class MediaKitService {
     @Transactional
     public MediaKitResponse update(String userEmail, Long id, UpdateMediaKitRequest request) {
         MediaKit kit = access.requireOwnedKit(userEmail, id);
-        kit.updateDetails(request.title().trim(), request.headline(), request.avatarUrl(), request.theme());
+        kit.updateDetails(request.title().trim(), request.headline(), request.avatarUrl(),
+                request.theme(), request.accent(), request.layout());
         if (request.contactEnabled() != null) {
             kit.setContactEnabled(request.contactEnabled());
         }

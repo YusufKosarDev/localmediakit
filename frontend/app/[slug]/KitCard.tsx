@@ -40,6 +40,10 @@ export type PublicKit = {
   headline: string | null;
   avatarUrl: string | null;
   theme: string;
+  /** Curated accent. Absent on snapshots published before accents existed. */
+  accent?: string | null;
+  /** Curated layout variant. Absent on older snapshots. */
+  layout?: string | null;
   displayName: string;
   platforms: PlatformStat[];
   demographics: Demographic[];
@@ -62,6 +66,9 @@ const PLATFORMS: Record<
 };
 
 const CATEGORY_NAMES: Record<string, string> = { AGE: "Yas", GENDER: "Cinsiyet", COUNTRY: "Ulke" };
+
+/** Accents this build knows how to style; anything else falls back to violet. */
+const ACCENTS = ["violet", "ocean", "forest", "amber", "rose", "graphite"];
 
 const compact = new Intl.NumberFormat("tr-TR", { notation: "compact", maximumFractionDigits: 1 });
 
@@ -86,6 +93,11 @@ function fmtPrice(amount: number, currency: string): string {
 // says so instead of showing a publish date.
 export default function KitCard({ kit, preview = false }: { kit: PublicKit; preview?: boolean }) {
   const dark = kit.theme === "dark";
+  // Rendering stays forgiving even though the API validates on write: a
+  // snapshot from before these existed (or any value this build does not know)
+  // renders as the original look rather than as an unstyled page.
+  const accent = ACCENTS.includes(kit.accent ?? "") ? kit.accent! : "violet";
+  const panel = kit.layout === "panel";
   const publishedDate = new Date(kit.publishedAt).toLocaleDateString("tr-TR", {
     year: "numeric",
     month: "long",
@@ -98,7 +110,11 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
   const rateCard = kit.rateCard ?? [];
 
   return (
-    <div data-theme={dark ? "dark" : "light"} className={dark ? "dark" : ""}>
+    <div
+      data-theme={dark ? "dark" : "light"}
+      data-accent={accent}
+      className={dark ? "dark" : ""}
+    >
       <main className="kit-root min-h-screen bg-page text-fg">
         {!preview && <TrackView slug={kit.slug} />}
         {preview && (
@@ -106,11 +122,18 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
             ONIZLEME — bu sayfa yayinlanmamis taslagi gosterir; link kisa sureli ve gecicidir.
           </div>
         )}
-        <div className="mx-auto w-full max-w-2xl px-5 py-12 sm:py-16">
+        {/* The layout variants swap Tailwind classes on the SAME markup — no
+            element is added, removed or reordered — so heading order, landmarks
+            and reading order are identical in both. */}
+        <div className={`mx-auto w-full px-5 py-12 sm:py-16 ${panel ? "max-w-3xl" : "max-w-2xl"}`}>
           <PrintButton />
 
           {/* Hero */}
-          <header className="animate-rise flex flex-col items-center text-center">
+          <header
+            className={`animate-rise flex flex-col ${
+              panel ? "items-start text-left" : "items-center text-center"
+            }`}
+          >
             {kit.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

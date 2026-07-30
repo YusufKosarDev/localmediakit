@@ -15,10 +15,12 @@ export default function PasswordGate({
   slug,
   title,
   theme,
+  accent,
 }: {
   slug: string;
   title: string;
   theme: string;
+  accent?: string | null;
 }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -54,7 +56,7 @@ export default function PasswordGate({
   }
 
   return (
-    <div data-theme={theme === "dark" ? "dark" : "light"}>
+    <div data-theme={theme === "dark" ? "dark" : "light"} data-accent={accent ?? "violet"}>
       <main className="grid min-h-screen place-items-center bg-page px-5 text-fg">
         <Card className="w-full max-w-sm p-7 text-center">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand-weak text-brand">

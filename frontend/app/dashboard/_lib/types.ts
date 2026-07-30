@@ -16,6 +16,8 @@ export type Kit = {
   headline: string | null;
   avatarUrl: string | null;
   theme: string;
+  accent: string;
+  layout: string;
   status: string;
   publishedSlug: string | null;
   passwordProtected: boolean;
@@ -118,6 +120,28 @@ export const TABS: { id: Tab; label: string }[] = [
   { id: "analytics", label: "Analitik" },
   { id: "versions", label: "Versiyonlar" },
   { id: "domain", label: "Domain" },
+];
+
+/**
+ * The curated looks a public page can have. Mirrors KitAppearance on the
+ * backend, which rejects anything outside these lists.
+ *
+ * <p>A fixed set rather than free colour input: every accent's contrast is
+ * verified against the surfaces it renders on (tests/palette.test.ts), so a
+ * user cannot produce an inaccessible page.
+ */
+export const ACCENTS: { id: string; label: string; swatch: string }[] = [
+  { id: "violet", label: "Menekse", swatch: "#6d40e6" },
+  { id: "ocean", label: "Okyanus", swatch: "#407796" },
+  { id: "forest", label: "Orman", swatch: "#367d5c" },
+  { id: "amber", label: "Kehribar", swatch: "#98653a" },
+  { id: "rose", label: "Gul", swatch: "#c14469" },
+  { id: "graphite", label: "Grafit", swatch: "#5f7195" },
+];
+
+export const LAYOUTS: { id: string; label: string; hint: string }[] = [
+  { id: "classic", label: "Klasik", hint: "Ortalanmis, dar kolon" },
+  { id: "panel", label: "Panel", hint: "Sola hizali, genis kolon" },
 ];
 
 export const PLATFORMS = ["YOUTUBE", "INSTAGRAM", "TIKTOK"];

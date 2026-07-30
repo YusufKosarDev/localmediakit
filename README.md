@@ -117,6 +117,20 @@ flowchart LR
   cascade'i calistirir ve commit'ten sonra slug'i revalidate ederek public
   sayfayi edge'den duserur. Silinen bir hesabin medya kitinin acik web'de
   erisilebilir kalmasi bu islemin asla uretmemesi gereken sonuc.
+- **Gorunum secenekleri erisilebilirligi bozamaz** — vurgu rengi serbest secim
+  degil, kurate bir liste. Her rengin kontrasti gercekten uzerine cizildigi
+  yuzeylere karsi hesaplanarak secildi (--brand metin olarak page/surface/weak
+  uzerinde, --brand-strong beyaz yazili buton zemini olarak); dordu de her iki
+  modda WCAG AA gecer. `tests/palette.test.ts` bu oranlari sevk edilen
+  `globals.css`ten yeniden hesaplar, dolayisiyla kontrasti zayif bir renk
+  eklenirse CI kirilir. Renk secici koyulsaydi erisilemez bir sayfa uretmek
+  kullanicinin elinde olurdu; bu tasarimda ifade edilemez.
+- **Gorunum de snapshot.a donar** — taslakta rengi/duzeni degistirmek yayindaki
+  sayfayi degistirmez; Adim 3.ten beri gecerli kural burada da aynen isler.
+  Vurgu ve duzen alanlari snapshot.a **yeni nullable alanlar** olarak eklendi:
+  bunlar var olmadan once yayinlanmis snapshot.lar orijinal gorunumu
+  render etmeye devam eder (`accentOrDefault`), yani ozellik hicbir yayindaki
+  sayfanin gorunumunu degistirmedi.
 - **Bildirim outbox'i — lead asla e-postaya bagli degil** — bir marka formu
   doldurdugunda bildirim satiri lead ile **ayni transaction'da** yazilir (ucuz
   bir insert, ag cagrisi yok); gonderim sonradan zamanlanmis bir batch'te olur.
@@ -177,6 +191,7 @@ flowchart LR
 - Onboarding — karsilama turu + veriden turetilen baslangic kontrol listesi
 - Kurulabilir pano (PWA) — ana ekrana eklenip uygulama gibi acilir
 - Lead bildirimi — marka formu doldurunca e-posta (ayarlardan kapatilabilir)
+- Public sayfa gorunumu — 6 kurate vurgu rengi + 2 duzen varyanti (publish ile donar)
 
 > Kodda `PlanPolicy` hala FREE/PRO ayrimini tanimlar ve testler her iki dali da
 > dogrular; urun karari geregi herkes PRO oldugu icin bu limitler pratikte

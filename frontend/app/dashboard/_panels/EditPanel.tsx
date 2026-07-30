@@ -3,7 +3,7 @@
 import { Lock, Unlock } from "lucide-react";
 import { Button, Input, Label, Select } from "@/app/_components/ui";
 import { del, put } from "../_lib/api";
-import type { Feedback, Kit } from "../_lib/types";
+import { ACCENTS, LAYOUTS, type Feedback, type Kit } from "../_lib/types";
 
 /**
  * The kit's own fields, plus password protection.
@@ -31,6 +31,8 @@ export function EditPanel({
       headline: kit.headline,
       avatarUrl: kit.avatarUrl,
       theme: kit.theme,
+      accent: kit.accent,
+      layout: kit.layout,
       slug: kit.slug,
       contactEnabled: kit.contactEnabled,
     });
@@ -93,6 +95,60 @@ export function EditPanel({
           <Input value={kit.slug} onChange={(e) => onField("slug", e.target.value)} />
         </div>
       </div>
+
+      {/* Appearance. A fixed palette rather than a colour input: every accent
+          here is contrast-checked against the surfaces it renders on, so no
+          selection can produce an unreadable public page. */}
+      <fieldset className="grid gap-1.5">
+        <legend className="text-sm font-medium text-fg">Vurgu rengi</legend>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {ACCENTS.map((a) => {
+            const selected = (kit.accent || "violet") === a.id;
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => onField("accent", a.id)}
+                aria-pressed={selected}
+                title={a.label}
+                className={`flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm transition-colors ${
+                  selected ? "border-brand bg-brand-weak text-brand" : "border-line text-muted hover:bg-page"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 rounded-full ring-1 ring-line"
+                  style={{ background: a.swatch }}
+                />
+                {a.label}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <fieldset className="grid gap-1.5">
+        <legend className="text-sm font-medium text-fg">Duzen</legend>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {LAYOUTS.map((l) => {
+            const selected = (kit.layout || "classic") === l.id;
+            return (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => onField("layout", l.id)}
+                aria-pressed={selected}
+                className={`rounded-xl border px-3 py-1.5 text-left text-sm transition-colors ${
+                  selected ? "border-brand bg-brand-weak text-brand" : "border-line text-muted hover:bg-page"
+                }`}
+              >
+                <span className="block font-medium">{l.label}</span>
+                <span className="block text-xs opacity-80">{l.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"

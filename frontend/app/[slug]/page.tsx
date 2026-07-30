@@ -75,7 +75,7 @@ export default async function KitPage({
   if (!kit) notFound();
 
   if (kit.isProtected) {
-    return <PasswordGate slug={kit.slug} title={kit.title} theme={kit.theme} />;
+    return <PasswordGate slug={kit.slug} title={kit.title} theme={kit.theme} accent={kit.accent} />;
   }
 
   // ProfilePage + Person structured data for a public creator kit — baked into

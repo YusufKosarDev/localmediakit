@@ -61,6 +61,76 @@
   --danger: #f87171;
 }
 
+/*
+  Curated accents for the public media-kit page.
+
+  Every value below was chosen by computing its contrast against the surfaces
+  it is actually rendered on, not by eye. --brand is accent text and icons
+  (read on --page, on --surface, and on --brand-weak); --brand-strong is a
+  solid button background with white text on it. All four pairs clear WCAG AA
+  (>=4.5:1) in both modes — see tests/palette.test.ts, which recomputes them
+  from this file so an accent that fails can never be merged.
+
+  This is why the picker offers a fixed set instead of a colour input: an
+  inaccessible page is not something the product lets a user express.
+
+  Accents apply per-kit via data-accent alongside data-theme, so they scope to
+  the published page and never leak into the app surfaces.
+*/
+[data-accent="ocean"] {
+  --brand: #407796;
+  --brand-strong: #407796;
+  --brand-weak: #f4f8fa;
+}
+[data-theme="dark"][data-accent="ocean"] {
+  --brand: #42b7fa;
+  --brand-weak: #0e2939;
+}
+
+[data-accent="forest"] {
+  --brand: #367d5c;
+  --brand-strong: #367d5c;
+  --brand-weak: #f4faf8;
+}
+[data-theme="dark"][data-accent="forest"] {
+  --brand: #42faa4;
+  --brand-weak: #0e3925;
+}
+
+[data-accent="amber"] {
+  --brand: #98653a;
+  --brand-strong: #98653a;
+  --brand-weak: #fbf7f4;
+}
+[data-theme="dark"][data-accent="amber"] {
+  --brand: #fa9842;
+  --brand-weak: #39220e;
+}
+
+[data-accent="rose"] {
+  --brand: #c14469;
+  --brand-strong: #c14469;
+  --brand-weak: #fbf4f6;
+}
+[data-theme="dark"][data-accent="rose"] {
+  --brand: #fa4279;
+  --brand-weak: #390e1b;
+}
+
+[data-accent="graphite"] {
+  --brand: #5f7195;
+  --brand-strong: #5f7195;
+  --brand-weak: #f6f7f9;
+}
+[data-theme="dark"][data-accent="graphite"] {
+  --brand: #919db6;
+  --brand-weak: #1f2229;
+}
+
+/* "violet" is the original palette and is deliberately not redefined here:
+   it inherits the :root / [data-theme] values above, so every page published
+   before accents existed renders byte-for-byte as it always did. */
+
 html {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;

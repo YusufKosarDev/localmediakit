@@ -190,7 +190,10 @@ public class MediaKitPublicationService {
                 .toList();
         return new MediaKitSnapshot(
                 kit.getSlug(), kit.getTitle(), kit.getHeadline(), kit.getAvatarUrl(),
-                kit.getTheme(), owner.getDisplayName(), platforms, demographics, collaborations,
+                // Appearance is frozen here like everything else: editing the
+                // draft's look changes nothing publicly until the next publish.
+                kit.getTheme(), kit.getAccent(), kit.getLayout(),
+                owner.getDisplayName(), platforms, demographics, collaborations,
                 planPolicy.showsBranding(owner.getPlan()), rateCard, kit.isContactEnabled());
     }
 

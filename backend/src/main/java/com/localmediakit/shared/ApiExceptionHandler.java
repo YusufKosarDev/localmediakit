@@ -12,6 +12,7 @@ import com.localmediakit.domain.DomainAlreadyExistsException;
 import com.localmediakit.domain.DomainNotFoundException;
 import com.localmediakit.domain.InvalidDomainException;
 import com.localmediakit.auth.InvalidCredentialsException;
+import com.localmediakit.mediakit.InvalidAppearanceException;
 import com.localmediakit.mediakit.InvalidKitPasswordException;
 import com.localmediakit.mediakit.MediaKitNotFoundException;
 import com.localmediakit.mediakit.ReservedSlugException;
@@ -66,6 +67,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(InvalidCredentialsException ex) {
         return body(HttpStatus.UNAUTHORIZED, ex.getMessage(), null);
+    }
+
+    /** Appearance value outside the curated set. */
+    @ExceptionHandler(InvalidAppearanceException.class)
+    public ResponseEntity<Map<String, Object>> handleAppearance(InvalidAppearanceException ex) {
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
     @ExceptionHandler(ReservedSlugException.class)

@@ -36,6 +36,14 @@ public class MediaKit {
     @Column(nullable = false)
     private String theme;
 
+    /** Curated accent; see KitAppearance. */
+    @Column(nullable = false, length = 20)
+    private String accent;
+
+    /** Curated layout variant; see KitAppearance. */
+    @Column(nullable = false, length = 20)
+    private String layout;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MediaKitStatus status;
@@ -66,24 +74,30 @@ public class MediaKit {
         // for JPA
     }
 
-    public MediaKit(Long userId, String slug, String title, String headline, String avatarUrl, String theme) {
+    public MediaKit(Long userId, String slug, String title, String headline, String avatarUrl,
+                    String theme, String accent, String layout) {
         this.userId = userId;
         this.slug = slug;
         this.title = title;
         this.headline = headline;
         this.avatarUrl = avatarUrl;
-        this.theme = (theme == null || theme.isBlank()) ? "light" : theme;
+        this.theme = KitAppearance.normalizeTheme(theme);
+        this.accent = KitAppearance.normalizeAccent(accent);
+        this.layout = KitAppearance.normalizeLayout(layout);
         this.status = MediaKitStatus.DRAFT;
         Instant now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
     }
 
-    public void updateDetails(String title, String headline, String avatarUrl, String theme) {
+    public void updateDetails(String title, String headline, String avatarUrl,
+                              String theme, String accent, String layout) {
         this.title = title;
         this.headline = headline;
         this.avatarUrl = avatarUrl;
-        this.theme = (theme == null || theme.isBlank()) ? "light" : theme;
+        this.theme = KitAppearance.normalizeTheme(theme);
+        this.accent = KitAppearance.normalizeAccent(accent);
+        this.layout = KitAppearance.normalizeLayout(layout);
         this.updatedAt = Instant.now();
     }
 
@@ -145,6 +159,14 @@ public class MediaKit {
 
     public String getTheme() {
         return theme;
+    }
+
+    public String getAccent() {
+        return accent;
+    }
+
+    public String getLayout() {
+        return layout;
     }
 
     public MediaKitStatus getStatus() {

@@ -15,7 +15,10 @@ import { BACKEND, authHeaders, errorMessage, get, post } from "./_lib/api";
 import type { Feedback, Kit, Me, Tab } from "./_lib/types";
 
 const DEMO_EMAIL = "demo@localmediakit.app";
-const emptyCreateForm = { title: "", headline: "", avatarUrl: "", theme: "light", slug: "" };
+const emptyCreateForm = {
+  title: "", headline: "", avatarUrl: "", theme: "light",
+  accent: "violet", layout: "classic", slug: "",
+};
 
 /**
  * The dashboard shell.
