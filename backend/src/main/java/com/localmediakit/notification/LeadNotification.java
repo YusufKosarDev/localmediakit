@@ -43,6 +43,10 @@ public class LeadNotification {
     @Column(name = "recipient_email", nullable = false)
     private String recipientEmail;
 
+    /** Snapshotted with the address, and for the same reason. */
+    @Column(nullable = false, length = 10)
+    private String locale;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private NotificationStatus status;
@@ -66,9 +70,10 @@ public class LeadNotification {
         // for JPA
     }
 
-    public LeadNotification(Long leadId, String recipientEmail, NotificationStatus status) {
+    public LeadNotification(Long leadId, String recipientEmail, String locale, NotificationStatus status) {
         this.leadId = leadId;
         this.recipientEmail = recipientEmail;
+        this.locale = locale;
         this.status = status;
         this.attempts = 0;
         this.createdAt = Instant.now();
@@ -85,6 +90,10 @@ public class LeadNotification {
 
     public String getRecipientEmail() {
         return recipientEmail;
+    }
+
+    public String getLocale() {
+        return locale;
     }
 
     public NotificationStatus getStatus() {

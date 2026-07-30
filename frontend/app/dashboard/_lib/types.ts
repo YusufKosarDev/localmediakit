@@ -18,6 +18,7 @@ export type Kit = {
   theme: string;
   accent: string;
   layout: string;
+  language: string;
   status: string;
   publishedSlug: string | null;
   passwordProtected: boolean;
@@ -142,6 +143,12 @@ export const ACCENTS: { id: string; label: string; swatch: string }[] = [
 export const LAYOUTS: { id: string; label: string; hint: string }[] = [
   { id: "classic", label: "Klasik", hint: "Ortalanmis, dar kolon" },
   { id: "panel", label: "Panel", hint: "Sola hizali, genis kolon" },
+];
+
+/** Presentation languages a kit can be published in. */
+export const LANGUAGES: { id: string; label: string }[] = [
+  { id: "tr", label: "Turkce" },
+  { id: "en", label: "English" },
 ];
 
 export const PLATFORMS = ["YOUTUBE", "INSTAGRAM", "TIKTOK"];

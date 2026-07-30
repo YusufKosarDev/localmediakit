@@ -11,6 +11,7 @@ public record UpdateMediaKitRequest(
         @Size(max = 50) String theme,
         @Size(max = 20) String accent,
         @Size(max = 20) String layout,
+        @Size(max = 10) String language,
         @Size(max = 255) String slug,
         /** null = leave the contact-form switch unchanged. */
         Boolean contactEnabled) {

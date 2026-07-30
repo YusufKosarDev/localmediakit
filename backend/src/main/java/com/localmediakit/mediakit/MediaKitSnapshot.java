@@ -23,6 +23,8 @@ public record MediaKitSnapshot(
         String accent,
         /** Curated layout variant, frozen at publish. Absent in older snapshots. */
         String layout,
+        /** Presentation language, frozen at publish. Absent in older snapshots. */
+        String language,
         String displayName,
         List<PlatformStatSnapshot> platforms,
         List<DemographicSnapshot> demographics,
@@ -98,6 +100,11 @@ public record MediaKitSnapshot(
 
     public String layoutOrDefault() {
         return layout == null || layout.isBlank() ? KitAppearance.DEFAULT_LAYOUT : layout;
+    }
+
+    /** Snapshots predating i18n were all Turkish; that is what they keep rendering as. */
+    public String languageOrDefault() {
+        return com.localmediakit.shared.Locales.orDefault(language);
     }
 
     /** Snapshots published before the contact form existed never rendered it. */

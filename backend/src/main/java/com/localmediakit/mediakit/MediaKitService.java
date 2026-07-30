@@ -50,7 +50,11 @@ public class MediaKitService {
         MediaKit kit = new MediaKit(
                 user.getId(), slug, request.title().trim(),
                 request.headline(), request.avatarUrl(),
-                request.theme(), request.accent(), request.layout());
+                request.theme(), request.accent(), request.layout(),
+                // A new kit defaults to the language the owner administers in;
+                // a sensible starting point, still per-kit and overridable.
+                request.language() == null || request.language().isBlank()
+                        ? user.getLocale() : request.language());
         mediaKitRepository.save(kit);
         return toResponse(kit);
     }
@@ -92,7 +96,9 @@ public class MediaKitService {
     public MediaKitResponse update(String userEmail, Long id, UpdateMediaKitRequest request) {
         MediaKit kit = access.requireOwnedKit(userEmail, id);
         kit.updateDetails(request.title().trim(), request.headline(), request.avatarUrl(),
-                request.theme(), request.accent(), request.layout());
+                request.theme(), request.accent(), request.layout(),
+                request.language() == null || request.language().isBlank()
+                        ? kit.getLanguage() : request.language());
         if (request.contactEnabled() != null) {
             kit.setContactEnabled(request.contactEnabled());
         }

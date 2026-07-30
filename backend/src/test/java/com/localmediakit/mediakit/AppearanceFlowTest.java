@@ -151,7 +151,7 @@ class AppearanceFlowTest {
     void aSnapshotFromBeforeAppearanceExistedStillRendersTheOriginalLook() throws Exception {
         MediaKitSnapshot legacy = new MediaKitSnapshot(
                 "eski-kit", "Eski Kit", "Basliik", null,
-                "light", null, null,
+                "light", null, null, null,
                 "Uretici", null, null, null, null, null, null);
 
         assertThat(legacy.accentOrDefault()).isEqualTo(KitAppearance.DEFAULT_ACCENT);

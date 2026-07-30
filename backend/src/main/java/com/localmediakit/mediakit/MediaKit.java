@@ -9,6 +9,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import com.localmediakit.shared.Locales;
+
 import java.time.Instant;
 
 @Entity
@@ -44,6 +46,14 @@ public class MediaKit {
     @Column(nullable = false, length = 20)
     private String layout;
 
+    /**
+     * Language this kit is PRESENTED in on its public page — not the owner's
+     * dashboard language. A creator pitching Turkish brands with one kit and
+     * international brands with another needs both at once.
+     */
+    @Column(nullable = false, length = 10)
+    private String language;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MediaKitStatus status;
@@ -75,7 +85,7 @@ public class MediaKit {
     }
 
     public MediaKit(Long userId, String slug, String title, String headline, String avatarUrl,
-                    String theme, String accent, String layout) {
+                    String theme, String accent, String layout, String language) {
         this.userId = userId;
         this.slug = slug;
         this.title = title;
@@ -84,6 +94,7 @@ public class MediaKit {
         this.theme = KitAppearance.normalizeTheme(theme);
         this.accent = KitAppearance.normalizeAccent(accent);
         this.layout = KitAppearance.normalizeLayout(layout);
+        this.language = Locales.normalize(language);
         this.status = MediaKitStatus.DRAFT;
         Instant now = Instant.now();
         this.createdAt = now;
@@ -91,13 +102,14 @@ public class MediaKit {
     }
 
     public void updateDetails(String title, String headline, String avatarUrl,
-                              String theme, String accent, String layout) {
+                              String theme, String accent, String layout, String language) {
         this.title = title;
         this.headline = headline;
         this.avatarUrl = avatarUrl;
         this.theme = KitAppearance.normalizeTheme(theme);
         this.accent = KitAppearance.normalizeAccent(accent);
         this.layout = KitAppearance.normalizeLayout(layout);
+        this.language = Locales.normalize(language);
         this.updatedAt = Instant.now();
     }
 
@@ -167,6 +179,10 @@ public class MediaKit {
 
     public String getLayout() {
         return layout;
+    }
+
+    public String getLanguage() {
+        return language;
     }
 
     public MediaKitStatus getStatus() {

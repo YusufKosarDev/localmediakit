@@ -9,6 +9,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import com.localmediakit.shared.Locales;
+
 import java.time.Instant;
 
 @Entity
@@ -67,6 +69,10 @@ public class User {
     @Column(name = "lead_notifications_enabled", nullable = false)
     private boolean leadNotificationsEnabled;
 
+    /** Language the OWNER administers in: dashboard, settings, their emails. */
+    @Column(nullable = false, length = 10)
+    private String locale;
+
     protected User() {
         // for JPA
     }
@@ -82,6 +88,7 @@ public class User {
         this.plan = Plan.PRO;
         this.theme = Theme.LIGHT;
         this.leadNotificationsEnabled = true;
+        this.locale = Locales.DEFAULT;
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
@@ -114,6 +121,10 @@ public class User {
         return leadNotificationsEnabled;
     }
 
+    public String getLocale() {
+        return locale;
+    }
+
     public Plan getPlan() {
         return plan;
     }
@@ -128,11 +139,12 @@ public class User {
      * from the change that caused it. A blank avatar clears the field.
      */
     public void updateProfile(String displayName, String avatarUrl, Theme theme,
-                              boolean leadNotificationsEnabled) {
+                              boolean leadNotificationsEnabled, String locale) {
         this.displayName = displayName;
         this.avatarUrl = (avatarUrl == null || avatarUrl.isBlank()) ? null : avatarUrl.trim();
         this.theme = theme;
         this.leadNotificationsEnabled = leadNotificationsEnabled;
+        this.locale = Locales.normalize(locale);
         touch();
     }
 

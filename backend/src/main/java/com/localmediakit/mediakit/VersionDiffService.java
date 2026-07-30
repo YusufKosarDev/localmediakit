@@ -90,6 +90,7 @@ public class VersionDiffService {
         addFieldIfChanged(out, "theme", a.theme(), b.theme());
         addFieldIfChanged(out, "accent", a.accentOrDefault(), b.accentOrDefault());
         addFieldIfChanged(out, "layout", a.layoutOrDefault(), b.layoutOrDefault());
+        addFieldIfChanged(out, "language", a.languageOrDefault(), b.languageOrDefault());
         addFieldIfChanged(out, "displayName", a.displayName(), b.displayName());
         addFieldIfChanged(out, "showBadge",
                 String.valueOf(a.showBadgeOrDefault()), String.valueOf(b.showBadgeOrDefault()));

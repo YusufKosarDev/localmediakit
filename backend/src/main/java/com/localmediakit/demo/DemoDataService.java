@@ -102,7 +102,7 @@ public class DemoDataService {
         MediaKitResponse kit = mediaKitService.create(email, new CreateMediaKitRequest(
                 "Ornek Medya Kiti",
                 "Seyahat ve yasam tarzi icerik ureticisi",
-                null, "light", "ocean", "classic", "ornek-medya-kiti"));
+                null, "light", "ocean", "classic", "tr", "ornek-medya-kiti"));
         Long kitId = kit.id();
 
         seedStats(kitId);

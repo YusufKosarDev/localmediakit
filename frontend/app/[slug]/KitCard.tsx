@@ -2,6 +2,10 @@ import { Play, Camera, Music, ArrowUpRight, ArrowDownRight, Globe } from "lucide
 import TrackView from "./TrackView";
 import PrintButton from "./PrintButton";
 import ContactForm from "./ContactForm";
+import {
+  normalizeLocale, translator, formatCompact, formatDate, formatNumber, intlTag, type Locale,
+} from "@/app/_i18n";
+import { publicDict } from "@/app/_i18n/public";
 
 // Presentational, framework-neutral: rendered by the server page for public
 // kits AND by the client PasswordGate after a protected kit is unlocked, so the
@@ -44,6 +48,8 @@ export type PublicKit = {
   accent?: string | null;
   /** Curated layout variant. Absent on older snapshots. */
   layout?: string | null;
+  /** Presentation language, frozen at publish. Absent on older snapshots. */
+  language?: string | null;
   displayName: string;
   platforms: PlatformStat[];
   demographics: Demographic[];
@@ -65,26 +71,32 @@ const PLATFORMS: Record<
   TIKTOK: { name: "TikTok", Icon: Music, className: "bg-teal-500/10 text-teal-600 dark:text-teal-400" },
 };
 
-const CATEGORY_NAMES: Record<string, string> = { AGE: "Yas", GENDER: "Cinsiyet", COUNTRY: "Ulke" };
+
 
 /** Accents this build knows how to style; anything else falls back to violet. */
 const ACCENTS = ["violet", "ocean", "forest", "amber", "rose", "graphite"];
 
-const compact = new Intl.NumberFormat("tr-TR", { notation: "compact", maximumFractionDigits: 1 });
 
-function fmtPct(n: number): string {
-  return n.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+
+/**
+ * Percentages differ in more than the decimal separator: Turkish writes the
+ * sign first (%6,47), English last (6.47%). Formatting the number and pasting
+ * a "%" in the JSX would get one of the two wrong.
+ */
+function fmtPct(n: number, locale: Locale): string {
+  const value = n.toLocaleString(intlTag(locale), { maximumFractionDigits: 2 });
+  return locale === "tr" ? `%${value}` : `${value}%`;
 }
 
-function fmtPrice(amount: number, currency: string): string {
+function fmtPrice(amount: number, currency: string, locale: Locale): string {
   try {
-    return new Intl.NumberFormat("tr-TR", {
+    return new Intl.NumberFormat(intlTag(locale), {
       style: "currency",
       currency,
       maximumFractionDigits: 0,
     }).format(amount);
   } catch {
-    return `${amount.toLocaleString("tr-TR")} ${currency}`;
+    return `${amount.toLocaleString(intlTag(locale))} ${currency}`;
   }
 }
 
@@ -96,13 +108,17 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
   // Rendering stays forgiving even though the API validates on write: a
   // snapshot from before these existed (or any value this build does not know)
   // renders as the original look rather than as an unstyled page.
+  // Language comes from the published snapshot, not from the visitor: one URL
+  // renders in one language and stays a single edge-cache entry.
+  const locale = normalizeLocale(kit.language);
+  const t = translator(publicDict, locale);
+  const compact = (n: number) => formatCompact(n, locale);
+  const CATEGORY_NAMES: Record<string, string> = {
+    AGE: t("categoryAge"), GENDER: t("categoryGender"), COUNTRY: t("categoryCountry"),
+  };
   const accent = ACCENTS.includes(kit.accent ?? "") ? kit.accent! : "violet";
   const panel = kit.layout === "panel";
-  const publishedDate = new Date(kit.publishedAt).toLocaleDateString("tr-TR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const publishedDate = formatDate(kit.publishedAt, locale);
   const demographicsByCategory = ["AGE", "GENDER", "COUNTRY"]
     .map((category) => ({ category, entries: kit.demographics.filter((d) => d.category === category) }))
     .filter((g) => g.entries.length > 0);
@@ -110,7 +126,13 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
   const rateCard = kit.rateCard ?? [];
 
   return (
+    // lang sits on the kit's own wrapper rather than <html>: App Router
+    // renders <html> only in the shared root layout, and making that per-route
+    // would need either multiple root layouts or headers(), which would cost
+    // this page its static generation. A lang on an ancestor element is valid
+    // HTML and is what assistive tech and crawlers read for this subtree.
     <div
+      lang={locale}
       data-theme={dark ? "dark" : "light"}
       data-accent={accent}
       className={dark ? "dark" : ""}
@@ -119,7 +141,7 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
         {!preview && <TrackView slug={kit.slug} />}
         {preview && (
           <div className="no-print sticky top-0 z-10 border-b border-line bg-brand-weak px-4 py-2 text-center text-xs font-medium text-brand">
-            ONIZLEME — bu sayfa yayinlanmamis taslagi gosterir; link kisa sureli ve gecicidir.
+            {t("previewBanner")}
           </div>
         )}
         {/* The layout variants swap Tailwind classes on the SAME markup — no
@@ -166,7 +188,7 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
 
           {/* Platforms */}
           {kit.platforms.length > 0 && (
-            <Section title="Platformlar" delay="0.06s">
+            <Section title={t("sectionPlatforms")} delay="0.06s">
               <div className="grid gap-3 sm:grid-cols-2">
                 {kit.platforms.map((p) => {
                   const meta = PLATFORMS[p.platform] ?? {
@@ -186,18 +208,18 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
                           </span>
                           <span className="text-sm font-medium">{meta.name}</span>
                         </div>
-                        {p.followerGrowth30d != null && <GrowthBadge value={p.followerGrowth30d} />}
+                        {p.followerGrowth30d != null && <GrowthBadge value={p.followerGrowth30d} locale={locale} growthLabel={t("growth30d")} />}
                       </div>
                       <div className="mt-3 flex items-baseline gap-1.5">
                         <span className="text-2xl font-semibold tabular-nums tracking-tight">
-                          {compact.format(p.followers)}
+                          {compact(p.followers)}
                         </span>
-                        <span className="text-xs text-muted">takipci</span>
+                        <span className="text-xs text-muted">{t("followers")}</span>
                       </div>
                       {p.engagementRate != null && (
                         <div className="mt-1 text-sm text-muted">
-                          <span className="font-medium text-fg tabular-nums">%{fmtPct(p.engagementRate)}</span>{" "}
-                          etkilesim
+                          <span className="font-medium text-fg tabular-nums">{fmtPct(p.engagementRate, locale)}</span>{" "}
+                          {t("engagement")}
                         </div>
                       )}
                     </div>
@@ -209,7 +231,7 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
 
           {/* Demographics */}
           {demographicsByCategory.length > 0 && (
-            <Section title="Kitle" delay="0.12s">
+            <Section title={t("sectionAudience")} delay="0.12s">
               <div className="grid gap-6 rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:grid-cols-3">
                 {demographicsByCategory.map((group) => (
                   <div key={group.category}>
@@ -221,7 +243,7 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
                         <div key={d.label}>
                           <div className="mb-1 flex items-center justify-between text-[13px]">
                             <span>{d.label}</span>
-                            <span className="tabular-nums text-muted">%{fmtPct(d.percentage)}</span>
+                            <span className="tabular-nums text-muted">{fmtPct(d.percentage, locale)}</span>
                           </div>
                           <div className="h-1.5 overflow-hidden rounded-full bg-brand-weak">
                             <div
@@ -240,7 +262,7 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
 
           {/* Collaborations */}
           {kit.collaborations.length > 0 && (
-            <Section title="Marka Isbirlikleri" delay="0.18s">
+            <Section title={t("sectionCollaborations")} delay="0.18s">
               <div className="grid gap-2.5">
                 {kit.collaborations.map((col, i) => (
                   <div
@@ -281,7 +303,7 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
 
           {/* Rate card */}
           {rateCard.length > 0 && (
-            <Section title="Calisma Ucretleri" delay="0.24s">
+            <Section title={t("sectionRateCard")} delay="0.24s">
               <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                 {rateCard.map((r, i) => (
                   <div
@@ -292,7 +314,7 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
                       <div className="font-medium">{r.serviceName}</div>
                       {r.note && <div className="text-[13px] text-muted">{r.note}</div>}
                     </div>
-                    <div className="shrink-0 font-semibold tabular-nums">{fmtPrice(r.priceAmount, r.currency)}</div>
+                    <div className="shrink-0 font-semibold tabular-nums">{fmtPrice(r.priceAmount, r.currency, locale)}</div>
                   </div>
                 ))}
               </div>
@@ -301,13 +323,13 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
 
           {/* Contact form (frozen flag; previews never show it) */}
           {kit.contactEnabled && !preview && (
-            <Section title="Iletisim" delay="0.3s">
+            <Section title={t("sectionContact")} delay="0.3s">
               <ContactForm slug={kit.slug} />
             </Section>
           )}
 
           <footer className="mt-10 border-t border-line pt-5 text-center text-xs text-faint">
-            {preview ? "Onizleme — henuz yayinlanmadi" : `${publishedDate} tarihinde yayinlandi`}
+            {preview ? t("previewFooter") : t("publishedOn", { date: publishedDate })}
           </footer>
         </div>
       </main>
@@ -324,7 +346,7 @@ function Section({ title, delay, children }: { title: string; delay: string; chi
   );
 }
 
-function GrowthBadge({ value }: { value: number }) {
+function GrowthBadge({ value, locale, growthLabel }: { value: number; locale: Locale; growthLabel: string }) {
   const up = value >= 0;
   return (
     <span
@@ -334,8 +356,13 @@ function GrowthBadge({ value }: { value: number }) {
     >
       {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
       {up ? "+" : ""}
-      {fmtPct(value)}%
-      <span className="text-[10px] font-normal">30g</span>
+      {/* A signed delta, so the sign trails the number in both languages
+          ("+12,5%"). Deliberately not fmtPct, which puts "%" first in Turkish:
+          that is the convention for a plain rate (%6,47 etkilesim) and this
+          badge has always rendered the other way. Changing it here would be a
+          visible edit to the public page under cover of a translation step. */}
+      {formatNumber(value, locale)}%
+      <span className="text-[10px] font-normal">{growthLabel}</span>
     </span>
   );
 }

@@ -73,7 +73,10 @@ public class AccountService {
         boolean leadEmails = request.leadNotificationsEnabled() == null
                 ? user.isLeadNotificationsEnabled()
                 : request.leadNotificationsEnabled();
-        user.updateProfile(request.displayName().trim(), request.avatarUrl(), theme, leadEmails);
+        String locale = request.locale() == null || request.locale().isBlank()
+                ? user.getLocale()
+                : request.locale();
+        user.updateProfile(request.displayName().trim(), request.avatarUrl(), theme, leadEmails, locale);
         return MeResponse.from(user);
     }
 

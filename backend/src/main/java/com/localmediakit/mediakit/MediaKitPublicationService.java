@@ -192,7 +192,7 @@ public class MediaKitPublicationService {
                 kit.getSlug(), kit.getTitle(), kit.getHeadline(), kit.getAvatarUrl(),
                 // Appearance is frozen here like everything else: editing the
                 // draft's look changes nothing publicly until the next publish.
-                kit.getTheme(), kit.getAccent(), kit.getLayout(),
+                kit.getTheme(), kit.getAccent(), kit.getLayout(), kit.getLanguage(),
                 owner.getDisplayName(), platforms, demographics, collaborations,
                 planPolicy.showsBranding(owner.getPlan()), rateCard, kit.isContactEnabled());
     }

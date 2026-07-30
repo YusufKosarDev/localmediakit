@@ -18,6 +18,7 @@ type Me = {
   theme: string;
   plan: string;
   leadNotificationsEnabled: boolean;
+  locale: string;
 };
 
 function authHeaders(): HeadersInit {
@@ -41,7 +42,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
 
   const [profile, setProfile] = useState({
-    displayName: "", avatarUrl: "", theme: "LIGHT", leadNotificationsEnabled: true,
+    displayName: "", avatarUrl: "", theme: "LIGHT", leadNotificationsEnabled: true, locale: "tr",
   });
   const [profileMsg, setProfileMsg] = useState({ ok: "", err: "" });
   const [profileBusy, setProfileBusy] = useState(false);
@@ -65,6 +66,7 @@ export default function SettingsPage() {
       avatarUrl: data.avatarUrl ?? "",
       theme: data.theme,
       leadNotificationsEnabled: data.leadNotificationsEnabled,
+      locale: data.locale,
     });
   }, []);
 
@@ -307,6 +309,35 @@ export default function SettingsPage() {
               {profileMsg.err && <span className="text-sm text-danger">{profileMsg.err}</span>}
             </div>
           </form>
+        </Card>
+
+        {/* ---------- Language ---------- */}
+        <Card className="mt-6 p-6">
+          <h2 className="font-semibold">Dil / Language</h2>
+          <p className="mt-1 text-sm text-muted">
+            Panonuzun ve size gelen bildirim e-postalarinin dili.
+          </p>
+          <div className="mt-5 grid gap-1.5">
+            <Label htmlFor="locale">Arayuz dili</Label>
+            <Select
+              id="locale"
+              value={profile.locale}
+              onChange={(e) => setProfile({ ...profile, locale: e.target.value })}
+              className="w-full"
+            >
+              <option value="tr">Turkce</option>
+              <option value="en">English</option>
+            </Select>
+            <p className="text-xs text-faint">
+              Yayinlanan medya kitlerinizin dili ayridir: her kit kendi sunum dilini
+              tasir ve Duzenle sekmesinden secilir.
+            </p>
+          </div>
+          <div className="mt-4">
+            <Button type="button" onClick={saveProfile} disabled={profileBusy}>
+              {profileBusy ? "..." : "Dili kaydet"}
+            </Button>
+          </div>
         </Card>
 
         {/* ---------- Notifications ---------- */}

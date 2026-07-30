@@ -27,6 +27,7 @@ import com.localmediakit.stats.sync.SyncSourceNotFoundException;
 import com.localmediakit.stats.sync.SyncUpstreamException;
 import com.localmediakit.user.PlanLimitExceededException;
 import com.localmediakit.user.ProtectedAccountException;
+import com.localmediakit.shared.UnsupportedLocaleException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -70,6 +71,11 @@ public class ApiExceptionHandler {
     }
 
     /** Appearance value outside the curated set. */
+    @ExceptionHandler(UnsupportedLocaleException.class)
+    public ResponseEntity<Map<String, Object>> handleLocale(UnsupportedLocaleException ex) {
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    }
+
     @ExceptionHandler(InvalidAppearanceException.class)
     public ResponseEntity<Map<String, Object>> handleAppearance(InvalidAppearanceException ex) {
         return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);

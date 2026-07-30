@@ -3,7 +3,7 @@
 import { Lock, Unlock } from "lucide-react";
 import { Button, Input, Label, Select } from "@/app/_components/ui";
 import { del, put } from "../_lib/api";
-import { ACCENTS, LAYOUTS, type Feedback, type Kit } from "../_lib/types";
+import { ACCENTS, LANGUAGES, LAYOUTS, type Feedback, type Kit } from "../_lib/types";
 
 /**
  * The kit's own fields, plus password protection.
@@ -33,6 +33,7 @@ export function EditPanel({
       theme: kit.theme,
       accent: kit.accent,
       layout: kit.layout,
+      language: kit.language,
       slug: kit.slug,
       contactEnabled: kit.contactEnabled,
     });
@@ -125,6 +126,31 @@ export function EditPanel({
             );
           })}
         </div>
+      </fieldset>
+
+      <fieldset className="grid gap-1.5">
+        <legend className="text-sm font-medium text-fg">Sunum dili</legend>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {LANGUAGES.map((l) => {
+            const selected = (kit.language || "tr") === l.id;
+            return (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => onField("language", l.id)}
+                aria-pressed={selected}
+                className={`rounded-xl border px-3 py-1.5 text-sm transition-colors ${
+                  selected ? "border-brand bg-brand-weak text-brand" : "border-line text-muted hover:bg-page"
+                }`}
+              >
+                {l.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-faint">
+          Yayinlanan sayfanin dili. Panonuzun dili ayridir ve Ayarlar bolumunden secilir.
+        </p>
       </fieldset>
 
       <fieldset className="grid gap-1.5">

@@ -11,6 +11,7 @@ const ME = {
   theme: "LIGHT",
   plan: "PRO",
   leadNotificationsEnabled: true,
+  locale: "tr",
 };
 
 function json(body: unknown, status = 200) {
@@ -135,6 +136,31 @@ describe("SettingsPage", () => {
     ).toBeInTheDocument();
     // A rejected change must not disturb the working session.
     expect(localStorage.getItem("token")).toBe("jwt-old");
+  });
+
+  it("saves the account language, and says kits carry their own", async () => {
+    const fetchSpy = mockFetch((url, init) => {
+      if (url.endsWith("/api/me") && init?.method === "PUT") return json({ ...ME, locale: "en" });
+      return json({}, 404);
+    });
+    render(<SettingsPage />);
+
+    const select = await screen.findByLabelText("Arayuz dili");
+    expect(select).toHaveValue("tr");
+
+    // The account language is the dashboard's; a published kit's language is
+    // a separate, per-kit field, and the copy has to say so.
+    expect(screen.getByText(/her kit kendi sunum dilini/)).toBeInTheDocument();
+
+    await userEvent.selectOptions(select, "en");
+    await userEvent.click(screen.getByRole("button", { name: "Dili kaydet" }));
+
+    await vi.waitFor(() => {
+      const put = fetchSpy.mock.calls.find(
+        ([, init]) => (init as RequestInit | undefined)?.method === "PUT"
+      );
+      expect(JSON.parse(String((put?.[1] as RequestInit).body))).toMatchObject({ locale: "en" });
+    });
   });
 
   it("turns lead emails off and says the leads themselves keep arriving", async () => {

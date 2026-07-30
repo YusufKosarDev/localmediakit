@@ -5,6 +5,7 @@ import com.localmediakit.lead.KitLead;
 import com.localmediakit.lead.KitLeadRepository;
 import com.localmediakit.mediakit.MediaKit;
 import com.localmediakit.mediakit.MediaKitRepository;
+import com.localmediakit.shared.Locales;
 import com.localmediakit.user.User;
 import com.localmediakit.user.UserRepository;
 import org.slf4j.Logger;
@@ -99,7 +100,8 @@ public class LeadNotificationService {
                 ? NotificationStatus.SUPPRESSED
                 : NotificationStatus.PENDING;
 
-        notificationRepository.save(new LeadNotification(lead.getId(), owner.getEmail(), status));
+        notificationRepository.save(new LeadNotification(
+                lead.getId(), owner.getEmail(), owner.getLocale(), status));
     }
 
     /**
@@ -148,18 +150,23 @@ public class LeadNotificationService {
             return;
         }
         MediaKit kit = mediaKitRepository.findById(lead.getMediaKitId()).orElse(null);
-        String kitTitle = kit == null ? "medya kitiniz" : kit.getTitle();
+        // The locale was frozen when the lead arrived, so the mail reads in the
+        // language the owner had then.
+        String locale = Locales.orDefault(notification.getLocale());
+        String fallbackTitle = "en".equals(locale) ? "your media kit" : "medya kitiniz";
+        String kitTitle = kit == null ? fallbackTitle : kit.getTitle();
 
         try {
-            mailSender.send(notification.getRecipientEmail(), subjectFor(lead), bodyFor(lead, kitTitle));
+            mailSender.send(notification.getRecipientEmail(),
+                    subjectFor(lead, locale), bodyFor(lead, kitTitle, locale));
             notification.markSent();
         } catch (MailDeliveryException e) {
             notification.markAttemptFailed(e.getMessage());
         }
     }
 
-    private String subjectFor(KitLead lead) {
-        return "Yeni marka teklifi: " + lead.getBrandName();
+    private String subjectFor(KitLead lead, String locale) {
+        return ("en".equals(locale) ? "New brand enquiry: " : "Yeni marka teklifi: ") + lead.getBrandName();
     }
 
     /**
@@ -171,21 +178,37 @@ public class LeadNotificationService {
      * reason. Nothing here identifies the visitor: no fingerprint, no IP, no
      * link that carries a token.
      */
-    private String bodyFor(KitLead lead, String kitTitle) {
-        return """
-                Merhaba,
+    private String bodyFor(KitLead lead, String kitTitle, String locale) {
+        String template = "en".equals(locale)
+                ? """
+                  Hello,
 
-                "%s" medya kitiniz uzerinden yeni bir marka teklifi aldiniz.
+                  You have received a new brand enquiry through your "%s" media kit.
 
-                Marka   : %s
-                Mesaj   : %s
+                  Brand   : %s
+                  Message : %s
 
-                Teklifin tamamini ve marka iletisim bilgisini panonuzdaki Gelen Kutusu
-                sekmesinden gorebilirsiniz:
-                %s
+                  The full enquiry and the brand's contact details are in the Inbox tab
+                  of your dashboard:
+                  %s
 
-                Bu bildirimleri hesap ayarlarinizdan kapatabilirsiniz.
-                """.formatted(kitTitle, lead.getBrandName(), excerpt(lead.getMessage()), dashboardUrl);
+                  You can switch these notifications off in your account settings.
+                  """
+                : """
+                  Merhaba,
+
+                  "%s" medya kitiniz uzerinden yeni bir marka teklifi aldiniz.
+
+                  Marka   : %s
+                  Mesaj   : %s
+
+                  Teklifin tamamini ve marka iletisim bilgisini panonuzdaki Gelen Kutusu
+                  sekmesinden gorebilirsiniz:
+                  %s
+
+                  Bu bildirimleri hesap ayarlarinizdan kapatabilirsiniz.
+                  """;
+        return template.formatted(kitTitle, lead.getBrandName(), excerpt(lead.getMessage()), dashboardUrl);
     }
 
     private String excerpt(String message) {

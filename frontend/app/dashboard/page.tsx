@@ -17,7 +17,7 @@ import type { Feedback, Kit, Me, Tab } from "./_lib/types";
 const DEMO_EMAIL = "demo@localmediakit.app";
 const emptyCreateForm = {
   title: "", headline: "", avatarUrl: "", theme: "light",
-  accent: "violet", layout: "classic", slug: "",
+  accent: "violet", layout: "classic", language: "tr", slug: "",
 };
 
 /**
