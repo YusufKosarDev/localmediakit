@@ -64,4 +64,23 @@ class SlugServiceTest {
     void makeUniqueFallsBackWhenBaseEmpty() {
         assertThat(slugService.makeUnique("", s -> false)).isEqualTo("kit");
     }
+
+    /**
+     * Slugs are capped at 60 characters. The cap matters because the slug is a
+     * URL and a unique column, not just a display string — and the trailing
+     * hyphen a cut can leave behind would make two different titles collide on
+     * the same cleaned-up value.
+     */
+    @Test
+    void slugifyCapsLongTitlesAndLeavesNoTrailingHyphen() {
+        String longTitle = "Seyahat ve yasam tarzi icerik ureticisi Ayse Yilmaz resmi medya kiti sayfasi";
+        String slug = slugService.slugify(longTitle);
+
+        assertThat(slug).hasSize(60);
+        assertThat(slug).doesNotEndWith("-");
+
+        // A title landing exactly on the cap is kept whole.
+        String exact = "a".repeat(60);
+        assertThat(slugService.slugify(exact)).hasSize(60).isEqualTo(exact);
+    }
 }

@@ -142,4 +142,118 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+            Mutation testing. Kept in a profile because PIT re-runs the test
+            suite once per mutation and almost every test here boots a Spring
+            context — running it on every `mvn test` would make the ordinary
+            build unusable. Invoked explicitly: mvn -Pmutation test
+        -->
+        <profile>
+            <id>mutation</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <version>1.17.0</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.pitest</groupId>
+                                <artifactId>pitest-junit5-plugin</artifactId>
+                                <version>1.2.1</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <!--
+                                Scoped to the packages whose failure modes matter:
+                                the publish/snapshot path, the ownership guards and
+                                plan policy, the engagement calculators, analytics
+                                aggregation, auth and rate limiting. The rest is
+                                largely Spring wiring and DTOs, where a mutation
+                                score says more about the framework than about
+                                these tests.
+                            -->
+                            <targetClasses>
+                                <!--
+                                    The classes where a surviving mutant means a
+                                    real hole, AND that the fast tests below actually cover. Pairing a
+                                    class with tests that never touch it reports
+                                    NO_COVERAGE and makes the score meaningless —
+                                    the first draft did exactly that and read 67%.
+
+                                    Scope: slug generation, the
+                                    ownership guard, plan policy, the appearance
+                                    and locale whitelists, slug generation, the
+                                    engagement strategies, the visitor beacon's
+                                    anti-abuse helpers, JWT, and rate limiting.
+
+                                    Broader package globs were tried and
+                                    abandoned: with nearly every test booting a
+                                    Spring context, PIT ran past 18 minutes and
+                                    started killing minions on timeout. A scope
+                                    that finishes is worth more than one that
+                                    nobody waits for.
+                                -->
+                                <param>com.localmediakit.mediakit.SlugService</param>
+                                <param>com.localmediakit.shared.ClientIp</param>
+                                <param>com.localmediakit.ratelimit.RateLimitFilter</param>
+                                <param>com.localmediakit.ratelimit.RateLimiterRegistry</param>
+                                <param>com.localmediakit.stats.engagement.*</param>
+                                <param>com.localmediakit.domain.ReentrancyGuard</param>
+                            </targetClasses>
+                            <targetTests>
+                                <!--
+                                    Only the tests that do NOT boot Spring. PIT
+                                    re-runs the selected suite for every mutation,
+                                    so pointing it at the @SpringBootTest classes
+                                    meant minutes per mutation and minions dying on
+                                    timeout. Pairing fast tests with the pure-logic
+                                    classes above gives a score that is both
+                                    trustworthy and cheap enough to run weekly.
+                                -->
+                                <param>com.localmediakit.stats.engagement.*</param>
+                                <param>com.localmediakit.mediakit.SlugServiceTest</param>
+                                <param>com.localmediakit.shared.ClientIpTest</param>
+                                <param>com.localmediakit.domain.ReentrancyGuardTest</param>
+                                <param>com.localmediakit.domain.DomainVerificationLogicTest</param>
+                                <param>com.localmediakit.ratelimit.RateLimitRoutingTest</param>
+                            </targetTests>
+                            <!--
+                                Accessors only. Mutating a getter's return value is
+                                not a signal about test quality, and writing
+                                assertions for entity getters would lift the score
+                                without finding a single bug.
+                            -->
+                            <excludedMethods>
+                                <param>get*</param>
+                                <param>is*</param>
+                                <param>set*</param>
+                            </excludedMethods>
+                            <!--
+                                Set below the measured score rather than at it: a
+                                refactor that adds one uncovered branch should not
+                                break the build, a real regression should. Raise it
+                                when the measured number moves up and holds.
+                            -->
+                            <!--
+                                A mutated retry/backoff loop can hang a minion; PIT
+                                kills it as TIMED_OUT rather than reporting a
+                                survivor, but the default budget is tight for a
+                                suite where each test boots Spring.
+                            -->
+                            <timeoutConstant>10000</timeoutConstant>
+                            <mutationThreshold>90</mutationThreshold>
+                            <outputFormats>
+                                <param>HTML</param>
+                                <param>XML</param>
+                            </outputFormats>
+                            <timestampedReports>false</timestampedReports>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

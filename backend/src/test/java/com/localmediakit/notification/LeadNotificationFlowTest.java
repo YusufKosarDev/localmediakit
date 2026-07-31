@@ -60,6 +60,12 @@ class LeadNotificationFlowTest {
     void mailerIsConfigured() {
         reset(mailSender);
         when(mailSender.available()).thenReturn(true);
+        // The dispatch batch reads a bounded page of due rows, so notifications
+        // left behind by an earlier method could crowd out the one the next
+        // method is asserting on — which made this class intermittently fail.
+        // Each method now starts from an empty queue and reasons only about the
+        // row it created itself.
+        notificationRepository.deleteAll();
     }
 
     private String register(String email) throws Exception {

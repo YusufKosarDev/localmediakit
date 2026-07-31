@@ -1,0 +1,49 @@
+name: Mutation testing
+
+# Deliberately NOT on every push. PIT re-runs the test suite once per mutation
+# and nearly every test here boots a Spring context, so a full run costs
+# minutes rather than seconds — on the main CI it would turn a 1-minute check
+# into something people learn to ignore. Weekly is enough for a signal that
+# moves slowly, and the manual trigger covers "I just rewrote a critical path".
+on:
+  schedule:
+    # Mondays 06:00 UTC.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mutation:
+    name: PIT (critical packages)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # Scope is the packages whose failure modes actually matter: the
+      # publish/snapshot path, the ownership guards and plan policy, the
+      # engagement calculators, analytics aggregation, auth and rate limiting.
+      # Everything else is mostly Spring wiring, where a mutation score says
+      # more about the framework than about our tests.
+      - name: Run mutation coverage
+        run: mvn -B --no-transfer-progress -Pmutation test-compile org.pitest:pitest-maven:mutationCoverage
+
+      - name: Publish report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pit-report
+          path: backend/target/pit-reports
+          retention-days: 30

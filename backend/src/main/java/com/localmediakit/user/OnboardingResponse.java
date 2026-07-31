@@ -15,9 +15,4 @@ package com.localmediakit.user;
  */
 public record OnboardingResponse(boolean dismissed, boolean hasKit, boolean hasStats,
                                  boolean hasPublished, String publicSlug) {
-
-    /** True once nothing is left to guide the user through. */
-    public boolean complete() {
-        return hasKit && hasStats && hasPublished;
-    }
 }

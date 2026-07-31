@@ -67,6 +67,19 @@ class EngagementCalculatorTest {
         assertEquals(new BigDecimal("5.00"), rate.orElseThrow());
     }
 
+    /**
+     * A recorded zero is not the same as "not recorded", but it must not become
+     * the denominator either: a new channel with 0 average views would divide
+     * by zero and report nothing, when its follower-based rate is perfectly
+     * meaningful. Zero falls back to followers, exactly like a missing value.
+     */
+    @Test
+    void tiktokFallsBackToFollowersWhenViewsAreZero() {
+        Optional<BigDecimal> rate = tiktok.calculate(
+                stats(Platform.TIKTOK, 100000, 0L, 4000L, 1000L));
+        assertEquals(new BigDecimal("5.00"), rate.orElseThrow());
+    }
+
     // --- shared semantics ---
 
     @Test
