@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
+import java.util.Locale;
 import java.sql.Date;
 import java.time.Duration;
 import java.time.Instant;
@@ -122,7 +123,10 @@ public class AnalyticsService {
         }
         try {
             String host = URI.create(referrer.trim()).getHost();
-            return host == null ? null : host.toLowerCase();
+            // Locale.ROOT: hostnames are ASCII, but the default-locale overload
+            // maps "I" to a dotless "ı" on a Turkish JVM — the same referrer
+            // would then land in two different buckets depending on the server.
+            return host == null ? null : host.toLowerCase(Locale.ROOT);
         } catch (Exception e) {
             log.debug("Unparseable referrer dropped: {}", referrer);
             return null;

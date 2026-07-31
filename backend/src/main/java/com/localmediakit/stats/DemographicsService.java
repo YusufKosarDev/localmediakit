@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,7 +54,9 @@ public class DemographicsService {
     private void validate(List<DemographicEntry> entries) {
         Set<String> seen = new HashSet<>();
         for (DemographicEntry entry : entries) {
-            if (!seen.add(entry.category() + "|" + entry.label().trim().toLowerCase())) {
+            // Locale.ROOT: this key decides whether two labels are duplicates, and
+            // the default-locale overload folds "I" differently on a Turkish JVM.
+            if (!seen.add(entry.category() + "|" + entry.label().trim().toLowerCase(Locale.ROOT))) {
                 throw new InvalidDemographicsException(
                         "Duplicate entry: " + entry.category() + " / " + entry.label());
             }
