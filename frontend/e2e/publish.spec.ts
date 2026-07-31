@@ -27,9 +27,16 @@ test.describe("publishing", () => {
     await expect(page.getByText("DRAFT").first()).toBeVisible();
 
     // Add a measurement through the Stats tab.
+    // The panel clears its form once its own fetches land, so typing before
+    // then lands in a field that is about to be reset. Waiting on the last of
+    // those requests is the real dependency; waiting on the heading is not,
+    // because the heading renders before the data arrives. That distinction is
+    // what made this test flaky in three runs out of five.
+    const panelLoaded = page.waitForResponse(
+      (r) => r.url().includes("/api/mediakits/") && r.url().endsWith("/sources")
+    );
     await page.getByRole("button", { name: "Istatistik & Kitle" }).click();
-    // Wait for the panel to actually open before typing into it: the tab strip
-    // is rendered whether or not a panel is expanded.
+    await panelLoaded;
     await expect(page.getByText("Platform istatistikleri")).toBeVisible();
 
     await page.getByPlaceholder("takipci *").fill("42000");
