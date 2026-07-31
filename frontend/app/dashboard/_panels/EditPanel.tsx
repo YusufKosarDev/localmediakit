@@ -74,28 +74,28 @@ export function EditPanel({
   return (
     <div className="grid max-w-xl gap-3">
       <div className="grid gap-1.5">
-        <Label>{t("fieldTitle")}</Label>
-        <Input value={kit.title} onChange={(e) => onField("title", e.target.value)} />
+        <Label htmlFor={`kit-title-${kit.id}`}>{t("fieldTitle")}</Label>
+        <Input id={`kit-title-${kit.id}`} value={kit.title} onChange={(e) => onField("title", e.target.value)} />
       </div>
       <div className="grid gap-1.5">
-        <Label>{t("fieldHeadline")}</Label>
-        <Input value={kit.headline ?? ""} onChange={(e) => onField("headline", e.target.value)} />
+        <Label htmlFor={`kit-headline-${kit.id}`}>{t("fieldHeadline")}</Label>
+        <Input id={`kit-headline-${kit.id}`} value={kit.headline ?? ""} onChange={(e) => onField("headline", e.target.value)} />
       </div>
       <div className="grid gap-1.5">
-        <Label>{t("fieldAvatarUrl")}</Label>
-        <Input value={kit.avatarUrl ?? ""} onChange={(e) => onField("avatarUrl", e.target.value)} />
+        <Label htmlFor={`kit-avatarUrl-${kit.id}`}>{t("fieldAvatarUrl")}</Label>
+        <Input id={`kit-avatarUrl-${kit.id}`} value={kit.avatarUrl ?? ""} onChange={(e) => onField("avatarUrl", e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1.5">
-          <Label>{t("dashboardTheme")}</Label>
-          <Select value={kit.theme} onChange={(e) => onField("theme", e.target.value)}>
+          <Label htmlFor={`kit-theme-${kit.id}`}>{t("dashboardTheme")}</Label>
+          <Select id={`kit-theme-${kit.id}`} value={kit.theme} onChange={(e) => onField("theme", e.target.value)}>
             <option value="light">{t("themeLight")}</option>
             <option value="dark">{t("themeDark")}</option>
           </Select>
         </div>
         <div className="grid gap-1.5">
-          <Label>{t("fieldSlug")}</Label>
-          <Input value={kit.slug} onChange={(e) => onField("slug", e.target.value)} />
+          <Label htmlFor={`kit-slug-${kit.id}`}>{t("fieldSlug")}</Label>
+          <Input id={`kit-slug-${kit.id}`} value={kit.slug} onChange={(e) => onField("slug", e.target.value)} />
         </div>
       </div>
 

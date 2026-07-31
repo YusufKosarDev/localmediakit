@@ -73,11 +73,19 @@ export default function PasswordGate({
             {t("lockedTitle")} {t("lockedHint")}
           </p>
           <form onSubmit={submit} className="mt-5 grid gap-2.5">
+            {/* A placeholder is not an accessible name: it disappears on focus
+                and screen readers treat it inconsistently. The label is real
+                markup, just visually hidden — the heading above already says
+                what this field is. */}
+            <label htmlFor="kit-password" className="sr-only">
+              {t("lockedPassword")}
+            </label>
             <Input
+              id="kit-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Sifre"
+              placeholder={t("lockedPassword")}
               autoFocus
               required
             />
