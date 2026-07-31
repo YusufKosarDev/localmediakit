@@ -324,7 +324,7 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
           {/* Contact form (frozen flag; previews never show it) */}
           {kit.contactEnabled && !preview && (
             <Section title={t("sectionContact")} delay="0.3s">
-              <ContactForm slug={kit.slug} />
+              <ContactForm slug={kit.slug} locale={locale} />
             </Section>
           )}
 

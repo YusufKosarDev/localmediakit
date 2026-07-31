@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { translator } from "@/app/_i18n";
+import { dashboardDict } from "@/app/_i18n/dashboard";
 import userEvent from "@testing-library/user-event";
 import {
   WelcomeTour, OnboardingChecklist, EmptyKitState, useTourVisibility,
   type OnboardingState,
 } from "@/app/dashboard/_Onboarding";
+
+/** Turkish translator: these tests assert the default-language copy. */
+const t = translator(dashboardDict, "tr");
 
 const base: OnboardingState = {
   dismissed: false,
@@ -27,7 +32,7 @@ function TourHarness({ state, demoKey }: { state: OnboardingState | null; demoKe
 
 describe("WelcomeTour", () => {
   it("leads with the publish rule, the one concept the product hides", async () => {
-    render(<WelcomeTour onClose={() => {}} />);
+    render(<WelcomeTour onClose={() => {}} t={t} />);
 
     // Slide 1 introduces the product...
     expect(screen.getByText(/hos geldiniz/i)).toBeInTheDocument();
@@ -42,7 +47,7 @@ describe("WelcomeTour", () => {
 
   it("can always be skipped without walking through the slides", async () => {
     const onClose = vi.fn();
-    render(<WelcomeTour onClose={onClose} />);
+    render(<WelcomeTour onClose={onClose} t={t} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Atla" }));
     expect(onClose).toHaveBeenCalledOnce();
@@ -50,14 +55,14 @@ describe("WelcomeTour", () => {
 
   it("closes on Escape", async () => {
     const onClose = vi.fn();
-    render(<WelcomeTour onClose={onClose} />);
+    render(<WelcomeTour onClose={onClose} t={t} />);
 
     await userEvent.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledOnce();
   });
 
   it("walks forward and back through every slide", async () => {
-    render(<WelcomeTour onClose={() => {}} />);
+    render(<WelcomeTour onClose={() => {}} t={t} />);
 
     expect(screen.getByText("1 / 4")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Devam/ }));
@@ -70,7 +75,7 @@ describe("WelcomeTour", () => {
 
   it("ends with a finish action rather than another Devam", async () => {
     const onClose = vi.fn();
-    render(<WelcomeTour onClose={onClose} />);
+    render(<WelcomeTour onClose={onClose} t={t} />);
 
     for (let i = 0; i < 3; i++) {
       await userEvent.click(screen.getByRole("button", { name: /Devam/ }));
@@ -127,6 +132,7 @@ describe("OnboardingChecklist", () => {
     render(
       <OnboardingChecklist
         state={{ ...base, hasKit: true }}
+        t={t}
         onStartFirstKit={() => {}}
         onDismiss={() => {}}
       />
@@ -142,6 +148,7 @@ describe("OnboardingChecklist", () => {
     render(
       <OnboardingChecklist
         state={{ dismissed: false, hasKit: true, hasStats: true, hasPublished: true, publicSlug: "ayse" }}
+        t={t}
         onStartFirstKit={() => {}}
         onDismiss={() => {}}
       />
@@ -157,7 +164,7 @@ describe("OnboardingChecklist", () => {
   it("can be hidden at any point", async () => {
     const onDismiss = vi.fn();
     render(
-      <OnboardingChecklist state={base} onStartFirstKit={() => {}} onDismiss={onDismiss} />
+      <OnboardingChecklist state={base} t={t} onStartFirstKit={() => {}} onDismiss={onDismiss} />
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Gizle" }));
@@ -167,7 +174,7 @@ describe("OnboardingChecklist", () => {
 
 describe("EmptyKitState", () => {
   it("explains what a media kit is instead of showing an empty list", () => {
-    render(<EmptyKitState onStart={() => {}} onQuickStart={() => {}} quickStartBusy={false} />);
+    render(<EmptyKitState t={t} onStart={() => {}} onQuickStart={() => {}} quickStartBusy={false} />);
 
     expect(screen.getByText("Henuz bir medya kitiniz yok")).toBeInTheDocument();
     expect(screen.getByText(/markalara tek bir linkle gosterdiginiz sayfadir/)).toBeInTheDocument();
@@ -177,7 +184,7 @@ describe("EmptyKitState", () => {
     const onStart = vi.fn();
     const onQuickStart = vi.fn();
     render(
-      <EmptyKitState onStart={onStart} onQuickStart={onQuickStart} quickStartBusy={false} />
+      <EmptyKitState t={t} onStart={onStart} onQuickStart={onQuickStart} quickStartBusy={false} />
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Bos kit olustur" }));
@@ -187,7 +194,7 @@ describe("EmptyKitState", () => {
   });
 
   it("locks the sample start while it is running so it cannot double-fire", () => {
-    render(<EmptyKitState onStart={() => {}} onQuickStart={() => {}} quickStartBusy />);
+    render(<EmptyKitState t={t} onStart={() => {}} onQuickStart={() => {}} quickStartBusy />);
     expect(screen.getByRole("button", { name: "Hazirlaniyor..." })).toBeDisabled();
   });
 });

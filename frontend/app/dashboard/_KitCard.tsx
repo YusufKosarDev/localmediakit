@@ -2,7 +2,8 @@
 
 import { ExternalLink, Eye, Lock, Send, Trash2 } from "lucide-react";
 import { Badge, Button, Card } from "@/app/_components/ui";
-import { TABS, type Feedback, type Kit, type Tab } from "./_lib/types";
+import { tabs, type Feedback, type Kit, type Tab, type Translate } from "./_lib/types";
+import type { Locale } from "@/app/_i18n";
 import { EditPanel } from "./_panels/EditPanel";
 import { StatsPanel } from "./_panels/StatsPanel";
 import { CollabsPanel } from "./_panels/CollabsPanel";
@@ -24,6 +25,8 @@ export function KitCard({
   openTab,
   versionsToken,
   feedback,
+  t,
+  locale,
   onPreview,
   onPublish,
   onDelete,
@@ -37,6 +40,8 @@ export function KitCard({
   openTab: Tab | null;
   versionsToken: number;
   feedback: Feedback;
+  t: Translate;
+  locale: Locale;
   onPreview: () => void;
   onPublish: () => void;
   onDelete: () => void;
@@ -57,7 +62,7 @@ export function KitCard({
             <span className="truncate font-medium">{kit.title}</span>
             <Badge tone={kit.status === "PUBLISHED" ? "success" : "neutral"}>{kit.status}</Badge>
             {kit.passwordProtected && (
-              <Badge tone="warning"><Lock className="h-3 w-3" /> sifreli</Badge>
+              <Badge tone="warning"><Lock className="h-3 w-3" /> {t("passwordProtected")}</Badge>
             )}
           </div>
           {kit.publishedSlug && (
@@ -73,10 +78,10 @@ export function KitCard({
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="secondary" onClick={onPreview}>
-            <Eye className="h-3.5 w-3.5" /> Onizle
+            <Eye className="h-3.5 w-3.5" /> {t("preview")}
           </Button>
           <Button size="sm" onClick={onPublish}>
-            <Send className="h-3.5 w-3.5" /> Yayinla
+            <Send className="h-3.5 w-3.5" /> {t("publish")}
           </Button>
           <Button size="sm" variant="danger" onClick={onDelete}>
             <Trash2 className="h-3.5 w-3.5" />
@@ -86,18 +91,18 @@ export function KitCard({
 
       {/* Tab strip */}
       <div className="flex gap-1 overflow-x-auto border-t border-line px-2 py-1.5">
-        {TABS.map((t) => {
-          const on = openTab === t.id;
+        {tabs(t).map((tab) => {
+          const on = openTab === tab.id;
           return (
             <button
-              key={t.id}
-              onClick={() => onTabSelect(t.id)}
+              key={tab.id}
+              onClick={() => onTabSelect(tab.id)}
               className={`shrink-0 rounded-lg px-3 py-1.5 text-sm transition-colors ${
                 on ? "bg-brand-weak font-medium text-brand" : "text-muted hover:text-fg hover:bg-page"
               }`}
             >
-              {t.label}
-              {t.id === "domain" ? " ·" : ""}
+              {tab.label}
+              {tab.id === "domain" ? " ·" : ""}
             </button>
           );
         })}
@@ -107,23 +112,25 @@ export function KitCard({
       {openTab && (
         <div className="border-t border-line bg-page/40 p-4">
           {openTab === "edit" && (
-            <EditPanel kit={kit} feedback={feedback} onField={onKitField} onSaved={onKitSaved} />
+            <EditPanel kit={kit} feedback={feedback} t={t} onField={onKitField} onSaved={onKitSaved} />
           )}
           {openTab === "stats" && (
-            <StatsPanel kitId={kit.id} feedback={feedback} onStatsChanged={onProgressChanged} />
+            <StatsPanel kitId={kit.id} feedback={feedback} t={t} locale={locale} onStatsChanged={onProgressChanged} />
           )}
-          {openTab === "collabs" && <CollabsPanel kitId={kit.id} feedback={feedback} />}
-          {openTab === "leads" && <LeadsPanel kitId={kit.id} feedback={feedback} />}
-          {openTab === "analytics" && <AnalyticsPanel kitId={kit.id} feedback={feedback} />}
+          {openTab === "collabs" && <CollabsPanel kitId={kit.id} feedback={feedback} t={t} />}
+          {openTab === "leads" && <LeadsPanel kitId={kit.id} feedback={feedback} t={t} locale={locale} />}
+          {openTab === "analytics" && <AnalyticsPanel kitId={kit.id} feedback={feedback} t={t} locale={locale} />}
           {openTab === "versions" && (
             <VersionsPanel
               kitId={kit.id}
               reloadToken={versionsToken}
               feedback={feedback}
+              t={t}
+              locale={locale}
               onActivated={onKitSaved}
             />
           )}
-          {openTab === "domain" && <DomainPanel kitId={kit.id} feedback={feedback} />}
+          {openTab === "domain" && <DomainPanel kitId={kit.id} feedback={feedback} t={t} locale={locale} />}
         </div>
       )}
     </Card>

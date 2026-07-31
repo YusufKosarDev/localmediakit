@@ -7,6 +7,9 @@
  * flow it implements rather than as fetch bookkeeping.
  */
 
+import { DEFAULT_LOCALE, type Locale } from "@/app/_i18n";
+import { translateError } from "@/app/_i18n/errors";
+
 export const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
 export function authHeaders(): HeadersInit {
@@ -22,10 +25,19 @@ export const nf = (n: number) => n.toLocaleString("tr-TR");
  * JSON falls back to the status code, which is what the previous inline
  * handlers did.
  */
-export async function errorMessage(res: Response, fallback: string): Promise<string> {
+/**
+ * The API answers with a machine `code` and a human `error`. A code the client
+ * knows is translated into the reader's language; anything else falls back to
+ * the API's own message, then to the caller's label plus the status.
+ */
+export async function errorMessage(
+  res: Response,
+  fallback: string,
+  locale: Locale = DEFAULT_LOCALE
+): Promise<string> {
   const body = await res.json().catch(() => null);
-  const message = body?.error;
-  return typeof message === "string" && message ? message : `${fallback} (HTTP ${res.status})`;
+  const translated = translateError(body?.code, body?.error, locale);
+  return translated ?? `${fallback} (HTTP ${res.status})`;
 }
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
@@ -72,14 +84,14 @@ async function write<T>(
   return { ok: true, data: data as T };
 }
 
-export function post<T = void>(path: string, body?: unknown, fallback = "Islem basarisiz", expect?: number) {
+export function post<T = void>(path: string, body?: unknown, fallback = "Request failed", expect?: number) {
   return write<T>("POST", path, body, fallback, expect);
 }
 
-export function put<T = void>(path: string, body?: unknown, fallback = "Kaydedilemedi", expect?: number) {
+export function put<T = void>(path: string, body?: unknown, fallback = "Request failed", expect?: number) {
   return write<T>("PUT", path, body, fallback, expect);
 }
 
-export function del<T = void>(path: string, fallback = "Silinemedi", expect = 204) {
+export function del<T = void>(path: string, fallback = "Request failed", expect = 204) {
   return write<T>("DELETE", path, undefined, fallback, expect);
 }

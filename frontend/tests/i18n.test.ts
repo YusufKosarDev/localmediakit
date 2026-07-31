@@ -4,6 +4,8 @@ import {
   intlTag, isLocale, normalizeLocale, translate, translator, type Dict,
 } from "@/app/_i18n";
 import { publicDict } from "@/app/_i18n/public";
+import { dashboardDict } from "@/app/_i18n/dashboard";
+import { appDict } from "@/app/_i18n/app";
 
 describe("locale handling", () => {
   it("accepts only the locales the product ships", () => {
@@ -88,5 +90,53 @@ describe("locale-aware formatting", () => {
     expect(formatDate(date, "tr")).toContain("2026");
     expect(formatDate(date, "en")).toContain("2026");
     expect(formatDate(date, "tr")).not.toBe(formatDate(date, "en"));
+  });
+});
+
+/**
+ * The dashboard and app dictionaries are the bulk of the interface. A missing
+ * key would show Turkish inside an otherwise English page, which is why
+ * completeness is asserted rather than assumed.
+ */
+describe("surface dictionaries", () => {
+  const surfaces: [string, Record<string, Record<string, string>>][] = [
+    ["dashboard", dashboardDict as unknown as Record<string, Record<string, string>>],
+    ["app", appDict as unknown as Record<string, Record<string, string>>],
+    ["public", publicDict as unknown as Record<string, Record<string, string>>],
+  ];
+
+  for (const [name, dict] of surfaces) {
+    it(`${name}: every locale has the same keys`, () => {
+      const trKeys = Object.keys(dict.tr).sort();
+      for (const locale of LOCALES) {
+        expect(Object.keys(dict[locale]).sort(), `${name}/${locale}`).toEqual(trKeys);
+      }
+    });
+
+    it(`${name}: no translation is left blank or identical placeholder text`, () => {
+      for (const key of Object.keys(dict.tr)) {
+        for (const locale of LOCALES) {
+          expect(dict[locale][key]?.trim(), `${name}.${key}/${locale}`).toBeTruthy();
+        }
+      }
+    });
+
+    it(`${name}: placeholders survive translation`, () => {
+      // A {name} dropped from one language would render a blank where a value
+      // should be — worse than an untranslated string.
+      for (const key of Object.keys(dict.tr)) {
+        const expected = (dict.tr[key].match(/\{(\w+)\}/g) ?? []).sort();
+        for (const locale of LOCALES) {
+          const actual = (dict[locale][key].match(/\{(\w+)\}/g) ?? []).sort();
+          expect(actual, `${name}.${key}/${locale}`).toEqual(expected);
+        }
+      }
+    });
+  }
+
+  it("actually differs between languages on the surfaces users read", () => {
+    expect(dashboardDict.tr.publish).not.toBe(dashboardDict.en.publish);
+    expect(appDict.tr.loginTitle).not.toBe(appDict.en.loginTitle);
+    expect(publicDict.tr.sectionPlatforms).not.toBe(publicDict.en.sectionPlatforms);
   });
 });

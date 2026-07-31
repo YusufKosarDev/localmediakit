@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Button, Input, Select } from "@/app/_components/ui";
 import { del, get, post, put } from "../_lib/api";
-import type { Collab, Feedback, RateItem } from "../_lib/types";
+import type { Collab, Feedback, RateItem, Translate } from "../_lib/types";
 
 const CURRENCIES = ["TRY", "USD", "EUR"];
 const emptyCollabForm = { brandName: "", campaign: "", period: "", resultNote: "" };
@@ -16,7 +16,7 @@ const emptyRateForm = { serviceName: "", priceAmount: "", currency: "TRY", note:
  * <p>Both belong to the "Isbirlikleri & Ucretler" tab, so both are here: they
  * are two lists on one screen, and the file stays readable at this size.
  */
-export function CollabsPanel({ kitId, feedback }: { kitId: number; feedback: Feedback }) {
+export function CollabsPanel({ kitId, feedback, t }: { kitId: number; feedback: Feedback; t: Translate }) {
   const [collabs, setCollabs] = useState<Collab[]>([]);
   const [rates, setRates] = useState<RateItem[]>([]);
   const [collabForm, setCollabForm] = useState({ ...emptyCollabForm });
@@ -43,7 +43,7 @@ export function CollabsPanel({ kitId, feedback }: { kitId: number; feedback: Fee
     const result = await post(
       `/api/mediakits/${kitId}/collaborations`,
       { ...collabForm, displayOrder: collabs.length },
-      "Isbirligi eklenemedi",
+      t("failedAddCollab"),
       201
     );
     if (result.ok) await load();
@@ -93,7 +93,7 @@ export function CollabsPanel({ kitId, feedback }: { kitId: number; feedback: Fee
         note: rateForm.note || null,
         displayOrder: rates.length,
       },
-      "Ucret eklenemedi",
+      t("failedAddRate"),
       201
     );
     if (result.ok) await load();
@@ -106,7 +106,7 @@ export function CollabsPanel({ kitId, feedback }: { kitId: number; feedback: Fee
     // and silently zero the price.
     const price = Number(item.priceAmount);
     if (String(item.priceAmount).trim() === "" || Number.isNaN(price) || price < 0) {
-      feedback.fail("Fiyat bos veya gecersiz olamaz.");
+      feedback.fail(t("invalidPrice"));
       return;
     }
     const result = await put(`/api/mediakits/${kitId}/ratecard/${item.id}`, {
@@ -116,7 +116,7 @@ export function CollabsPanel({ kitId, feedback }: { kitId: number; feedback: Fee
       note: item.note || null,
       displayOrder: item.displayOrder,
     });
-    if (result.ok) feedback.notify("Kaydedildi.");
+    if (result.ok) feedback.notify(t("saved"));
     else feedback.fail(result.message);
   }
 
@@ -134,18 +134,18 @@ export function CollabsPanel({ kitId, feedback }: { kitId: number; feedback: Fee
 
   return (
     <div className="grid gap-3">
-      <div className="text-sm font-medium">Marka isbirlikleri</div>
+      <div className="text-sm font-medium">{t("collabsTitle")}</div>
       {collabs.map((col, i) => (
         <div key={col.id} className="flex flex-wrap items-center gap-2">
-          <Input placeholder="marka *" className="w-32" value={col.brandName}
+          <Input placeholder={t("fieldBrand")} className="w-32" value={col.brandName}
             onChange={(e) => patchCollab(i, { brandName: e.target.value })} />
-          <Input placeholder="kampanya" className="w-40" value={col.campaign ?? ""}
+          <Input placeholder={t("fieldCampaign")} className="w-40" value={col.campaign ?? ""}
             onChange={(e) => patchCollab(i, { campaign: e.target.value })} />
-          <Input placeholder="donem" className="w-24" value={col.period ?? ""}
+          <Input placeholder={t("fieldPeriod")} className="w-24" value={col.period ?? ""}
             onChange={(e) => patchCollab(i, { period: e.target.value })} />
-          <Input placeholder="sonuc" className="w-44" value={col.resultNote ?? ""}
+          <Input placeholder={t("fieldResult")} className="w-44" value={col.resultNote ?? ""}
             onChange={(e) => patchCollab(i, { resultNote: e.target.value })} />
-          <Button size="sm" variant="secondary" onClick={() => saveCollab(col)}>Kaydet</Button>
+          <Button size="sm" variant="secondary" onClick={() => saveCollab(col)}>{t("save")}</Button>
           <Button size="sm" variant="ghost" onClick={() => moveCollab(i, -1)} disabled={i === 0}>
             <ArrowUp className="h-4 w-4" />
           </Button>
@@ -158,47 +158,47 @@ export function CollabsPanel({ kitId, feedback }: { kitId: number; feedback: Fee
         </div>
       ))}
       <form onSubmit={addCollab} className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
-        <Input required placeholder="marka *" className="w-32" value={collabForm.brandName}
+        <Input required placeholder={t("fieldBrand")} className="w-32" value={collabForm.brandName}
           onChange={(e) => setCollabForm({ ...collabForm, brandName: e.target.value })} />
-        <Input placeholder="kampanya" className="w-40" value={collabForm.campaign}
+        <Input placeholder={t("fieldCampaign")} className="w-40" value={collabForm.campaign}
           onChange={(e) => setCollabForm({ ...collabForm, campaign: e.target.value })} />
-        <Input placeholder="donem" className="w-24" value={collabForm.period}
+        <Input placeholder={t("fieldPeriod")} className="w-24" value={collabForm.period}
           onChange={(e) => setCollabForm({ ...collabForm, period: e.target.value })} />
-        <Input placeholder="sonuc" className="w-44" value={collabForm.resultNote}
+        <Input placeholder={t("fieldResult")} className="w-44" value={collabForm.resultNote}
           onChange={(e) => setCollabForm({ ...collabForm, resultNote: e.target.value })} />
-        <Button type="submit" size="sm"><Plus className="h-3.5 w-3.5" /> Ekle</Button>
+        <Button type="submit" size="sm"><Plus className="h-3.5 w-3.5" /> {t("add")}</Button>
       </form>
 
       <div className="mt-2 border-t border-line pt-4">
-        <div className="mb-2 text-sm font-medium">Calisma ucretleri (rate card)</div>
+        <div className="mb-2 text-sm font-medium">{t("rateCardTitle")}</div>
         {rates.map((r, i) => (
           <div key={r.id} className="mb-2 flex flex-wrap items-center gap-2">
-            <Input placeholder="hizmet *" className="w-44" value={r.serviceName}
+            <Input placeholder={t("fieldService")} className="w-44" value={r.serviceName}
               onChange={(e) => patchRate(i, { serviceName: e.target.value })} />
-            <Input type="number" min={0} placeholder="fiyat *" className="w-28" value={r.priceAmount}
+            <Input type="number" min={0} placeholder={t("fieldPrice")} className="w-28" value={r.priceAmount}
               onChange={(e) => patchRate(i, { priceAmount: e.target.value })} />
             <Select value={r.currency} onChange={(e) => patchRate(i, { currency: e.target.value })}>
               {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
             </Select>
-            <Input placeholder="not" className="w-44" value={r.note ?? ""}
+            <Input placeholder={t("fieldNote")} className="w-44" value={r.note ?? ""}
               onChange={(e) => patchRate(i, { note: e.target.value })} />
-            <Button size="sm" variant="secondary" onClick={() => saveRate(r)}>Kaydet</Button>
+            <Button size="sm" variant="secondary" onClick={() => saveRate(r)}>{t("save")}</Button>
             <Button size="sm" variant="ghost" onClick={() => deleteRate(r.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         ))}
         <form onSubmit={addRate} className="flex flex-wrap items-center gap-2">
-          <Input required placeholder="hizmet *" className="w-44" value={rateForm.serviceName}
+          <Input required placeholder={t("fieldService")} className="w-44" value={rateForm.serviceName}
             onChange={(e) => setRateForm({ ...rateForm, serviceName: e.target.value })} />
-          <Input required type="number" min={0} placeholder="fiyat *" className="w-28" value={rateForm.priceAmount}
+          <Input required type="number" min={0} placeholder={t("fieldPrice")} className="w-28" value={rateForm.priceAmount}
             onChange={(e) => setRateForm({ ...rateForm, priceAmount: e.target.value })} />
           <Select value={rateForm.currency} onChange={(e) => setRateForm({ ...rateForm, currency: e.target.value })}>
             {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
           </Select>
-          <Input placeholder="not" className="w-44" value={rateForm.note}
+          <Input placeholder={t("fieldNote")} className="w-44" value={rateForm.note}
             onChange={(e) => setRateForm({ ...rateForm, note: e.target.value })} />
-          <Button type="submit" size="sm"><Plus className="h-3.5 w-3.5" /> Ekle</Button>
+          <Button type="submit" size="sm"><Plus className="h-3.5 w-3.5" /> {t("add")}</Button>
         </form>
       </div>
     </div>

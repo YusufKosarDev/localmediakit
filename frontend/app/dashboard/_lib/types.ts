@@ -1,4 +1,5 @@
 /** Shapes the dashboard reads from the API, shared by the shell and its panels. */
+import type { DashboardStrings } from "@/app/_i18n/dashboard";
 
 export type Me = {
   id: number;
@@ -114,43 +115,9 @@ export type VersionDiff = {
 
 export type Tab = "edit" | "stats" | "collabs" | "leads" | "analytics" | "versions" | "domain";
 
-export const TABS: { id: Tab; label: string }[] = [
-  { id: "edit", label: "Duzenle" },
-  { id: "stats", label: "Istatistik & Kitle" },
-  { id: "collabs", label: "Isbirlikleri & Ucretler" },
-  { id: "leads", label: "Gelen Kutusu" },
-  { id: "analytics", label: "Analitik" },
-  { id: "versions", label: "Versiyonlar" },
-  { id: "domain", label: "Domain" },
-];
 
-/**
- * The curated looks a public page can have. Mirrors KitAppearance on the
- * backend, which rejects anything outside these lists.
- *
- * <p>A fixed set rather than free colour input: every accent's contrast is
- * verified against the surfaces it renders on (tests/palette.test.ts), so a
- * user cannot produce an inaccessible page.
- */
-export const ACCENTS: { id: string; label: string; swatch: string }[] = [
-  { id: "violet", label: "Menekse", swatch: "#6d40e6" },
-  { id: "ocean", label: "Okyanus", swatch: "#407796" },
-  { id: "forest", label: "Orman", swatch: "#367d5c" },
-  { id: "amber", label: "Kehribar", swatch: "#98653a" },
-  { id: "rose", label: "Gul", swatch: "#c14469" },
-  { id: "graphite", label: "Grafit", swatch: "#5f7195" },
-];
 
-export const LAYOUTS: { id: string; label: string; hint: string }[] = [
-  { id: "classic", label: "Klasik", hint: "Ortalanmis, dar kolon" },
-  { id: "panel", label: "Panel", hint: "Sola hizali, genis kolon" },
-];
 
-/** Presentation languages a kit can be published in. */
-export const LANGUAGES: { id: string; label: string }[] = [
-  { id: "tr", label: "Turkce" },
-  { id: "en", label: "English" },
-];
 
 export const PLATFORMS = ["YOUTUBE", "INSTAGRAM", "TIKTOK"];
 export const CATEGORIES = ["AGE", "GENDER", "COUNTRY"];
@@ -165,3 +132,50 @@ export type Feedback = {
   fail: (message: string) => void;
   clear: () => void;
 };
+
+/** Bound translator for the dashboard dictionary, threaded down to panels. */
+export type Translate = (
+  key: keyof DashboardStrings,
+  vars?: Record<string, string | number>
+) => string;
+
+/**
+ * Tab, accent, layout and language options.
+ *
+ * <p>Functions of the translator rather than constants: their labels are user
+ * copy, and a module-level constant would freeze them in one language at
+ * import time.
+ */
+export const tabs = (t: Translate): { id: Tab; label: string }[] => [
+  { id: "edit", label: t("tabEdit") },
+  { id: "stats", label: t("tabStats") },
+  { id: "collabs", label: t("tabCollabs") },
+  { id: "leads", label: t("tabLeads") },
+  { id: "analytics", label: t("tabAnalytics") },
+  { id: "versions", label: t("tabVersions") },
+  { id: "domain", label: t("tabDomain") },
+];
+
+/**
+ * Every accent's contrast is verified against the surfaces it renders on
+ * (tests/palette.test.ts), so a user cannot produce an inaccessible page.
+ */
+export const accents = (t: Translate): { id: string; label: string; swatch: string }[] => [
+  { id: "violet", label: t("accentViolet"), swatch: "#6d40e6" },
+  { id: "ocean", label: t("accentOcean"), swatch: "#407796" },
+  { id: "forest", label: t("accentForest"), swatch: "#367d5c" },
+  { id: "amber", label: t("accentAmber"), swatch: "#98653a" },
+  { id: "rose", label: t("accentRose"), swatch: "#c14469" },
+  { id: "graphite", label: t("accentGraphite"), swatch: "#5f7195" },
+];
+
+export const layouts = (t: Translate): { id: string; label: string; hint: string }[] => [
+  { id: "classic", label: t("layoutClassic"), hint: t("layoutClassicHint") },
+  { id: "panel", label: t("layoutPanel"), hint: t("layoutPanelHint") },
+];
+
+/** Presentation languages a kit can be published in — endonyms, not translated. */
+export const LANGUAGES: { id: string; label: string }[] = [
+  { id: "tr", label: "Turkce" },
+  { id: "en", label: "English" },
+];

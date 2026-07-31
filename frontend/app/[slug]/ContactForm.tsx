@@ -1,5 +1,7 @@
 "use client";
 
+import { translator, type Locale } from "@/app/_i18n";
+import { publicDict } from "@/app/_i18n/public";
 import { useState } from "react";
 import { Send } from "lucide-react";
 import { Button, Card, Input } from "@/app/_components/ui";
@@ -10,7 +12,8 @@ const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 // this is a client component that POSTs straight to the backend. The endpoint
 // always answers 202, so the UI always shows success — whether the submission
 // was stored or dropped (spam, honeypot, disabled kit) is deliberately opaque.
-export default function ContactForm({ slug }: { slug: string }) {
+export default function ContactForm({ slug, locale }: { slug: string; locale: Locale }) {
+  const t = translator(publicDict, locale);
   const [form, setForm] = useState({ brandName: "", email: "", message: "" });
   const [website, setWebsite] = useState(""); // honeypot: humans never see it
   const [busy, setBusy] = useState(false);
@@ -28,10 +31,10 @@ export default function ContactForm({ slug }: { slug: string }) {
         body: JSON.stringify({ ...form, website: website || null }),
       });
       if (res.status === 202) setSent(true);
-      else if (res.status === 429) setError("Cok fazla istek. Lutfen birkac dakika sonra tekrar deneyin.");
-      else setError(`Gonderilemedi (HTTP ${res.status}).`);
+      else if (res.status === 429) setError(t("contactRateLimited"));
+      else setError(`${t("contactFailed")} (HTTP ${res.status})`);
     } catch {
-      setError("Baglanti hatasi. Tekrar deneyin.");
+      setError(t("contactFailed"));
     } finally {
       setBusy(false);
     }
@@ -40,21 +43,21 @@ export default function ContactForm({ slug }: { slug: string }) {
   if (sent) {
     return (
       <Card className="p-5 text-center">
-        <p className="font-medium">Teklifiniz iletildi.</p>
-        <p className="mt-1 text-sm text-muted">Uretici en kisa surede sizinle iletisime gececek.</p>
+        <p className="font-medium">{t("contactSent")}</p>
+        <p className="mt-1 text-sm text-muted">{t("contactSentHint")}</p>
       </Card>
     );
   }
 
   return (
     <Card className="no-print p-5">
-      <p className="mb-3 text-sm text-muted">Bu uretici ile calismak ister misiniz? Teklifinizi iletin.</p>
+      <p className="mb-3 text-sm text-muted">{t("contactIntro")}</p>
       <form onSubmit={submit} className="grid gap-2.5">
         <div className="grid gap-2.5 sm:grid-cols-2">
           <Input
             required
             maxLength={100}
-            placeholder="Marka / sirket adi *"
+            placeholder={t("contactBrand")}
             value={form.brandName}
             onChange={(e) => setForm({ ...form, brandName: e.target.value })}
           />
@@ -62,7 +65,7 @@ export default function ContactForm({ slug }: { slug: string }) {
             required
             type="email"
             maxLength={255}
-            placeholder="E-posta *"
+            placeholder={t("contactEmail")}
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
@@ -71,7 +74,7 @@ export default function ContactForm({ slug }: { slug: string }) {
           required
           maxLength={2000}
           rows={4}
-          placeholder="Mesajiniz *"
+          placeholder={t("contactMessage")}
           value={form.message}
           onChange={(e) => setForm({ ...form, message: e.target.value })}
           className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-fg placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
@@ -90,7 +93,7 @@ export default function ContactForm({ slug }: { slug: string }) {
           className="absolute -left-[9999px] h-0 w-0 opacity-0"
         />
         <Button type="submit" disabled={busy} className="justify-self-start">
-          <Send className="h-4 w-4" /> {busy ? "Gonderiliyor..." : "Teklif gonder"}
+          <Send className="h-4 w-4" /> {busy ? t("contactSending") : t("contactSubmit")}
         </Button>
       </form>
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}

@@ -3,8 +3,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, RefreshCw, X } from "lucide-react";
 import { Badge, Button, Input, Select } from "@/app/_components/ui";
-import { BACKEND, authHeaders, del, errorMessage, get, nf, post, put } from "../_lib/api";
-import { CATEGORIES, PLATFORMS, type DemoEntry, type Feedback, type Stat, type SyncStatus } from "../_lib/types";
+import { BACKEND, authHeaders, del, errorMessage, get, post, put } from "../_lib/api";
+import { formatDateTime, formatNumber, type Locale } from "@/app/_i18n";
+import {
+  CATEGORIES, PLATFORMS,
+  type DemoEntry, type Feedback, type Stat, type SyncStatus, type Translate,
+} from "../_lib/types";
+
+/** Turkish writes the sign first (%6,47), English last (6.47%). */
+function fmtPct(n: number, locale: Locale): string {
+  const value = n.toLocaleString(locale === "tr" ? "tr-TR" : "en-US", { maximumFractionDigits: 2 });
+  return locale === "tr" ? `%${value}` : `${value}%`;
+}
 
 const emptyStatForm = { platform: "YOUTUBE", followers: "", avgViews: "", avgLikes: "", avgComments: "" };
 
@@ -18,10 +28,14 @@ const emptyStatForm = { platform: "YOUTUBE", followers: "", avgViews: "", avgLik
 export function StatsPanel({
   kitId,
   feedback,
+  t,
+  locale,
   onStatsChanged,
 }: {
   kitId: number;
   feedback: Feedback;
+  t: Translate;
+  locale: Locale;
   /** Adding a measurement can complete an onboarding step. */
   onStatsChanged: () => Promise<void> | void;
 }) {
@@ -61,7 +75,7 @@ export function StatsPanel({
         avgLikes: num(statForm.avgLikes),
         avgComments: num(statForm.avgComments),
       },
-      "Istatistik eklenemedi",
+      t("failedAddStat"),
       201
     );
     if (result.ok) {
@@ -77,11 +91,11 @@ export function StatsPanel({
     const result = await put<DemoEntry[]>(
       `/api/mediakits/${kitId}/demographics`,
       { entries: demoEntries.map((d) => ({ ...d, percentage: Number(d.percentage) })) },
-      "Demografi kaydedilemedi"
+      t("failedSaveDemographics")
     );
     if (result.ok) {
       if (result.data) setDemoEntries(result.data);
-      feedback.notify("Demografi kaydedildi.");
+      feedback.notify(t("demographicsSaved"));
     } else {
       feedback.fail(result.message);
     }
@@ -90,9 +104,9 @@ export function StatsPanel({
   async function connectYouTube(e: React.FormEvent) {
     e.preventDefault();
     feedback.clear();
-    const result = await put(`/api/mediakits/${kitId}/sources/YOUTUBE`, { externalId: channelInput }, "Baglanamadi");
+    const result = await put(`/api/mediakits/${kitId}/sources/YOUTUBE`, { externalId: channelInput }, t("failedConnect"));
     if (result.ok) {
-      feedback.notify("Kanal baglandi; ilk olcum kaydedildi.");
+      feedback.notify(t("syncConnected"));
       await load();
     } else {
       feedback.fail(result.message);
@@ -112,18 +126,18 @@ export function StatsPanel({
     });
     if (res.ok) {
       const data = await res.json();
-      feedback.notify(data.lastError ? `Senkron denendi: ${data.lastError}` : "Senkronlandi.");
+      feedback.notify(data.lastError ? t("syncAttempted", { message: data.lastError }) : t("syncDone"));
       await load();
     } else if (res.status === 429) {
-      feedback.fail("Cok kisa arayla senkron. Biraz bekleyin.");
+      feedback.fail(t("syncTooSoon"));
     } else {
-      feedback.fail(await errorMessage(res, "Senkronlanamadi"));
+      feedback.fail(await errorMessage(res, t("failedSync")));
     }
   }
 
   async function disconnect(platform: string) {
     feedback.clear();
-    const result = await del(`/api/mediakits/${kitId}/sources/${platform}`, "Kaldirilamadi");
+    const result = await del(`/api/mediakits/${kitId}/sources/${platform}`, t("failedDisconnect"));
     if (result.ok) await load();
     else feedback.fail(result.message);
   }
@@ -135,39 +149,39 @@ export function StatsPanel({
       {syncStatus && syncStatus.availablePlatforms.includes("YOUTUBE") && (
         <div className="rounded-lg border border-line bg-surface p-3">
           <div className="mb-1 flex items-center gap-2 text-sm font-medium">
-            <RefreshCw className="h-3.5 w-3.5 text-brand" /> Otomatik veri kaynagi — YouTube
+            <RefreshCw className="h-3.5 w-3.5 text-brand" /> {t("syncSourceTitle")}
           </div>
           {!youtube ? (
             <form onSubmit={connectYouTube} className="flex flex-wrap items-center gap-2">
               <Input
                 required
-                placeholder="@kanal-adi veya kanal ID"
+                placeholder={t("syncChannelPlaceholder")}
                 className="w-56"
                 value={channelInput}
                 onChange={(e) => setChannelInput(e.target.value)}
               />
-              <Button type="submit" size="sm">Bagla</Button>
+              <Button type="submit" size="sm">{t("syncConnect")}</Button>
               <span className="text-xs text-faint">
-                Baglaninca abone sayisi otomatik cekilir (gunluk otomatik).
+                {t("syncConnectHint")}
               </span>
             </form>
           ) : (
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="font-mono text-muted">{youtube.externalId}</span>
               {youtube.lastError ? (
-                <Badge tone="danger">hata: {youtube.lastError}</Badge>
+                <Badge tone="danger">{t("syncError", { message: youtube.lastError })}</Badge>
               ) : (
                 youtube.lastSyncedAt && (
                   <span className="text-xs text-faint">
-                    son senkron: {new Date(youtube.lastSyncedAt).toLocaleString("tr-TR")}
+                    {t("syncLastSynced", { when: formatDateTime(youtube.lastSyncedAt, locale) })}
                   </span>
                 )
               )}
               <Button size="sm" variant="secondary" onClick={() => syncNow("YOUTUBE")}>
-                <RefreshCw className="h-3.5 w-3.5" /> Simdi senkronla
+                <RefreshCw className="h-3.5 w-3.5" /> {t("syncNow")}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => disconnect("YOUTUBE")}>
-                Baglantiyi kes
+                {t("syncDisconnect")}
               </Button>
             </div>
           )}
@@ -175,8 +189,8 @@ export function StatsPanel({
       )}
 
       <div>
-        <div className="mb-2 text-sm font-medium">Platform istatistikleri</div>
-        {stats.length === 0 && <p className="text-sm text-muted">Henuz istatistik yok.</p>}
+        <div className="mb-2 text-sm font-medium">{t("platformStats")}</div>
+        {stats.length === 0 && <p className="text-sm text-muted">{t("noStats")}</p>}
         <div className="grid gap-2">
           {stats.map((s) => (
             <div
@@ -184,12 +198,12 @@ export function StatsPanel({
               className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm"
             >
               <span className="font-medium">{s.platform}</span>
-              <span className="tabular-nums text-muted">{nf(s.followers)} takipci</span>
-              {s.engagementRate != null && <span className="text-muted">%{s.engagementRate} etkilesim</span>}
+              <span className="tabular-nums text-muted">{formatNumber(s.followers, locale)} {t("statFollowers")}</span>
+              {s.engagementRate != null && <span className="text-muted">{fmtPct(s.engagementRate, locale)} {t("statEngagement")}</span>}
               {s.followerGrowth30d != null && (
                 <span className={s.followerGrowth30d >= 0 ? "text-success" : "text-danger"}>
                   {s.followerGrowth30d >= 0 ? "+" : ""}
-                  {s.followerGrowth30d}% · 30g
+                  {formatNumber(s.followerGrowth30d, locale)}% · {t("statGrowth")}
                 </span>
               )}
             </div>
@@ -201,20 +215,20 @@ export function StatsPanel({
               <option key={p} value={p}>{p}</option>
             ))}
           </Select>
-          <Input required type="number" min={0} placeholder="takipci *" className="w-28"
+          <Input required type="number" min={0} placeholder={t("fieldFollowers")} className="w-28"
             value={statForm.followers} onChange={(e) => setStatForm({ ...statForm, followers: e.target.value })} />
-          <Input type="number" min={0} placeholder="ort. izlenme" className="w-28"
+          <Input type="number" min={0} placeholder={t("fieldAvgViews")} className="w-28"
             value={statForm.avgViews} onChange={(e) => setStatForm({ ...statForm, avgViews: e.target.value })} />
-          <Input type="number" min={0} placeholder="ort. begeni" className="w-28"
+          <Input type="number" min={0} placeholder={t("fieldAvgLikes")} className="w-28"
             value={statForm.avgLikes} onChange={(e) => setStatForm({ ...statForm, avgLikes: e.target.value })} />
-          <Input type="number" min={0} placeholder="ort. yorum" className="w-28"
+          <Input type="number" min={0} placeholder={t("fieldAvgComments")} className="w-28"
             value={statForm.avgComments} onChange={(e) => setStatForm({ ...statForm, avgComments: e.target.value })} />
-          <Button type="submit" size="sm"><Plus className="h-3.5 w-3.5" /> Olcum ekle</Button>
+          <Button type="submit" size="sm"><Plus className="h-3.5 w-3.5" /> {t("addMeasurement")}</Button>
         </form>
       </div>
 
       <div>
-        <div className="mb-2 text-sm font-medium">Kitle (demografi)</div>
+        <div className="mb-2 text-sm font-medium">{t("demographics")}</div>
         <div className="grid gap-2">
           {demoEntries.map((d, i) => (
             <div key={i} className="flex flex-wrap items-center gap-2">
@@ -226,7 +240,7 @@ export function StatsPanel({
                   <option key={c} value={c}>{c}</option>
                 ))}
               </Select>
-              <Input placeholder="etiket" className="w-32" value={d.label}
+              <Input placeholder={t("fieldLabel")} className="w-32" value={d.label}
                 onChange={(e) => setDemoEntries(demoEntries.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
               <Input type="number" min={0} max={100} step="0.1" placeholder="%" className="w-20" value={d.percentage}
                 onChange={(e) => setDemoEntries(demoEntries.map((x, j) => (j === i ? { ...x, percentage: e.target.value } : x)))} />
@@ -239,9 +253,9 @@ export function StatsPanel({
         <div className="mt-3 flex gap-2">
           <Button size="sm" variant="secondary"
             onClick={() => setDemoEntries([...demoEntries, { category: "AGE", label: "", percentage: "" }])}>
-            <Plus className="h-3.5 w-3.5" /> Satir ekle
+            <Plus className="h-3.5 w-3.5" /> {t("addRow")}
           </Button>
-          <Button size="sm" onClick={saveDemographics}>Demografiyi kaydet</Button>
+          <Button size="sm" onClick={saveDemographics}>{t("saveDemographics")}</Button>
         </div>
       </div>
     </div>

@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Eye } from "lucide-react";
-import { BACKEND, authHeaders, errorMessage, nf } from "../_lib/api";
-import type { Analytics, Feedback } from "../_lib/types";
+import { BACKEND, authHeaders, errorMessage } from "../_lib/api";
+import { formatNumber, type Locale } from "@/app/_i18n";
+import type { Analytics, Feedback, Translate } from "../_lib/types";
 
 // recharts is heavy and only needed here — loaded on demand so it stays out of
 // the initial dashboard bundle (and never reaches another page). Keeping these
@@ -27,7 +28,7 @@ const DeviceBars = dynamic(() => import("../_AnalyticsCharts").then((m) => m.Dev
 });
 
 /** Visitor counters and trend charts for one kit's published page. */
-export function AnalyticsPanel({ kitId, feedback }: { kitId: number; feedback: Feedback }) {
+export function AnalyticsPanel({ kitId, feedback, t, locale }: { kitId: number; feedback: Feedback; t: Translate; locale: Locale }) {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
 
   const load = useCallback(async () => {
@@ -36,7 +37,7 @@ export function AnalyticsPanel({ kitId, feedback }: { kitId: number; feedback: F
     // unlike the other panels' silent loaders.
     const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/analytics`, { headers: authHeaders() });
     if (res.ok) setAnalytics(await res.json());
-    else feedback.fail(await errorMessage(res, "Analitik yuklenemedi"));
+    else feedback.fail(await errorMessage(res, t("failedLoadAnalytics")));
     // feedback identity is stable per render of the shell; kitId is what
     // should re-trigger a load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,35 +53,35 @@ export function AnalyticsPanel({ kitId, feedback }: { kitId: number; feedback: F
     <div className="grid gap-4">
       <div className="flex flex-wrap gap-3">
         <div className="rounded-xl border border-line bg-surface px-4 py-3">
-          <div className="text-2xl font-semibold tabular-nums">{nf(analytics.totalViews)}</div>
+          <div className="text-2xl font-semibold tabular-nums">{formatNumber(analytics.totalViews, locale)}</div>
           <div className="flex items-center gap-1 text-xs text-muted">
-            <Eye className="h-3 w-3" /> toplam goruntulenme
+            <Eye className="h-3 w-3" /> {t("totalViews")}
           </div>
         </div>
         {analytics.uniqueVisitors != null && (
           <div className="rounded-xl border border-line bg-surface px-4 py-3">
-            <div className="text-2xl font-semibold tabular-nums">{nf(analytics.uniqueVisitors)}</div>
-            <div className="text-xs text-muted">tekil ziyaretci</div>
+            <div className="text-2xl font-semibold tabular-nums">{formatNumber(analytics.uniqueVisitors, locale)}</div>
+            <div className="text-xs text-muted">{t("uniqueVisitors")}</div>
           </div>
         )}
       </div>
       <div className="grid gap-4">
         {analytics.viewsByDay && analytics.viewsByDay.length > 0 && (
           <div>
-            <div className="mb-1 text-xs font-medium uppercase tracking-wider text-faint">Son 30 gun</div>
+            <div className="mb-1 text-xs font-medium uppercase tracking-wider text-faint">{t("last30Days")}</div>
             <ViewsTrend data={analytics.viewsByDay} />
           </div>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           {analytics.referrers && analytics.referrers.length > 0 && (
             <div>
-              <div className="mb-1 text-xs font-medium uppercase tracking-wider text-faint">Kaynaklar</div>
+              <div className="mb-1 text-xs font-medium uppercase tracking-wider text-faint">{t("referrers")}</div>
               <ReferrerBars data={analytics.referrers} />
             </div>
           )}
           {analytics.devices && analytics.devices.length > 0 && (
             <div>
-              <div className="mb-1 text-xs font-medium uppercase tracking-wider text-faint">Cihazlar</div>
+              <div className="mb-1 text-xs font-medium uppercase tracking-wider text-faint">{t("devices")}</div>
               <DeviceBars data={analytics.devices} />
             </div>
           )}

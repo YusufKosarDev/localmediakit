@@ -153,7 +153,10 @@ describe("SettingsPage", () => {
     expect(screen.getByText(/her kit kendi sunum dilini/)).toBeInTheDocument();
 
     await userEvent.selectOptions(select, "en");
-    await userEvent.click(screen.getByRole("button", { name: "Dili kaydet" }));
+
+    // Picking a language switches the page immediately, before saving — the
+    // button itself is the proof.
+    await userEvent.click(await screen.findByRole("button", { name: "Save language" }));
 
     await vi.waitFor(() => {
       const put = fetchSpy.mock.calls.find(

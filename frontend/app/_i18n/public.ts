@@ -38,13 +38,15 @@ const publicStrings = {
   contactRateLimited: "Cok fazla istek. Lutfen birkac dakika sonra tekrar deneyin.",
   contactFailed: "Baglanti hatasi. Tekrar deneyin.",
 
-  lockedTitle: "Bu medya kiti korumali",
-  lockedHint: "Devam etmek icin sifreyi girin.",
+  lockedTitle: "Bu medya kiti sifre korumali.",
+  lockedHint: "Goruntulemek icin sifreyi girin.",
   lockedPassword: "Sifre",
-  lockedSubmit: "Kilidi ac",
-  lockedWrong: "Sifre hatali.",
+  lockedSubmit: "Goruntule",
+  lockedWrong: "Sifre yanlis.",
   lockedTooMany: "Cok fazla deneme. Biraz bekleyin.",
 
+  busy: "...",
+  checking: "Kontrol ediliyor...",
   printButton: "PDF olarak kaydet",
 } as const;
 
@@ -82,13 +84,15 @@ export const publicDict: Dict<Record<keyof PublicStrings, string>> = {
     contactRateLimited: "Too many requests. Please try again in a few minutes.",
     contactFailed: "Connection error. Please try again.",
 
-    lockedTitle: "This media kit is protected",
-    lockedHint: "Enter the password to continue.",
+    lockedTitle: "This media kit is password-protected.",
+    lockedHint: "Enter the password to view it.",
     lockedPassword: "Password",
-    lockedSubmit: "Unlock",
-    lockedWrong: "Wrong password.",
+    lockedSubmit: "View",
+    lockedWrong: "Incorrect password.",
     lockedTooMany: "Too many attempts. Please wait a moment.",
 
+    busy: "...",
+    checking: "Checking...",
     printButton: "Save as PDF",
   },
 };

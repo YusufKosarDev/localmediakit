@@ -39,7 +39,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const kit = await getKit(slug);
-  if (!kit) return { title: "Sayfa bulunamadi" };
+  if (!kit) return { title: "Sayfa bulunamadi / Page not found" };
   // A protected kit exposes only its title in metadata; nothing sensitive.
   if (kit.isProtected) {
     return { title: `${kit.title} — Sifre korumali`, robots: { index: false } };
@@ -75,7 +75,7 @@ export default async function KitPage({
   if (!kit) notFound();
 
   if (kit.isProtected) {
-    return <PasswordGate slug={kit.slug} title={kit.title} theme={kit.theme} accent={kit.accent} />;
+    return <PasswordGate slug={kit.slug} title={kit.title} theme={kit.theme} accent={kit.accent} language={kit.language} />;
   }
 
   // ProfilePage + Person structured data for a public creator kit — baked into

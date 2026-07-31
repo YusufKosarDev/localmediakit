@@ -35,7 +35,12 @@ const PLATFORM_NAMES: Record<string, string> = {
   TIKTOK: "TikTok",
 };
 
-const compact = new Intl.NumberFormat("tr-TR", { notation: "compact", maximumFractionDigits: 1 });
+/** Compact counts follow the card's language (102 B vs 102K). */
+const compactFor = (locale: string) =>
+  new Intl.NumberFormat(locale === "en" ? "en-US" : "tr-TR", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
 
 export default async function OgImage({
   params,
@@ -79,13 +84,14 @@ export default async function OgImage({
             <div style={{ display: "flex", width: 76, height: 54, borderRadius: 14, background: t.brand, marginTop: -2 }} />
           </div>
           <div style={{ display: "flex", fontSize: 56, fontWeight: 700 }}>{kit.title}</div>
-          <div style={{ display: "flex", fontSize: 30, color: t.muted }}>Sifre korumali medya kiti</div>
+          <div style={{ display: "flex", fontSize: 30, color: t.muted }}>{kit?.language === "en" ? "Password-protected media kit" : "Sifre korumali medya kiti"}</div>
         </div>
       ),
       size
     );
   }
 
+  const compact = compactFor(kit.language ?? "tr");
   const initial = (kit.displayName || kit.title).charAt(0).toUpperCase();
   const platforms = (kit.platforms ?? []).slice(0, 3);
 
@@ -119,7 +125,7 @@ export default async function OgImage({
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                 <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>{compact.format(p.followers)}</div>
-                <div style={{ display: "flex", fontSize: 24, color: t.muted }}>takipci</div>
+                <div style={{ display: "flex", fontSize: 24, color: t.muted }}>{kit?.language === "en" ? "followers" : "takipci"}</div>
               </div>
             </div>
           ))}

@@ -1,5 +1,7 @@
 "use client";
 
+import { normalizeLocale, translator } from "@/app/_i18n";
+import { publicDict } from "@/app/_i18n/public";
 import { useState } from "react";
 import { Lock } from "lucide-react";
 import KitCard, { PublicKit } from "./KitCard";
@@ -16,15 +18,19 @@ export default function PasswordGate({
   title,
   theme,
   accent,
+  language,
 }: {
   slug: string;
   title: string;
   theme: string;
   accent?: string | null;
+  language?: string | null;
 }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const locale = normalizeLocale(language);
+  const t = translator(publicDict, locale);
   const [kit, setKit] = useState<PublicKit | null>(null);
 
   if (kit) return <KitCard kit={kit} />;
@@ -42,21 +48,21 @@ export default function PasswordGate({
       if (res.ok) {
         setKit(await res.json());
       } else if (res.status === 401) {
-        setError("Sifre yanlis.");
+        setError(t("lockedWrong"));
       } else if (res.status === 429) {
-        setError("Cok fazla deneme. Lutfen birkac dakika sonra tekrar deneyin.");
+        setError(t("lockedTooMany"));
       } else {
         setError(`Acilamadi (HTTP ${res.status}).`);
       }
     } catch {
-      setError("Baglanti hatasi. Tekrar deneyin.");
+      setError(t("contactFailed"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div data-theme={theme === "dark" ? "dark" : "light"} data-accent={accent ?? "violet"}>
+    <div lang={locale} data-theme={theme === "dark" ? "dark" : "light"} data-accent={accent ?? "violet"}>
       <main className="grid min-h-screen place-items-center bg-page px-5 text-fg">
         <Card className="w-full max-w-sm p-7 text-center">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand-weak text-brand">
@@ -64,7 +70,7 @@ export default function PasswordGate({
           </div>
           <h1 className="mt-4 text-lg font-semibold tracking-tight">{title}</h1>
           <p className="mt-1 text-sm text-muted">
-            Bu medya kiti sifre korumali. Goruntulemek icin sifreyi girin.
+            {t("lockedTitle")} {t("lockedHint")}
           </p>
           <form onSubmit={submit} className="mt-5 grid gap-2.5">
             <Input
@@ -76,7 +82,7 @@ export default function PasswordGate({
               required
             />
             <Button type="submit" disabled={busy} className="w-full">
-              {busy ? "Kontrol ediliyor..." : "Goruntule"}
+              {busy ? t("checking") : t("lockedSubmit")}
             </Button>
           </form>
           {error && <p className="mt-3 text-sm text-danger">{error}</p>}

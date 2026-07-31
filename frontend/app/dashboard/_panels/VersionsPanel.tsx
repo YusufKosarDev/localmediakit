@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Select } from "@/app/_components/ui";
 import { BACKEND, authHeaders, get, post } from "../_lib/api";
-import type { Feedback, Version, VersionDiff } from "../_lib/types";
+import { formatDateTime, type Locale } from "@/app/_i18n";
+import type { Feedback, Version, VersionDiff, Translate } from "../_lib/types";
 
 /** True when two snapshots differ in nothing the diff reports. */
 function isEmptyDiff(diff: VersionDiff): boolean {
@@ -20,12 +21,16 @@ export function VersionsPanel({
   kitId,
   reloadToken,
   feedback,
+  t,
+  locale,
   onActivated,
 }: {
   kitId: number;
   /** Bumped by the shell after a publish, so the list refreshes in place. */
   reloadToken: number;
   feedback: Feedback;
+  t: Translate;
+  locale: Locale;
   onActivated: () => Promise<void> | void;
 }) {
   const [versions, setVersions] = useState<Version[]>([]);
@@ -51,12 +56,12 @@ export function VersionsPanel({
       { headers: authHeaders() }
     );
     if (res.ok) setDiff(await res.json());
-    else feedback.fail(`Karsilastirilamadi (HTTP ${res.status})`);
+    else feedback.fail(`${t("failedCompare")} (HTTP ${res.status})`);
   }
 
   async function activate(version: number) {
     feedback.clear();
-    const result = await post(`/api/mediakits/${kitId}/versions/${version}/activate`, undefined, "Versiyona donulemedi");
+    const result = await post(`/api/mediakits/${kitId}/versions/${version}/activate`, undefined, t("failedRollback"));
     if (result.ok) {
       await onActivated();
       await load();
@@ -67,7 +72,7 @@ export function VersionsPanel({
 
   return (
     <div className="grid gap-2">
-      {versions.length === 0 && <p className="text-sm text-muted">Henuz yayinlanmamis.</p>}
+      {versions.length === 0 && <p className="text-sm text-muted">{t("notPublishedYet")}</p>}
       {versions.map((v) => (
         <div
           key={v.version}
@@ -75,12 +80,12 @@ export function VersionsPanel({
         >
           <span className="font-medium">v{v.version}</span>
           <span className="text-muted">/{v.slug}</span>
-          <span className="text-xs text-faint">{new Date(v.publishedAt).toLocaleString("tr-TR")}</span>
+          <span className="text-xs text-faint">{formatDateTime(v.publishedAt, locale)}</span>
           {v.active ? (
-            <Badge tone="success">yayinda</Badge>
+            <Badge tone="success">{t("live")}</Badge>
           ) : (
             <Button size="sm" variant="secondary" onClick={() => activate(v.version)}>
-              Bu versiyona don
+              {t("rollback")}
             </Button>
           )}
         </div>
@@ -89,16 +94,16 @@ export function VersionsPanel({
       {versions.length >= 2 && (
         <div className="mt-2 rounded-lg border border-line bg-surface p-3">
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-medium">Karsilastir:</span>
+            <span className="font-medium">{t("compare")}</span>
             <Select value={diffSel.from} onChange={(e) => setDiffSel({ ...diffSel, from: e.target.value })}>
-              <option value="">eski...</option>
+              <option value="">{t("compareOlder")}</option>
               {versions.map((v) => (
                 <option key={v.version} value={v.version}>v{v.version}</option>
               ))}
             </Select>
             <span className="text-muted">→</span>
             <Select value={diffSel.to} onChange={(e) => setDiffSel({ ...diffSel, to: e.target.value })}>
-              <option value="">yeni...</option>
+              <option value="">{t("compareNewer")}</option>
               {versions.map((v) => (
                 <option key={v.version} value={v.version}>v{v.version}</option>
               ))}
@@ -108,7 +113,7 @@ export function VersionsPanel({
               disabled={!diffSel.from || !diffSel.to || diffSel.from === diffSel.to}
               onClick={loadDiff}
             >
-              Goster
+              {t("compareShow")}
             </Button>
           </div>
 
@@ -116,7 +121,7 @@ export function VersionsPanel({
             <div className="mt-3 grid gap-1.5 border-t border-line pt-3 text-sm">
               {isEmptyDiff(diff) && (
                 <p className="text-muted">
-                  v{diff.fromVersion} ile v{diff.toVersion} arasinda icerik farki yok.
+                  {t("noDiff", { from: diff.fromVersion, to: diff.toVersion })}
                 </p>
               )}
               {diff.fields.map((f) => (
@@ -129,8 +134,8 @@ export function VersionsPanel({
               {diff.platforms.map((p) => (
                 <div key={p.platform}>
                   <span className="font-medium">{p.platform}</span>{" "}
-                  {p.kind === "ADDED" && <Badge tone="success">eklendi</Badge>}
-                  {p.kind === "REMOVED" && <Badge tone="danger">cikti</Badge>}
+                  {p.kind === "ADDED" && <Badge tone="success">{t("diffAdded")}</Badge>}
+                  {p.kind === "REMOVED" && <Badge tone="danger">{t("diffRemoved")}</Badge>}
                   {p.changes.map((c) => (
                     <span key={c.metric} className="ml-2 text-muted">
                       {c.metric}: {c.from ?? "—"} → <span className="text-fg">{c.to ?? "—"}</span>
@@ -140,9 +145,9 @@ export function VersionsPanel({
               ))}
               {(
                 [
-                  ["Isbirlikleri", diff.collaborations],
-                  ["Ucretler", diff.rateCard],
-                  ["Demografi", diff.demographics],
+                  [t("diffCollabs"), diff.collaborations],
+                  [t("diffRates"), diff.rateCard],
+                  [t("diffDemographics"), diff.demographics],
                 ] as const
               )
                 .filter(([, d]) => d.added.length + d.removed.length + d.changed.length > 0)

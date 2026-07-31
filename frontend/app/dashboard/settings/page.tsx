@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Trash2, ShieldAlert } from "lucide-react";
 import { Button, Card, Input, Label, Select } from "@/app/_components/ui";
+import { normalizeLocale, translator } from "@/app/_i18n";
+import { dashboardDict } from "@/app/_i18n/dashboard";
+import { rememberLocale } from "@/app/_i18n/useLocale";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
@@ -59,6 +62,11 @@ export default function SettingsPage() {
   const [delErr, setDelErr] = useState("");
   const [delBusy, setDelBusy] = useState(false);
 
+  // Driven by the saved profile so the page switches language the moment the
+  // picker below is saved, without a reload.
+  const locale = normalizeLocale(profile.locale);
+  const t = translator(dashboardDict, locale);
+
   const applyMe = useCallback((data: Me) => {
     setMe(data);
     setProfile({
@@ -84,12 +92,20 @@ export default function SettingsPage() {
         }
         applyMe(await res.json());
       })
-      .catch(() => setProfileMsg({ ok: "", err: "Sunucuya ulasilamadi." }))
+      .catch(() => setProfileMsg({ ok: "", err: t("unreachable") }))
       .finally(() => setLoading(false));
+    // Runs once at mount. `t` is deliberately not listed: the profile has not
+    // loaded yet, so this message is in the default language by definition, and
+    // depending on it would refetch the profile whenever the language changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applyMe]);
 
   // The saved theme drives the dashboard only. The public media-kit page keeps
   // stamping its own per-kit theme, so a visitor's view never depends on this.
+  useEffect(() => {
+    if (me) rememberLocale(me.locale);
+  }, [me]);
+
   useEffect(() => {
     if (!me) return;
     document.documentElement.setAttribute("data-theme", me.theme === "DARK" ? "dark" : "light");
@@ -107,13 +123,13 @@ export default function SettingsPage() {
         body: JSON.stringify(profile),
       });
       if (!res.ok) {
-        setProfileMsg({ ok: "", err: await errorText(res, "Profil kaydedilemedi.") });
+        setProfileMsg({ ok: "", err: await errorText(res, t("profileFailed")) });
         return;
       }
       applyMe(await res.json());
-      setProfileMsg({ ok: "Profil guncellendi.", err: "" });
+      setProfileMsg({ ok: t("profileSaved"), err: "" });
     } catch {
-      setProfileMsg({ ok: "", err: "Sunucuya ulasilamadi." });
+      setProfileMsg({ ok: "", err: t("unreachable") });
     } finally {
       setProfileBusy(false);
     }
@@ -124,11 +140,11 @@ export default function SettingsPage() {
     setPwMsg({ ok: "", err: "" });
     // Caught here so a typo never costs a round trip.
     if (pw.newPassword !== pw.repeat) {
-      setPwMsg({ ok: "", err: "Yeni sifreler eslesmiyor." });
+      setPwMsg({ ok: "", err: t("passwordMismatch") });
       return;
     }
     if (pw.newPassword.length < 8) {
-      setPwMsg({ ok: "", err: "Yeni sifre en az 8 karakter olmali." });
+      setPwMsg({ ok: "", err: t("passwordTooShort") });
       return;
     }
     setPwBusy(true);
@@ -142,13 +158,13 @@ export default function SettingsPage() {
         }),
       });
       if (!res.ok) {
-        setPwMsg({ ok: "", err: await errorText(res, "Sifre degistirilemedi.") });
+        setPwMsg({ ok: "", err: await errorText(res, t("passwordFailed")) });
         return;
       }
       setPw({ currentPassword: "", newPassword: "", repeat: "" });
-      setPwMsg({ ok: "Sifreniz degistirildi.", err: "" });
+      setPwMsg({ ok: t("passwordChanged"), err: "" });
     } catch {
-      setPwMsg({ ok: "", err: "Sunucuya ulasilamadi." });
+      setPwMsg({ ok: "", err: t("unreachable") });
     } finally {
       setPwBusy(false);
     }
@@ -165,7 +181,7 @@ export default function SettingsPage() {
         body: JSON.stringify(mail),
       });
       if (!res.ok) {
-        setMailMsg({ ok: "", err: await errorText(res, "E-posta degistirilemedi.") });
+        setMailMsg({ ok: "", err: await errorText(res, t("emailFailed")) });
         return;
       }
       // The token that authenticated this call names the OLD address and is
@@ -174,9 +190,9 @@ export default function SettingsPage() {
       localStorage.setItem("token", data.token);
       applyMe(data.user);
       setMail({ currentPassword: "", newEmail: "" });
-      setMailMsg({ ok: "E-postaniz guncellendi.", err: "" });
+      setMailMsg({ ok: t("emailChanged"), err: "" });
     } catch {
-      setMailMsg({ ok: "", err: "Sunucuya ulasilamadi." });
+      setMailMsg({ ok: "", err: t("unreachable") });
     } finally {
       setMailBusy(false);
     }
@@ -193,13 +209,13 @@ export default function SettingsPage() {
         body: JSON.stringify(del),
       });
       if (!res.ok) {
-        setDelErr(await errorText(res, "Hesap silinemedi."));
+        setDelErr(await errorText(res, t("deleteFailed")));
         return;
       }
       localStorage.removeItem("token");
       window.location.href = "/";
     } catch {
-      setDelErr("Sunucuya ulasilamadi.");
+      setDelErr(t("unreachable"));
     } finally {
       setDelBusy(false);
     }
@@ -222,29 +238,28 @@ export default function SettingsPage() {
       <header className="sticky top-0 z-10 border-b border-line bg-surface/80 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
           <Link href="/dashboard" className="flex items-center gap-2 text-sm text-muted hover:text-fg">
-            <ArrowLeft className="h-4 w-4" /> Panoya don
+            <ArrowLeft className="h-4 w-4" /> {t("backToDashboard")}
           </Link>
           <span className="text-sm text-muted">{me.email}</span>
         </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-5 py-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Hesap ayarlari</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("settingsTitle")}</h1>
         <p className="mt-1 text-sm text-muted">
-          Profilinizi, giris bilgilerinizi ve hesabinizi buradan yonetin.
+          {t("settingsSubtitle")}
         </p>
 
         {/* ---------- Profile ---------- */}
         <Card className="mt-8 p-6">
-          <h2 className="font-semibold">Profil</h2>
+          <h2 className="font-semibold">{t("profileTitle")}</h2>
           <p className="mt-1 text-sm text-muted">
-            Bu bilgiler yalnizca panonuzda gorunur. Medya kitlerinizin kendi basligi ve
-            gorseli ayridir; burayi degistirmek yayindaki sayfalarinizi etkilemez.
+            {t("profileSubtitle")}
           </p>
 
           <form onSubmit={saveProfile} className="mt-5 grid gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="displayName">Gorunen ad</Label>
+              <Label htmlFor="displayName">{t("displayName")}</Label>
               <Input
                 id="displayName"
                 value={profile.displayName}
@@ -255,7 +270,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid gap-1.5">
-              <Label htmlFor="avatarUrl">Avatar URL</Label>
+              <Label htmlFor="avatarUrl">{t("fieldAvatarUrl")}</Label>
               <div className="flex items-center gap-3">
                 {profile.avatarUrl ? (
                   // Remote, user-supplied host: a plain <img> avoids routing an
@@ -281,29 +296,29 @@ export default function SettingsPage() {
                 />
               </div>
               <p className="text-xs text-faint">
-                https:// ile baslayan bir gorsel adresi. Bos birakirsaniz bas harfiniz gosterilir.
+                {t("avatarUrlHint")}
               </p>
             </div>
 
             <div className="grid gap-1.5">
-              <Label htmlFor="theme">Pano temasi</Label>
+              <Label htmlFor="theme">{t("dashboardTheme")}</Label>
               <Select
                 id="theme"
                 value={profile.theme}
                 onChange={(e) => setProfile({ ...profile, theme: e.target.value })}
                 className="w-full"
               >
-                <option value="LIGHT">Acik</option>
-                <option value="DARK">Koyu</option>
+                <option value="LIGHT">{t("themeLight")}</option>
+                <option value="DARK">{t("themeDark")}</option>
               </Select>
               <p className="text-xs text-faint">
-                Yalnizca panoyu etkiler. Yayindaki medya kitiniz kendi temasini kullanmaya devam eder.
+                {t("dashboardThemeHint")}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               <Button type="submit" disabled={profileBusy}>
-                {profileBusy ? "..." : "Kaydet"}
+                {profileBusy ? t("busy") : t("save")}
               </Button>
               {profileMsg.ok && <span className="text-sm text-success">{profileMsg.ok}</span>}
               {profileMsg.err && <span className="text-sm text-danger">{profileMsg.err}</span>}
@@ -313,12 +328,12 @@ export default function SettingsPage() {
 
         {/* ---------- Language ---------- */}
         <Card className="mt-6 p-6">
-          <h2 className="font-semibold">Dil / Language</h2>
+          <h2 className="font-semibold">{t("languageTitle")}</h2>
           <p className="mt-1 text-sm text-muted">
-            Panonuzun ve size gelen bildirim e-postalarinin dili.
+            {t("languageSubtitle")}
           </p>
           <div className="mt-5 grid gap-1.5">
-            <Label htmlFor="locale">Arayuz dili</Label>
+            <Label htmlFor="locale">{t("interfaceLanguage")}</Label>
             <Select
               id="locale"
               value={profile.locale}
@@ -329,22 +344,21 @@ export default function SettingsPage() {
               <option value="en">English</option>
             </Select>
             <p className="text-xs text-faint">
-              Yayinlanan medya kitlerinizin dili ayridir: her kit kendi sunum dilini
-              tasir ve Duzenle sekmesinden secilir.
+              {t("kitLanguageNote")}
             </p>
           </div>
           <div className="mt-4">
             <Button type="button" onClick={saveProfile} disabled={profileBusy}>
-              {profileBusy ? "..." : "Dili kaydet"}
+              {profileBusy ? t("busy") : t("saveLanguage")}
             </Button>
           </div>
         </Card>
 
         {/* ---------- Notifications ---------- */}
         <Card className="mt-6 p-6">
-          <h2 className="font-semibold">Bildirimler</h2>
+          <h2 className="font-semibold">{t("notificationsTitle")}</h2>
           <p className="mt-1 text-sm text-muted">
-            Bir marka medya kitinizdeki iletisim formunu doldurdugunda e-posta alin.
+            {t("notificationsSubtitle")}
           </p>
 
           <label
@@ -361,32 +375,31 @@ export default function SettingsPage() {
               className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--brand-strong)]"
             />
             <span>
-              <span className="text-sm font-medium">Yeni marka teklifi e-postasi</span>
+              <span className="text-sm font-medium">{t("leadEmailToggle")}</span>
               <span className="mt-0.5 block text-xs text-muted">
-                Kapatirsaniz teklifler yine de Gelen Kutusu sekmenize duser — sadece
-                e-posta gonderilmez.
+                {t("leadEmailHint")}
               </span>
             </span>
           </label>
 
           <div className="mt-4 flex items-center gap-3">
             <Button type="button" onClick={saveProfile} disabled={profileBusy}>
-              {profileBusy ? "..." : "Bildirim tercihini kaydet"}
+              {profileBusy ? t("busy") : t("saveNotifications")}
             </Button>
             <span className="text-xs text-faint">
-              E-postalar ucuncu taraf bir gonderim servisi uzerinden iletilir.
+              {t("thirdPartyNote")}
             </span>
           </div>
         </Card>
 
         {/* ---------- Password ---------- */}
         <Card className="mt-6 p-6">
-          <h2 className="font-semibold">Sifre degistir</h2>
-          <p className="mt-1 text-sm text-muted">Guvenlik icin mevcut sifrenizi de girmelisiniz.</p>
+          <h2 className="font-semibold">{t("passwordTitle")}</h2>
+          <p className="mt-1 text-sm text-muted">{t("passwordSubtitle")}</p>
 
           <form onSubmit={changePassword} className="mt-5 grid gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="currentPassword">Mevcut sifre</Label>
+              <Label htmlFor="currentPassword">{t("currentPassword")}</Label>
               <Input
                 id="currentPassword"
                 type="password"
@@ -397,7 +410,7 @@ export default function SettingsPage() {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="newPassword">Yeni sifre</Label>
+              <Label htmlFor="newPassword">{t("newPassword")}</Label>
               <Input
                 id="newPassword"
                 type="password"
@@ -407,10 +420,10 @@ export default function SettingsPage() {
                 minLength={8}
                 required
               />
-              <p className="text-xs text-faint">En az 8 karakter.</p>
+              <p className="text-xs text-faint">{t("passwordMinHint")}</p>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="repeatPassword">Yeni sifre (tekrar)</Label>
+              <Label htmlFor="repeatPassword">{t("newPasswordAgain")}</Label>
               <Input
                 id="repeatPassword"
                 type="password"
@@ -422,7 +435,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center gap-3">
               <Button type="submit" disabled={pwBusy}>
-                {pwBusy ? "..." : "Sifreyi degistir"}
+                {pwBusy ? t("busy") : t("changePassword")}
               </Button>
               {pwMsg.ok && <span className="text-sm text-success">{pwMsg.ok}</span>}
               {pwMsg.err && <span className="text-sm text-danger">{pwMsg.err}</span>}
@@ -432,14 +445,14 @@ export default function SettingsPage() {
 
         {/* ---------- Email ---------- */}
         <Card className="mt-6 p-6">
-          <h2 className="font-semibold">E-posta degistir</h2>
+          <h2 className="font-semibold">{t("emailTitle")}</h2>
           <p className="mt-1 text-sm text-muted">
-            Su anki adresiniz: <span className="text-fg">{me.email}</span>
+            {t("emailCurrent")} <span className="text-fg">{me.email}</span>
           </p>
 
           <form onSubmit={changeEmail} className="mt-5 grid gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="newEmail">Yeni e-posta</Label>
+              <Label htmlFor="newEmail">{t("newEmail")}</Label>
               <Input
                 id="newEmail"
                 type="email"
@@ -449,7 +462,7 @@ export default function SettingsPage() {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="emailPassword">Mevcut sifre</Label>
+              <Label htmlFor="emailPassword">{t("currentPassword")}</Label>
               <Input
                 id="emailPassword"
                 type="password"
@@ -460,12 +473,11 @@ export default function SettingsPage() {
               />
             </div>
             <p className="rounded-lg bg-page px-3 py-2 text-xs text-muted">
-              Bu adresle giris yapacaksiniz. Dogrulama e-postasi gonderilmedigi icin
-              adresi dogru yazdiginizdan emin olun.
+              {t("emailVerifyNote")}
             </p>
             <div className="flex items-center gap-3">
               <Button type="submit" disabled={mailBusy}>
-                {mailBusy ? "..." : "E-postayi degistir"}
+                {mailBusy ? t("busy") : t("changeEmail")}
               </Button>
               {mailMsg.ok && <span className="text-sm text-success">{mailMsg.ok}</span>}
               {mailMsg.err && <span className="text-sm text-danger">{mailMsg.err}</span>}
@@ -476,17 +488,16 @@ export default function SettingsPage() {
         {/* ---------- Danger zone ---------- */}
         <Card className="mt-6 border-danger/30 p-6">
           <h2 className="flex items-center gap-2 font-semibold text-danger">
-            <ShieldAlert className="h-4 w-4" /> Hesabi sil
+            <ShieldAlert className="h-4 w-4" /> {t("dangerTitle")}
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Hesabiniz, tum medya kitleriniz, istatistikleriniz ve gelen kutunuz kalici olarak
-            silinir. <span className="text-fg">Yayindaki sayfalariniz da erisilemez olur.</span>{" "}
-            Bu islem geri alinamaz.
+            {t("dangerBody1")} <span className="text-fg">{t("dangerBody2")}</span>{" "}
+            {t("dangerBody3")}
           </p>
 
           <form onSubmit={deleteAccount} className="mt-5 grid gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="deletePassword">Mevcut sifre</Label>
+              <Label htmlFor="deletePassword">{t("currentPassword")}</Label>
               <Input
                 id="deletePassword"
                 type="password"
@@ -498,7 +509,7 @@ export default function SettingsPage() {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="deleteConfirmation">
-                Onaylamak icin <span className="font-mono text-danger">{DELETE_CONFIRMATION}</span> yazin
+                {t("deleteConfirmLabel", { phrase: DELETE_CONFIRMATION })}
               </Label>
               <Input
                 id="deleteConfirmation"
@@ -510,7 +521,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <Button type="submit" variant="danger" disabled={!deleteArmed || delBusy}>
                 <Trash2 className="h-4 w-4" />
-                {delBusy ? "..." : "Hesabimi kalici olarak sil"}
+                {delBusy ? t("busy") : t("deleteAccount")}
               </Button>
               {delErr && <span className="text-sm text-danger">{delErr}</span>}
             </div>

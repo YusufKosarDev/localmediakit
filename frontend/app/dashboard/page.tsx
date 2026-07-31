@@ -13,7 +13,8 @@ import { InstallPrompt } from "@/app/_components/InstallPrompt";
 import { KitCard } from "./_KitCard";
 import { BACKEND, authHeaders, errorMessage, get, post } from "./_lib/api";
 import type { Feedback, Kit, Me, Tab } from "./_lib/types";
-import { normalizeLocale } from "@/app/_i18n";
+import { normalizeLocale, translator } from "@/app/_i18n";
+import { dashboardDict } from "@/app/_i18n/dashboard";
 import { rememberLocale } from "@/app/_i18n/useLocale";
 
 const DEMO_EMAIL = "demo@localmediakit.app";
@@ -78,7 +79,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      setError("Oturum yok.");
+      setError(t("noSession"));
       return;
     }
     fetch(`${BACKEND}/api/me`, { headers: authHeaders() })
@@ -87,12 +88,18 @@ export default function DashboardPage() {
         setMe(data);
         return Promise.all([loadKits(), loadOnboarding()]);
       })
-      .catch(() => setError("Oturum gecersiz veya suresi dolmus."));
+      .catch(() => setError(t("sessionExpired")));
+    // Runs once at mount. `t` is deliberately not a dependency: at this point
+    // there is no account to read a language from, so these two messages are
+    // in the default language by definition — and listing it would refetch
+    // /api/me every time the user changes their language.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadKits, loadOnboarding]);
 
   // The account locale drives the dashboard, and is mirrored into storage so
   // signing out (or visiting the landing page later) keeps the same language.
   const locale = normalizeLocale(me?.locale);
+  const t = translator(dashboardDict, locale);
   useEffect(() => {
     if (me) rememberLocale(me.locale);
   }, [me]);
@@ -109,7 +116,7 @@ export default function DashboardPage() {
   async function createKit(e: React.FormEvent) {
     e.preventDefault();
     feedback.clear();
-    const result = await post<Kit>("/api/mediakits", form, "Olusturulamadi", 201);
+    const result = await post<Kit>("/api/mediakits", form, t("failedCreate"), 201);
     if (result.ok) {
       setForm({ ...emptyCreateForm });
       await refreshKitsAndProgress();
@@ -120,9 +127,9 @@ export default function DashboardPage() {
 
   async function publishKit(id: number) {
     feedback.clear();
-    const result = await post(`/api/mediakits/${id}/publish`, undefined, "Yayinlanamadi");
+    const result = await post(`/api/mediakits/${id}/publish`, undefined, t("failedPublish"));
     if (result.ok) {
-      feedback.notify("Yayinlandi.");
+      feedback.notify(t("published"));
       await refreshKitsAndProgress();
       setVersionsToken((n) => n + 1);
     } else {
@@ -132,13 +139,13 @@ export default function DashboardPage() {
 
   async function deleteKit(id: number) {
     feedback.clear();
-    if (!window.confirm("Bu kiti silmek istediginize emin misiniz?")) return;
+    if (!window.confirm(t("confirmDeleteKit"))) return;
     const res = await fetch(`${BACKEND}/api/mediakits/${id}`, { method: "DELETE", headers: authHeaders() });
     if (res.status === 204) {
       if (active?.kitId === id) setActive(null);
       await refreshKitsAndProgress();
     } else {
-      feedback.fail(await errorMessage(res, "Silinemedi"));
+      feedback.fail(await errorMessage(res, t("failedDelete")));
     }
   }
 
@@ -160,7 +167,7 @@ export default function DashboardPage() {
       else window.location.href = url; // blocker still won: navigate in place
     } else {
       win?.close();
-      feedback.fail(await errorMessage(res, "Onizleme olusturulamadi"));
+      feedback.fail(await errorMessage(res, t("failedPreview")));
     }
   }
 
@@ -183,7 +190,7 @@ export default function DashboardPage() {
   async function dismissOnboarding() {
     setOnboarding((prev) => (prev ? { ...prev, dismissed: true } : prev));
     if (demoKey) localStorage.setItem(demoKey, "1");
-    await post("/api/me/onboarding/dismiss", undefined, "Kapatilamadi", 204);
+    await post("/api/me/onboarding/dismiss", undefined, t("failedDismiss"), 204);
     await loadOnboarding();
   }
 
@@ -205,8 +212,8 @@ export default function DashboardPage() {
       const created = await post<Kit>(
         "/api/mediakits",
         {
-          title: me?.displayName || "Medya Kitim",
-          headline: "Icerik ureticisi — isbirligi icin iletisime gecin",
+          title: me?.displayName || t("quickStartTitle"),
+          headline: t("quickStartHeadline"),
           theme: "light",
         },
         "Olusturulamadi",
@@ -220,12 +227,12 @@ export default function DashboardPage() {
       await post(
         `/api/mediakits/${created.data.id}/stats`,
         { platform: "YOUTUBE", followers: 1000, avgViews: 500, avgLikes: 50, avgComments: 10 },
-        "Olcum eklenemedi",
+        t("failedAddStat"),
         201
       ).catch(() => null);
       await refreshKitsAndProgress();
       setActive({ kitId: created.data.id, tab: "edit" });
-      feedback.notify("Ornek kitiniz hazir. Bilgileri duzenleyip Yayinla deyin.");
+      feedback.notify(t("quickStartDone"));
     } finally {
       setQuickStartBusy(false);
     }
@@ -235,9 +242,9 @@ export default function DashboardPage() {
     return (
       <main className="grid min-h-screen place-items-center px-6 text-center">
         <div>
-          <p className="text-muted">{error || "Yukleniyor..."}</p>
+          <p className="text-muted">{error || t("loading")}</p>
           <Link href="/login" className="mt-3 inline-block font-medium text-brand hover:underline">
-            Giris yap
+            {t("signIn")}
           </Link>
         </div>
       </main>
@@ -249,7 +256,7 @@ export default function DashboardPage() {
       {/* Registered from the signed-in surfaces only — never from the public
           kit page, so a brand viewing a snapshot gets no worker at all. */}
       <ServiceWorker />
-      {tour.open && <WelcomeTour onClose={tour.close} />}
+      {tour.open && <WelcomeTour onClose={tour.close} t={t} />}
       <header className="sticky top-0 z-10 border-b border-line bg-surface/80 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-3">
           <Link href="/" className="flex items-center gap-2">
@@ -260,14 +267,14 @@ export default function DashboardPage() {
           </Link>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted sm:inline">{me.displayName}</span>
-            <Button variant="ghost" size="sm" onClick={() => tour.setOpen(true)} title="Tanitimi yeniden gor">
-              <HelpCircle className="h-4 w-4" /> <span className="hidden sm:inline">Tanitim</span>
+            <Button variant="ghost" size="sm" onClick={() => tour.setOpen(true)} title={t("headerTourTitle")}>
+              <HelpCircle className="h-4 w-4" /> <span className="hidden sm:inline">{t("headerTour")}</span>
             </Button>
             <Link href="/dashboard/settings">
-              <Button variant="ghost" size="sm"><Settings className="h-4 w-4" /> Ayarlar</Button>
+              <Button variant="ghost" size="sm"><Settings className="h-4 w-4" /> {t("headerSettings")}</Button>
             </Link>
             <Button variant="ghost" size="sm" onClick={logout}>
-              <LogOut className="h-4 w-4" /> Cikis
+              <LogOut className="h-4 w-4" /> {t("headerSignOut")}
             </Button>
           </div>
         </div>
@@ -286,6 +293,7 @@ export default function DashboardPage() {
         {onboarding && !onboarding.dismissed && (
           <OnboardingChecklist
             state={onboarding}
+            t={t}
             onStartFirstKit={focusCreateForm}
             onDismiss={dismissOnboarding}
           />
@@ -293,29 +301,30 @@ export default function DashboardPage() {
 
         {/* Create kit */}
         <Card id="create-kit" className="mb-6 p-5">
-          <h2 className="mb-3 font-semibold">Yeni medya kiti</h2>
+          <h2 className="mb-3 font-semibold">{t("newKit")}</h2>
           <form onSubmit={createKit} className="grid gap-3 sm:grid-cols-2">
-            <Input id="create-kit-title" placeholder="Baslik *" value={form.title}
+            <Input id="create-kit-title" placeholder={t("fieldTitleRequired")} value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-            <Input placeholder="Headline" value={form.headline}
+            <Input placeholder={t("fieldHeadline")} value={form.headline}
               onChange={(e) => setForm({ ...form, headline: e.target.value })} />
-            <Input placeholder="Avatar URL" value={form.avatarUrl}
+            <Input placeholder={t("fieldAvatarUrl")} value={form.avatarUrl}
               onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} />
             <Select value={form.theme} onChange={(e) => setForm({ ...form, theme: e.target.value })}>
-              <option value="light">Acik tema</option>
-              <option value="dark">Koyu tema</option>
+              <option value="light">{t("themeLightOption")}</option>
+              <option value="dark">{t("themeDarkOption")}</option>
             </Select>
-            <Input placeholder="Slug (opsiyonel)" value={form.slug}
+            <Input placeholder={t("fieldSlugOptional")} value={form.slug}
               onChange={(e) => setForm({ ...form, slug: e.target.value })} />
             <Button type="submit" className="sm:col-span-2 sm:justify-self-start">
-              <Plus className="h-4 w-4" /> Olustur
+              <Plus className="h-4 w-4" /> {t("create")}
             </Button>
           </form>
         </Card>
 
-        <h2 className="mb-3 px-1 text-sm font-medium text-muted">Kitlerim ({kits.length})</h2>
+        <h2 className="mb-3 px-1 text-sm font-medium text-muted">{t("myKits", { count: kits.length })}</h2>
         {kits.length === 0 && (
           <EmptyKitState
+            t={t}
             onStart={focusCreateForm}
             onQuickStart={quickStart}
             quickStartBusy={quickStartBusy}
@@ -326,6 +335,8 @@ export default function DashboardPage() {
             <KitCard
               key={kit.id}
               kit={kit}
+              t={t}
+              locale={locale}
               openTab={active?.kitId === kit.id ? active.tab : null}
               versionsToken={versionsToken}
               feedback={feedback}
