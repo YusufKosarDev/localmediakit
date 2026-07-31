@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { Button, Card } from "@/app/_components/ui";
+import { translator, type Locale } from "@/app/_i18n";
+import { appDict } from "@/app/_i18n/app";
 
 /** Chrome/Edge fire this instead of prompting on their own. */
 type InstallEvent = Event & {
@@ -21,7 +23,8 @@ const DISMISS_KEY = "lmk.install.dismissed";
  * of the device, not the account, so storing this server-side would hide the
  * offer on a phone because the user once dismissed it on a laptop.
  */
-export function InstallPrompt() {
+export function InstallPrompt({ locale }: { locale: Locale }) {
+  const t = translator(appDict, locale);
   const [event, setEvent] = useState<InstallEvent | null>(null);
   const [hidden, setHidden] = useState(true);
 
@@ -60,19 +63,16 @@ export function InstallPrompt() {
         <Download className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">Panoyu ana ekraniniza ekleyin</p>
-        <p className="mt-0.5 text-xs text-muted">
-          Analitiginizi telefonunuzdan tek dokunusla acin. Tarayicidan kullanmaya
-          devam edebilirsiniz — bir sey degismez.
-        </p>
+        <p className="text-sm font-medium">{t("installTitle")}</p>
+        <p className="mt-0.5 text-xs text-muted">{t("installBody")}</p>
       </div>
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={install}>
-          Ekle
+          {t("installAdd")}
         </Button>
         <button
           onClick={dismiss}
-          aria-label="Kapat"
+          aria-label={t("installDismiss")}
           className="rounded-lg p-1.5 text-muted transition-colors hover:bg-page hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
         >
           <X className="h-4 w-4" />

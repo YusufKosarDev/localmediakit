@@ -7,6 +7,7 @@ export type Me = {
   avatarUrl: string | null;
   theme: string;
   leadNotificationsEnabled: boolean;
+  locale: string;
 };
 
 export type Kit = {

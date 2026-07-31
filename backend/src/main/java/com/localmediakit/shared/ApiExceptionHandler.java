@@ -49,7 +49,7 @@ public class ApiExceptionHandler {
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleUnreadableBody(HttpMessageNotReadableException ex) {
-        return body(HttpStatus.BAD_REQUEST, "Malformed request body", null);
+        return body(HttpStatus.BAD_REQUEST, "MALFORMED_BODY", "Malformed request body", null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -57,149 +57,149 @@ public class ApiExceptionHandler {
         Map<String, String> fieldErrors = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors()
                 .forEach(error -> fieldErrors.putIfAbsent(error.getField(), error.getDefaultMessage()));
-        return body(HttpStatus.BAD_REQUEST, "Validation failed", fieldErrors);
+        return body(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Validation failed", fieldErrors);
     }
 
     @ExceptionHandler(EmailAlreadyUsedException.class)
     public ResponseEntity<Map<String, Object>> handleEmailTaken(EmailAlreadyUsedException ex) {
-        return body(HttpStatus.CONFLICT, ex.getMessage(), null);
+        return body(HttpStatus.CONFLICT, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(InvalidCredentialsException ex) {
-        return body(HttpStatus.UNAUTHORIZED, ex.getMessage(), null);
+        return body(HttpStatus.UNAUTHORIZED, codeFor(ex), ex.getMessage(), null);
     }
 
     /** Appearance value outside the curated set. */
     @ExceptionHandler(UnsupportedLocaleException.class)
     public ResponseEntity<Map<String, Object>> handleLocale(UnsupportedLocaleException ex) {
-        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(InvalidAppearanceException.class)
     public ResponseEntity<Map<String, Object>> handleAppearance(InvalidAppearanceException ex) {
-        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(ReservedSlugException.class)
     public ResponseEntity<Map<String, Object>> handleReservedSlug(ReservedSlugException ex) {
-        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(PlanLimitExceededException.class)
     public ResponseEntity<Map<String, Object>> handlePlanLimit(PlanLimitExceededException ex) {
-        return body(HttpStatus.FORBIDDEN, ex.getMessage(), null);
+        return body(HttpStatus.FORBIDDEN, codeFor(ex), ex.getMessage(), null);
     }
 
     /** Destructive settings op aimed at the shared demo account. */
     @ExceptionHandler(ProtectedAccountException.class)
     public ResponseEntity<Map<String, Object>> handleProtectedAccount(ProtectedAccountException ex) {
-        return body(HttpStatus.FORBIDDEN, ex.getMessage(), null);
+        return body(HttpStatus.FORBIDDEN, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(MediaKitNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleMediaKitNotFound(MediaKitNotFoundException ex) {
-        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+        return body(HttpStatus.NOT_FOUND, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(InvalidDemographicsException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidDemographics(InvalidDemographicsException ex) {
-        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(InvalidWebhookSignatureException.class)
     public ResponseEntity<Map<String, Object>> handleBadWebhookSignature(InvalidWebhookSignatureException ex) {
-        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(BillingNotConfiguredException.class)
     public ResponseEntity<Map<String, Object>> handleBillingNotConfigured(BillingNotConfiguredException ex) {
-        return body(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null);
+        return body(HttpStatus.SERVICE_UNAVAILABLE, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(DemoUpgradeDisabledException.class)
     public ResponseEntity<Map<String, Object>> handleDemoUpgradeDisabled(DemoUpgradeDisabledException ex) {
-        return body(HttpStatus.FORBIDDEN, ex.getMessage(), null);
+        return body(HttpStatus.FORBIDDEN, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(AlreadyProException.class)
     public ResponseEntity<Map<String, Object>> handleAlreadyPro(AlreadyProException ex) {
-        return body(HttpStatus.CONFLICT, ex.getMessage(), null);
+        return body(HttpStatus.CONFLICT, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(CollaborationNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleCollabNotFound(CollaborationNotFoundException ex) {
-        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+        return body(HttpStatus.NOT_FOUND, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(RateCardItemNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleRateCardItemNotFound(RateCardItemNotFoundException ex) {
-        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+        return body(HttpStatus.NOT_FOUND, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(LeadNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleLeadNotFound(LeadNotFoundException ex) {
-        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+        return body(HttpStatus.NOT_FOUND, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(DomainNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleDomainNotFound(DomainNotFoundException ex) {
-        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+        return body(HttpStatus.NOT_FOUND, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(DomainAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> handleDomainExists(DomainAlreadyExistsException ex) {
-        return body(HttpStatus.CONFLICT, ex.getMessage(), null);
+        return body(HttpStatus.CONFLICT, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(InvalidDomainException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidDomain(InvalidDomainException ex) {
-        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(VersionNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleVersionNotFound(VersionNotFoundException ex) {
-        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+        return body(HttpStatus.NOT_FOUND, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(VersionNotVisibleException.class)
     public ResponseEntity<Map<String, Object>> handleVersionNotVisible(VersionNotVisibleException ex) {
-        return body(HttpStatus.FORBIDDEN, ex.getMessage(), null);
+        return body(HttpStatus.FORBIDDEN, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(InvalidKitPasswordException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidKitPassword(InvalidKitPasswordException ex) {
-        return body(HttpStatus.UNAUTHORIZED, ex.getMessage(), null);
+        return body(HttpStatus.UNAUTHORIZED, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(TooManyUnlockAttemptsException.class)
     public ResponseEntity<Map<String, Object>> handleTooManyUnlock(TooManyUnlockAttemptsException ex) {
-        return body(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), null);
+        return body(HttpStatus.TOO_MANY_REQUESTS, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(SyncNotConfiguredException.class)
     public ResponseEntity<Map<String, Object>> handleSyncNotConfigured(SyncNotConfiguredException ex) {
-        return body(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null);
+        return body(HttpStatus.SERVICE_UNAVAILABLE, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(SyncSourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleSyncSourceNotFound(SyncSourceNotFoundException ex) {
-        return body(HttpStatus.NOT_FOUND, ex.getMessage(), null);
+        return body(HttpStatus.NOT_FOUND, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(ExternalAccountNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleExternalAccountNotFound(ExternalAccountNotFoundException ex) {
-        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(SyncUpstreamException.class)
     public ResponseEntity<Map<String, Object>> handleSyncUpstream(SyncUpstreamException ex) {
-        return body(HttpStatus.BAD_GATEWAY, ex.getMessage(), null);
+        return body(HttpStatus.BAD_GATEWAY, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(SyncCooldownException.class)
     public ResponseEntity<Map<String, Object>> handleSyncCooldown(SyncCooldownException ex) {
-        return body(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), null);
+        return body(HttpStatus.TOO_MANY_REQUESTS, codeFor(ex), ex.getMessage(), null);
     }
 
     /**
@@ -214,9 +214,34 @@ public class ApiExceptionHandler {
         return body(HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason(), null);
     }
 
+    /** ExampleNotFoundException -> EXAMPLE_NOT_FOUND. */
+    static String codeFor(Throwable ex) {
+        String name = ex.getClass().getSimpleName().replaceAll("Exception$", "");
+        return name.replaceAll("(?<=[a-z0-9])(?=[A-Z])", "_").toUpperCase(java.util.Locale.ROOT);
+    }
+
+    /**
+     * Adds a stable machine code beside the human message so the frontend can
+     * translate without the backend having to know a presentation language.
+     *
+     * <p>The code is derived from the exception class name rather than written
+     * out per handler: a new exception gets one automatically, and there is no
+     * second list to keep in step. Renaming a class would change its code, so
+     * the ones the frontend actually translates are pinned by
+     * ApiErrorCodeTest. Anything the client does not recognise falls back to
+     * the message below, which is why this stays additive.
+     */
     private ResponseEntity<Map<String, Object>> body(HttpStatus status, String message, Object details) {
+        return body(status, null, message, details);
+    }
+
+    private ResponseEntity<Map<String, Object>> body(HttpStatus status, String code,
+                                                     String message, Object details) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("status", status.value());
+        if (code != null) {
+            payload.put("code", code);
+        }
         payload.put("error", message);
         if (details != null) {
             payload.put("details", details);

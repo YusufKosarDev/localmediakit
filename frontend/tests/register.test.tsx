@@ -8,7 +8,7 @@ import RegisterPage from "@/app/register/page";
 // mapping.
 describe("RegisterPage error mapping", () => {
   async function fillAndSubmit() {
-    await userEvent.type(screen.getByLabelText("Ad"), "Ayse");
+    await userEvent.type(screen.getByLabelText("Gorunen ad"), "Ayse");
     await userEvent.type(screen.getByLabelText("Email"), "ayse@ornek.com");
     await userEvent.type(screen.getByLabelText("Sifre"), "sifre123");
     await userEvent.click(screen.getByRole("button", { name: "Kayit ol" }));
@@ -29,7 +29,7 @@ describe("RegisterPage error mapping", () => {
     render(<RegisterPage />);
     await fillAndSubmit();
 
-    expect(await screen.findByText(/Gecersiz bilgi/)).toBeInTheDocument();
-    expect(screen.queryByText("Kayit basarisiz.")).not.toBeInTheDocument();
+    expect(await screen.findByText(/Bilgileri kontrol edin/)).toBeInTheDocument();
+    expect(screen.queryByText("Kayit olusturulamadi.")).not.toBeInTheDocument();
   });
 });

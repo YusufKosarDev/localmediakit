@@ -3,6 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button, Card, Input, Label } from "@/app/_components/ui";
+import { LocaleSwitch } from "@/app/_components/LocaleSwitch";
+import { translator } from "@/app/_i18n";
+import { appDict } from "@/app/_i18n/app";
+import { useStoredLocale } from "@/app/_i18n/useLocale";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
@@ -12,6 +16,8 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [locale, setLocale] = useStoredLocale();
+  const t = translator(appDict, locale);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,26 +30,26 @@ export default function RegisterPage() {
         body: JSON.stringify({ email, password, displayName }),
       });
       if (res.status === 409) {
-        setError("Bu email zaten kayitli.");
+        setError(t("registerEmailTaken"));
         return;
       }
       if (res.status === 400) {
-        setError("Gecersiz bilgi (sifre en az 8 karakter, gecerli email).");
+        setError(t("registerInvalid"));
         return;
       }
       if (res.status === 429) {
-        setError("Cok fazla deneme. Lutfen biraz bekleyin.");
+        setError(t("loginThrottled"));
         return;
       }
       if (!res.ok) {
-        setError("Kayit basarisiz.");
+        setError(t("registerFailed"));
         return;
       }
       const data = await res.json();
       localStorage.setItem("token", data.token);
       window.location.href = "/dashboard";
     } catch {
-      setError("Sunucuya ulasilamadi.");
+      setError(t("loginUnreachable"));
     } finally {
       setBusy(false);
     }
@@ -59,28 +65,32 @@ export default function RegisterPage() {
           <span className="font-semibold tracking-tight">LocalMediaKit</span>
         </Link>
 
+        <div className="mb-4 flex justify-center">
+          <LocaleSwitch locale={locale} onChange={setLocale} label={t("langLabel")} />
+        </div>
+
         <Card className="p-6">
-          <h1 className="text-xl font-semibold tracking-tight">Hesap olustur</h1>
-          <p className="mt-1 text-sm text-muted">Ilk medya kitinizi dakikalar icinde yayinlayin.</p>
+          <h1 className="text-xl font-semibold tracking-tight">{t("registerTitle")}</h1>
+          <p className="mt-1 text-sm text-muted">{t("registerSubtitle")}</p>
 
           <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="name">Ad</Label>
-              <Input id="name" placeholder="Adiniz" value={displayName}
+              <Label htmlFor="name">{t("registerName")}</Label>
+              <Input id="name" placeholder="" value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)} required />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("loginEmail")}</Label>
               <Input id="email" type="email" placeholder="siz@ornek.com" value={email}
                 onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="password">Sifre</Label>
-              <Input id="password" type="password" placeholder="En az 8 karakter" value={password}
+              <Label htmlFor="password">{t("loginPassword")}</Label>
+              <Input id="password" type="password" placeholder={t("registerPasswordHint")} value={password}
                 onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" disabled={busy} className="w-full">
-              {busy ? "..." : "Kayit ol"}
+              {busy ? t("busy") : t("registerSubmit")}
             </Button>
           </form>
 
@@ -88,9 +98,9 @@ export default function RegisterPage() {
         </Card>
 
         <p className="mt-4 text-center text-sm text-muted">
-          Zaten hesabin var mi?{" "}
+          {t("registerHaveAccount")}{" "}
           <Link href="/login" className="font-medium text-brand hover:underline">
-            Giris yap
+            {t("registerSignIn")}
           </Link>
         </p>
       </div>

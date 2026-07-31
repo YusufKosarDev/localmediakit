@@ -13,6 +13,8 @@ import { InstallPrompt } from "@/app/_components/InstallPrompt";
 import { KitCard } from "./_KitCard";
 import { BACKEND, authHeaders, errorMessage, get, post } from "./_lib/api";
 import type { Feedback, Kit, Me, Tab } from "./_lib/types";
+import { normalizeLocale } from "@/app/_i18n";
+import { rememberLocale } from "@/app/_i18n/useLocale";
 
 const DEMO_EMAIL = "demo@localmediakit.app";
 const emptyCreateForm = {
@@ -87,6 +89,13 @@ export default function DashboardPage() {
       })
       .catch(() => setError("Oturum gecersiz veya suresi dolmus."));
   }, [loadKits, loadOnboarding]);
+
+  // The account locale drives the dashboard, and is mirrored into storage so
+  // signing out (or visiting the landing page later) keeps the same language.
+  const locale = normalizeLocale(me?.locale);
+  useEffect(() => {
+    if (me) rememberLocale(me.locale);
+  }, [me]);
 
   // Account-level appearance preference, applied to the dashboard only. The
   // public media-kit page stamps its own per-kit theme on an inner scope, so a
@@ -332,7 +341,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Only renders if the browser judged the app installable. */}
-        <InstallPrompt />
+        <InstallPrompt locale={locale} />
       </main>
     </div>
   );
