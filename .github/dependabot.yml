@@ -1,16 +1,59 @@
 version: 2
+
+# Grouping is the point of this file. Ungrouped, a weekly run opened five
+# separate frontend proposals, and two of them could not be merged on their
+# own: react moved without react-dom (the test suite refuses mismatched
+# versions), and the three jjwt artifacts arrived as three proposals for what
+# is really one library. Routine minor and patch bumps are noise individually
+# and safe together, so they come as one pull request per ecosystem; majors
+# stay separate, because those are the ones that need reading.
 updates:
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      # React and its DOM renderer must have the exact same version, and the
+      # type packages are only useful when they match. One proposal, always.
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      frontend-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # @types/node describes the runtime, so it follows the Node version the
+      # workflows install rather than the newest release. Bumping it on its
+      # own would let code compile against APIs the runtime does not have.
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
+
   - package-ecosystem: "maven"
     directory: "/backend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      backend-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"
