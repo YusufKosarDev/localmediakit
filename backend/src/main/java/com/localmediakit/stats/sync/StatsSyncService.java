@@ -118,12 +118,31 @@ public class StatsSyncService {
         MediaKit kit = access.requireOwnedKit(userEmail, kitId);
         StatsSource source = sourceRepository.findByMediaKitIdAndPlatform(kit.getId(), platform)
                 .orElseThrow(SyncSourceNotFoundException::new);
-        if (source.getLastSyncedAt() != null
-                && source.getLastSyncedAt().isAfter(Instant.now().minus(manualCooldown))) {
+        if (isWithinCooldown(source)) {
             throw new SyncCooldownException();
         }
         syncSource(source);
         return SyncSourceResponse.from(source);
+    }
+
+    /**
+     * Whether a manual sync is still throttled.
+     *
+     * <p>A zero cooldown means "no cooldown", and has to be spelled out rather
+     * than left to arithmetic. Subtracting Duration.ZERO reduces the comparison
+     * to {@code lastSyncedAt.isAfter(now)}, which is a window of no width: the
+     * outcome then depends on nothing but clock resolution and how the timestamp
+     * happened to be rounded on its way through the database. That is not a
+     * throttle, it is a coin flip — and it made the manual-sync test fail
+     * roughly one full run in two, which is exactly the kind of failure people
+     * learn to re-run instead of read.
+     */
+    private boolean isWithinCooldown(StatsSource source) {
+        if (manualCooldown.isZero() || manualCooldown.isNegative()) {
+            return false;
+        }
+        return source.getLastSyncedAt() != null
+                && source.getLastSyncedAt().isAfter(Instant.now().minus(manualCooldown));
     }
 
     // --- scheduled batch ---
