@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -17,10 +17,10 @@
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^15.5.20",
+    "eslint-config-next": "^16.2.12",
     "geist": "^1.7.2",
     "lucide-react": "^1.25.0",
-    "next": "^15.5.20",
+    "next": "^16.2.12",
     "postcss": "^8.5.20",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -28,7 +28,6 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.6",
     "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
