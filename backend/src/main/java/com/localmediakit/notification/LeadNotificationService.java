@@ -59,7 +59,11 @@ public class LeadNotificationService {
                                    UserRepository userRepository,
                                    MailSender mailSender,
                                    TransactionTemplate transactionTemplate,
-                                   @Value("${app.frontend-url:https://localmediakit.vercel.app}") String frontendUrl,
+                                   // No inline default: the property is defined in
+                                   // application.yml for every profile, and a missing
+                                   // one should stop startup rather than quietly send
+                                   // creators a link to somebody else's idea of home.
+                                   @Value("${app.frontend-url}") String frontendUrl,
                                    @Value("${app.notifications.hourly-cap:12}") int hourlyCap,
                                    @Value("${app.notifications.batch-size:20}") int batchSize) {
         this.notificationRepository = notificationRepository;

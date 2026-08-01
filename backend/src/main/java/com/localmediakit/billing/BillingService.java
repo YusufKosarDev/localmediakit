@@ -52,7 +52,7 @@ public class BillingService {
                           @Value("${app.stripe.secret-key}") String secretKey,
                           @Value("${app.stripe.webhook-secret}") String webhookSecret,
                           @Value("${app.stripe.price-id}") String priceId,
-                          @Value("${app.billing.frontend-url}") String frontendUrl) {
+                          @Value("${app.frontend-url}") String frontendUrl) {
         this.subscriptionRepository = subscriptionRepository;
         this.processedEventRepository = processedEventRepository;
         this.userRepository = userRepository;

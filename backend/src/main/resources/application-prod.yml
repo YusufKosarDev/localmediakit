@@ -21,3 +21,10 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+
+app:
+  # The deployed frontend. Overridden by FRONTEND_URL like everything else here;
+  # the fallback is spelled out because the default profile's is localhost, and
+  # a production instance that quietly emailed creators a localhost dashboard
+  # link would be worse than one that never started.
+  frontend-url: ${FRONTEND_URL:https://localmediakit.vercel.app}
