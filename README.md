@@ -18,11 +18,25 @@ olarak **yayinlar**. Marka bu sayfaya baktiginda uretici bunu analitikten gorur.
 
 ## Canli demo
 
+![Kayit ol, medya kiti olustur, yayinla, public sayfayi ac](docs/demo.gif)
+
+_Kayit → kit olusturma → istatistik → **Yayinla** → markanin gordugu public sayfa.
+Kayit `frontend/demo/record.spec.ts` ile gercek yigina karsi uretilir
+(`pnpm run demo:record`); montaj yok, hizlandirma yok._
+
 - **Uygulama:** https://localmediakit.vercel.app
-- **Ornek public sayfa (edge-cached):** https://localmediakit.vercel.app/demo
+- **Ornek public sayfa (edge-cached):** https://localmediakit.vercel.app/ornek-medya-kiti
 - **Panoyu gezmek icin:** `/login` → **"Demo olarak gez"** (dolu bir PRO hesabi;
   her gece sifirlanir). Kimlik: `demo@localmediakit.app` / `demo1234`.
 - **API dokumantasyonu (Swagger):** https://localmediakit.onrender.com/swagger-ui.html
+
+> Backend Render'in ucretsiz katmaninda; 15 dakika istek almazsa uykuya gecer ve
+> ilk istek ~50-60 saniye surer. **Public sayfa bundan etkilenmez** — edge'den
+> statik gelir. Panoya girerken ilk yanit gecikirse sebebi budur.
+
+| Pano (write path) | Public sayfa (read path) |
+| --- | --- |
+| ![Pano](docs/dashboard.png) | ![Public sayfa](docs/public-page.png) |
 
 ## Mimarinin kalbi: write-path / read-path ayrimi
 
