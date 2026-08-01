@@ -91,7 +91,7 @@
         <dependency>
             <groupId>com.stripe</groupId>
             <artifactId>stripe-java</artifactId>
-            <version>29.2.0</version>
+            <version>33.1.1</version>
         </dependency>
 
         <!-- In-memory token-bucket rate limiting (auth, beacon, unlock). -->
