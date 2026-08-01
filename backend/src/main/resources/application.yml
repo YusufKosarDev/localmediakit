@@ -60,6 +60,11 @@ management:
       enabled: false
 
 app:
+  # The "local-dev-" prefix on the secrets below is load-bearing, not decorative:
+  # ProductionSecretsCheck refuses to start the prod profile while any of them
+  # still carries it. Keep the prefix on every new development default, and never
+  # commit a real value here.
+  #
   # Frontend on-demand revalidation target. Overridden by env vars in every real
   # environment; the secret must NEVER be committed with a real value.
   revalidate:

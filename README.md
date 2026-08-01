@@ -332,3 +332,13 @@ frontend/ Next.js App Router
 
 `.env` / `.env.local` repoya girmez (bkz. `.gitignore`); ornekler `*.env.example`.
 Stripe/JWT/analitik salt gibi tum secret'lar yalnizca ortam degiskenlerinde tutulur.
+
+Repodaki calisan varsayilanlarin keskin bir kenari var: bir ortam degiskeni
+uretimde eksik kalirsa hicbir sey patlamaz, uygulama ayaga kalkar ve oturum
+tokenlerini herkesin okuyabilecegi bir sirla imzalar. Bu yuzden **eksik secret
+bir kesinti olmali, sessiz bir dusus degil**: `ProductionSecretsCheck` prod
+profilinde JWT/revalidate secret'i ile analitik salt'ini kontrol eder ve
+herhangi biri hala gelistirme varsayilanindaysa uygulamayi baslatmaz. Kontrol
+bilinen degerlerin listesi degil, bir isarettir — her gelistirme varsayilani
+`local-dev-` onekini tasir, kural da oneki reddeder; sonradan eklenen bir secret
+korumayi yalnizca kurala uyarak devralir.
