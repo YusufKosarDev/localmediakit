@@ -62,7 +62,7 @@ export default defineConfig({
       env: { REVALIDATE_URL: `${FRONTEND_URL}/api/revalidate` },
     },
     {
-      command: "npm run start",
+      command: "pnpm run start",
       url: FRONTEND_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

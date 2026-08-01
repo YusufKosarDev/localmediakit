@@ -145,6 +145,16 @@ flowchart LR
   SMTP uzerinden. Aday saglayicilarin hepsi (Brevo, SendGrid, Resend, Mailgun)
   SMTP konusuyor, dolayisiyla saglayici degistirmek yalnizca ortam degiskeni
   degisikligi. Host/gonderen bos birakilirsa ozellik sessizce kapali kalir.
+- **pnpm, npm degil — platformlar arasi lockfile** — bu sorun uc kez tekrarladi
+  (55f9c77, Adim 21, Adim 24). Windows'ta lockfile'i yeniden yazan hicbir npm
+  komutu, Linux'un ihtiyac duydugu `@emnapi/*` opsiyonel paketlerini korumuyor:
+  bunlar `cpu: ["wasm32"]` olan WASM yedek paketlerinin cocuklari, yerel platform
+  onlari cozmeyince npm buduyor, Linux'ta `npm ci` ise ariyor. npm'de bunun
+  karsiligi bir ozellik yok — `--os`/`--cpu` yalnizca kurulumu filtreler, lock
+  uretimini tamamlamaz. pnpm'in `supportedArchitectures` alani tam da bunun icin
+  var: lock hangi platformda uretilirse uretilsin, listelenen tum platformlarin
+  opsiyonel bagimliliklarini icerir. Her seferinde elle onarim yerine yapisal
+  cozum.
 - **Service worker public snapshot'lara dokunamaz** — yayinlanmis kitler edge'de
   cache'lenen ve publish ile degisen anlik goruntuler. Bir service worker bu
   mekanizmanin onunde durur: cache'ledigi seyi tarayicidan servis eder ve hicbir
@@ -257,9 +267,9 @@ mvn spring-boot:run          # H2 in-memory, sifir kurulum; http://localhost:808
 Frontend:
 ```
 cd frontend
-npm install
+pnpm install                 # corepack pnpm'i saglar (packageManager alani)
 cp .env.example .env.local   # BACKEND_URL + REVALIDATE_SECRET + NEXT_PUBLIC_BACKEND_URL
-npm run build && npm run start
+pnpm build && pnpm start
 ```
 
 `http://localhost:3000` acilir; kayit olup dashboard'dan kit olusturup yayinlayin,
@@ -272,7 +282,7 @@ cd backend && mvn test       # 129 test: slug, snapshot, engagement, analitik,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, ...
 
-cd frontend && npm test      # 12 test (Vitest + Testing Library): public sayfa
+cd frontend && pnpm test     # 90 test (Vitest + Testing Library): public sayfa
                              # snapshot render'i (istatistik/rozet/preview/eski
                              # snapshot), sifre gate, auth hata eslemesi
 ```
