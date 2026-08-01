@@ -5,8 +5,13 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * Central place for plan-based limits. Today everyone is on FREE; when paid
- * plans are enabled, only this class changes.
+ * Central place for plan-based limits.
+ *
+ * <p>The product is free, so new accounts start on PRO (see V15) and none of
+ * these limits fires in practice. The distinction is kept rather than deleted:
+ * the tests exercise both branches, so the gating stays honest, and re-enabling
+ * paid plans is a change to the {@code User} default rather than a feature to
+ * write again from scratch.
  */
 @Component
 public class PlanPolicy {

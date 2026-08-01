@@ -291,14 +291,16 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 129 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 209 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
-                             # DNS durum makinesi, rate limit, ...
+                             # DNS durum makinesi, rate limit, senkron cooldown,
+                             # prod secret kontrolu, mimari kurallar (ArchUnit), ...
 
-cd frontend && pnpm test     # 90 test (Vitest + Testing Library): public sayfa
+cd frontend && pnpm test     # 94 test (Vitest + Testing Library): public sayfa
                              # snapshot render'i (istatistik/rozet/preview/eski
-                             # snapshot), sifre gate, auth hata eslemesi
+                             # snapshot), sifre gate, auth hata eslemesi,
+                             # JSON-LD kacisi, palet kontrasti, service worker
 ```
 
 Her ikisi de her push'ta CI'da kosar (bkz. yukaridaki CI rozeti).
