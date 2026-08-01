@@ -60,6 +60,12 @@ management:
       enabled: false
 
 app:
+  # Absolute base for every link this backend hands out: the dashboard link in a
+  # lead notification email and the Stripe return URLs. One property, because
+  # both are the same fact — when it lived in two places (app.frontend-url and
+  # app.billing.frontend-url) only one of them was ever defined, and the reader
+  # of the other silently fell back to a hard-coded default. No trailing slash.
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
   # The "local-dev-" prefix on the secrets below is load-bearing, not decorative:
   # ProductionSecretsCheck refuses to start the prod profile while any of them
   # still carries it. Keep the prefix on every new development default, and never
@@ -141,6 +147,3 @@ app:
     secret-key: ${STRIPE_SECRET_KEY:sk_test_dummy}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_test_dummy}
     price-id: ${STRIPE_PRICE_ID:price_dummy}
-  billing:
-    # Where Stripe sends the visitor back after hosted Checkout.
-    frontend-url: ${FRONTEND_URL:http://localhost:3000}
