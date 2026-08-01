@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import KitCard from "./KitCard";
 import PasswordGate from "./PasswordGate";
 import { getKit } from "./kit-data";
+import { serializeJsonLd } from "./json-ld";
 
 // On-demand ISR only: the page is generated on first visit, cached at the edge,
 // and re-generated ONLY when the backend triggers revalidateTag("kit-<slug>")
@@ -108,7 +109,7 @@ export default async function KitPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <KitCard kit={kit} />
     </>
