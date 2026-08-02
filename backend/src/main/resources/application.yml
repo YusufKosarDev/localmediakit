@@ -97,6 +97,17 @@ app:
     # Salts the anonymous visitor fingerprint (sha256 of ip|ua|day|salt).
     # Override with a real value in production so hashes are not guessable.
     salt: ${ANALYTICS_SALT:local-dev-analytics-salt}
+    # How long individual view rows are kept before they are folded into one
+    # row per kit per day. Lifetime totals are unaffected (they read the rollup
+    # plus the window); the referrer and device breakdowns become "this window"
+    # rather than "all time", which is the deliberate cost of not storing every
+    # visit forever. 90 days is well past the point anyone acts on a referrer.
+    retention-days: ${ANALYTICS_RETENTION_DAYS:90}
+    retention-batch-size: ${ANALYTICS_RETENTION_BATCH_SIZE:200}
+    # Views age into eligibility a day at a time, so an hourly pass would spend
+    # most of its runs finding nothing.
+    retention-job-interval-ms: ${ANALYTICS_RETENTION_JOB_INTERVAL_MS:21600000}
+    retention-job-initial-delay-ms: ${ANALYTICS_RETENTION_JOB_INITIAL_DELAY_MS:120000}
   ratelimit:
     # In-memory token buckets per client IP (per minute). Disabled in tests.
     enabled: ${RATELIMIT_ENABLED:true}

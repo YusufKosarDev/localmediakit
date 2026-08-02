@@ -1,10 +1,12 @@
 package com.localmediakit.analytics;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 public interface PageViewRepository extends JpaRepository<PageView, Long> {
@@ -46,4 +48,32 @@ public interface PageViewRepository extends JpaRepository<PageView, Long> {
             where media_kit_id = :kitId
             group by coalesce(device, 'UNKNOWN')""", nativeQuery = true)
     List<Object[]> deviceBreakdown(@Param("kitId") Long kitId);
+
+    /**
+     * Retention scan: [kit id, day, views, unique visitors] for everything older
+     * than the cutoff, oldest first, bounded so one run cannot try to fold years
+     * of history in a single pass.
+     *
+     * <p>The cutoff is expected to be midnight-aligned, which is what lets the
+     * delete below take a whole day: an unaligned one would leave part of a day
+     * uncounted and delete it anyway.
+     */
+    @Query(value = """
+            select media_kit_id,
+                   cast(viewed_at as date) as view_day,
+                   count(*) as views,
+                   count(distinct visitor_hash) as uniques
+            from page_views
+            where viewed_at < :cutoff
+            group by media_kit_id, cast(viewed_at as date)
+            order by view_day
+            limit :limit""", nativeQuery = true)
+    List<Object[]> bucketsOlderThan(@Param("cutoff") Instant cutoff, @Param("limit") int limit);
+
+    /** Drops the raw rows a rolled-up day was computed from. */
+    @Modifying
+    @Query(value = """
+            delete from page_views
+            where media_kit_id = :kitId and cast(viewed_at as date) = :day""", nativeQuery = true)
+    int deleteForKitOnDay(@Param("kitId") Long kitId, @Param("day") LocalDate day);
 }
