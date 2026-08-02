@@ -1,7 +1,10 @@
 package com.localmediakit.user;
 
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,15 +32,36 @@ public class MeController {
 
     private final AccountService accountService;
     private final OnboardingService onboardingService;
+    private final AccountExportService accountExportService;
 
-    public MeController(AccountService accountService, OnboardingService onboardingService) {
+    public MeController(AccountService accountService,
+                        OnboardingService onboardingService,
+                        AccountExportService accountExportService) {
         this.accountService = accountService;
         this.onboardingService = onboardingService;
+        this.accountExportService = accountExportService;
     }
 
     @GetMapping
     public MeResponse me(Authentication authentication) {
         return accountService.me(email(authentication));
+    }
+
+    /**
+     * Everything this account owns, as one file.
+     *
+     * <p>No extra proof beyond the session: the same session can already read
+     * all of it endpoint by endpoint, so demanding a password here would be
+     * ceremony rather than a control. It is throttled with the other account
+     * operations, because convenience is exactly what it adds -- one request
+     * instead of dozens.
+     */
+    @GetMapping(value = "/export", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<AccountExport> export(Authentication authentication) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"localmediakit-export.json\"")
+                .body(accountExportService.export(email(authentication)));
     }
 
     @PutMapping

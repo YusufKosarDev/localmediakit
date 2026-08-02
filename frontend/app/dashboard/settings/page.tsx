@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Trash2, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Download, Trash2, ShieldAlert } from "lucide-react";
 import { Button, Card, Input, Label, Select } from "@/app/_components/ui";
 import { normalizeLocale, translator } from "@/app/_i18n";
 import { dashboardDict } from "@/app/_i18n/dashboard";
@@ -61,6 +61,7 @@ export default function SettingsPage() {
   const [del, setDel] = useState({ currentPassword: "", confirmation: "" });
   const [delErr, setDelErr] = useState("");
   const [delBusy, setDelBusy] = useState(false);
+  const [exportErr, setExportErr] = useState("");
 
   // Driven by the saved profile so the page switches language the moment the
   // picker below is saved, without a reload.
@@ -195,6 +196,29 @@ export default function SettingsPage() {
       setMailMsg({ ok: "", err: t("unreachable") });
     } finally {
       setMailBusy(false);
+    }
+  }
+
+  /**
+   * Fetched rather than linked: the endpoint needs the bearer token, which an
+   * anchor cannot send.
+   */
+  async function downloadExport() {
+    setExportErr("");
+    try {
+      const res = await fetch(`${BACKEND}/api/me/export`, { headers: authHeaders() });
+      if (!res.ok) {
+        setExportErr(await errorText(res, t("failedAccountExport")));
+        return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "localmediakit-export.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportErr(t("failedAccountExport"));
     }
   }
 
@@ -483,6 +507,20 @@ export default function SettingsPage() {
               {mailMsg.err && <span className="text-sm text-danger">{mailMsg.err}</span>}
             </div>
           </form>
+        </Card>
+
+        {/* ---------- Data export ---------- */}
+        <Card className="mt-6 p-6">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Download className="h-4 w-4" /> {t("accountExportTitle")}
+          </h2>
+          <p className="mt-1 text-sm text-muted">{t("accountExportHint")}</p>
+          <div className="mt-4 flex items-center gap-3">
+            <Button type="button" variant="secondary" onClick={downloadExport}>
+              {t("accountExportButton")}
+            </Button>
+            {exportErr && <span className="text-sm text-danger">{exportErr}</span>}
+          </div>
         </Card>
 
         {/* ---------- Danger zone ---------- */}

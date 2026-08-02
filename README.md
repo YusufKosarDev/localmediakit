@@ -214,6 +214,7 @@ flowchart LR
 - PDF export (temiz) + sifre korumasi
 - Custom domain (yakinda) — DNS dogrulama iskeleti
 - Sifremi unuttum — tek kullanimlik, 30 dk omurlu sifirlama linki
+- Hesap verisi disa aktarma (JSON) — ziyaretci kayitlari haric
 - Hesap ayarlari — profil (ad/avatar/pano temasi), sifre ve e-posta degistirme,
   hesap silme
 - Onboarding — karsilama turu + veriden turetilen baslangic kontrol listesi
@@ -295,7 +296,7 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 305 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 312 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, senkron cooldown,
