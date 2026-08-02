@@ -291,16 +291,19 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 209 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 263 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, senkron cooldown,
-                             # prod secret kontrolu, mimari kurallar (ArchUnit), ...
+                             # prod secret kontrolu, eszamanli yazma yarislari,
+                             # analitik retention, dolu DB migration testi,
+                             # N+1 koruma, mimari kurallar (ArchUnit), ...
 
-cd frontend && pnpm test     # 94 test (Vitest + Testing Library): public sayfa
+cd frontend && pnpm test     # 105 test (Vitest + Testing Library): public sayfa
                              # snapshot render'i (istatistik/rozet/preview/eski
                              # snapshot), sifre gate, auth hata eslemesi,
-                             # JSON-LD kacisi, palet kontrasti, service worker
+                             # JSON-LD kacisi, palet kontrasti, service worker,
+                             # guvenlik basliklari, sunucu-durumu hook'u
 ```
 
 Her ikisi de her push'ta CI'da kosar (bkz. yukaridaki CI rozeti).
@@ -344,6 +347,44 @@ herhangi biri hala gelistirme varsayilanindaysa uygulamayi baslatmaz. Kontrol
 bilinen degerlerin listesi degil, bir isarettir — her gelistirme varsayilani
 `local-dev-` onekini tasir, kural da oneki reddeder; sonradan eklenen bir secret
 korumayi yalnizca kurala uyarak devralir.
+
+## Olcek siniri: bu mimari nereye kadar gider
+
+Tek bir Render instance'i varsayimi kodun icinde uc yerde yasiyor ve **bunlarin
+ucu de bellekte**: Bucket4j rate-limit kovalari, sifre denemesi sayaci, ve dort
+zamanlanmis batch'in `ReentrancyGuard`'lari. Ikinci bir instance acildigi anda
+her biri sessizce yanlis calisir — limitler instance sayisi kadar carpilir,
+batch'ler ust uste calisir. Hicbiri patlamaz, hepsi yanlis sonuc verir; en
+tehlikeli bozulma bicimi bu.
+
+Degismesi gerekenler, sirasiyla:
+
+1. **Rate limit** → Redis destekli Bucket4j (arayuz zaten yerinde, `RateLimiterRegistry` degisir).
+2. **Overlap guard** → ShedLock ya da veritabani kilidi (`ReentrancyGuard` tek birim halinde tutulmasinin sebebi bu).
+3. **`UnlockRateLimiter`** → ayni sekilde paylasilan bir depoya.
+
+Degismesi gerekmeyenler: public sayfa (zaten edge'de, backend'e bagli degil),
+publish/snapshot yolu (transaction ve constraint'lerle korunuyor), outbox
+(satir bazli, birden fazla tuketici guvenli degil — 2. maddeye bagli).
+
+## Bilincli olarak yapilmayan iki sey
+
+**API versiyonlama (`/api/v1/...`) eklenmedi.** Versiyonlama, kontrolunuzde
+olmayan istemcilerin var oldugu anda deger uretir. Burada tek bir istemci var ve
+o da ayni repoda, ayni commit'te dagitiliyor — uclara bir onek eklemek her yolu
+degistirir, hicbir seyi cozmez. Kirilganligin gercekten bulundugu yerde zaten
+bir mekanizma var: `PUBLIC_SCHEMA_VERSION`, public payload'in sekli degistiginde
+Data Cache'i tazeler, cunku **orasi** deploy'lardan sagkalan ve eski sekli
+tutabilen tek yer. Disaridan bir istemci ciktigi gun versiyonlama da cikar.
+
+**Piksel bazli gorsel regresyon eklenmedi.** Baseline goruntuler uretildikleri
+platformun font rasterizasyonunu tasir; yerelde uretilip CI'da (Linux)
+karsilastirilan bir baseline **her zaman** kirmizi doner. Duzgun yapmanin yolu
+baseline'lari CI'da veya sabit bir konteynerde uretmek; yarim yapmanin yolu ise
+herkesin gormezden gelmeyi ogrendigi bir job. Dayanikli olan kisim zaten
+korunuyor: `palette.test.ts` renk token'larini sevk edilen CSS'ten yeniden
+hesapliyor, `security-headers.test.ts` basliklari, `axe` denetimi de
+erisilebilirlik regresyonlarini yakaliyor.
 
 ## Veri yasam dongusu
 
