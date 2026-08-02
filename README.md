@@ -207,6 +207,8 @@ flowchart LR
 - YouTube istatistik senkronu — elle "simdi senkronla" + gunluk otomatik
 - Marka iletisim formu + gelen kutusu (tum gecmis)
 - Analitik — tekil ziyaretci + gunluk seri + referrer/cihaz kirilimi
+- Markaya ozel paylasim linki — her marka icin etiketli bir link; kimin actigi
+  gorunur, iptal edilebilir
 - Versiyon gecmisi (tam) + her versiyona rollback + versiyon karsilastirma (diff)
 - PDF export (temiz) + sifre korumasi
 - Custom domain (yakinda) — DNS dogrulama iskeleti
@@ -291,7 +293,7 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 263 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 271 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, senkron cooldown,
@@ -347,6 +349,36 @@ herhangi biri hala gelistirme varsayilanindaysa uygulamayi baslatmaz. Kontrol
 bilinen degerlerin listesi degil, bir isarettir — her gelistirme varsayilani
 `local-dev-` onekini tasir, kural da oneki reddeder; sonradan eklenen bir secret
 korumayi yalnizca kurala uyarak devralir.
+
+## Markaya ozel link: anonimligi bozmadan "kim bakti"
+
+Urunun tezi bastan beri **"marka sayfaya baktiginda uretici bunu gorur"** idi,
+ama analitik yalnizca "3 goruntulenme" diyebiliyordu. Sebep tasarimin kendisiydi:
+ziyaretci kimligi gunluk donen anonim bir hash ve **oyle kalmasi gerekiyor.**
+
+Eksik yarim, ziyaretciden degil **ureticiden** geliyor: linki gonderirken zaten
+kime gonderdigini biliyor. Etiketi o yaziyor.
+
+- **Token bir sir degil, bir etiket.** Yayindaki sayfa zaten herkese acik;
+  token'li ya da token'siz ayni sayfa gelir. Token yalnizca goruntulenmenin
+  hangi sutuna yazilacagina karar verir. Erisim kontrolu gibi davranmak, tarayici
+  gecmisine ve referrer basligina dusen bir degere icerik baglamak olurdu.
+- **Sayfa statik kalir.** Token istemci tarafinda URL'den okunur ve dogrudan
+  beacon'a verilir; render edilen HTML'e hic girmez, dolayisiyla edge cache ve
+  `force-static` aynen korunur. Kisisellestirme ile edge cache arasindaki
+  gerginligin cozumu bu.
+- **Tanimadigi token'i reddetmez.** Bilinmeyen, iptal edilmis ya da baska bir
+  kite ait bir token, goruntulenmeyi **atifsiz** birakir — silmez. Bir dipnotu
+  korumak icin gercek ziyareti kaybetmek yanlis takas olurdu. Token her zaman
+  ziyaret edilen kite karsi cozulur, yani baskasinin token'i baskasinin
+  sayilarina yazamaz.
+- **Iptal edilir, silinmez.** Gecmisteki atiflar yerinde kalir: o ziyaretler
+  gercekten o linkten geldi, bunu sonradan yeniden yazmak kaydi kayitsizliktan
+  daha kotu hale getirirdi.
+
+Saklama penceresi burada da gecerli: retention ham satirlari gunluk ozete
+katladigi icin 90 gunden eski atiflar toplam sayilarda yasar ama link kiriliminda
+gorunmez — referrer/cihaz kirilimiyla ayni takas.
 
 ## Olcek siniri: bu mimari nereye kadar gider
 

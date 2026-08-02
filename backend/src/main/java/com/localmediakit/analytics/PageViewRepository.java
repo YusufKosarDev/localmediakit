@@ -50,6 +50,20 @@ public interface PageViewRepository extends JpaRepository<PageView, Long> {
     List<Object[]> deviceBreakdown(@Param("kitId") Long kitId);
 
     /**
+     * [share link id, views, unique visitors] for one kit, in one query.
+     *
+     * <p>One query rather than one per link: the per-link version is the same
+     * N+1 shape the kit list already had to be fixed for, and a creator with
+     * twenty brands would pay for it twenty times on every dashboard load.
+     */
+    @Query(value = """
+            select share_link_id, count(*), count(distinct visitor_hash)
+            from page_views
+            where media_kit_id = :kitId and share_link_id is not null
+            group by share_link_id""", nativeQuery = true)
+    List<Object[]> countsByShareLink(@Param("kitId") Long kitId);
+
+    /**
      * Retention scan: [kit id, day, views, unique visitors] for everything older
      * than the cutoff, oldest first, bounded so one run cannot try to fold years
      * of history in a single pass.

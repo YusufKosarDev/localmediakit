@@ -131,6 +131,22 @@ const dashboardStrings = {
   referrers: "Kaynaklar",
   devices: "Cihazlar",
 
+  /* ---- share links ---- */
+  shareLinksTitle: "Markaya ozel linkler",
+  shareLinksHint:
+    "Her marka icin ayri bir link uretin. Kim actiysa burada gorursunuz; ziyaretci hakkinda hicbir sey ogrenilmez, etiketi siz yazarsiniz.",
+  shareLinkLabelPlaceholder: "Marka adi",
+  shareLinkCreate: "Link uret",
+  shareLinkCopy: "Kopyala",
+  shareLinkCopied: "Link kopyalandi",
+  shareLinkRevoke: "Iptal et",
+  shareLinkRevoked: "iptal edildi",
+  shareLinkNone: "Henuz markaya ozel link yok.",
+  shareLinkOpened: "{views} acilis / {visitors} kisi",
+  shareLinkNeverOpened: "Henuz acilmadi",
+  failedCreateShareLink: "Link uretilemedi",
+  failedRevokeShareLink: "Link iptal edilemedi",
+
   /* ---- versions panel ---- */
   notPublishedYet: "Henuz yayinlanmamis.",
   live: "yayinda",
@@ -414,6 +430,21 @@ export const dashboardDict: Dict<Record<keyof DashboardStrings, string>> = {
     last30Days: "Last 30 days",
     referrers: "Sources",
     devices: "Devices",
+
+    shareLinksTitle: "Per-brand links",
+    shareLinksHint:
+      "Create a separate link for each brand. You'll see who opened it — nothing is learned about the visitor, the label is the one you wrote.",
+    shareLinkLabelPlaceholder: "Brand name",
+    shareLinkCreate: "Create link",
+    shareLinkCopy: "Copy",
+    shareLinkCopied: "Link copied",
+    shareLinkRevoke: "Revoke",
+    shareLinkRevoked: "revoked",
+    shareLinkNone: "No per-brand links yet.",
+    shareLinkOpened: "{views} opens / {visitors} people",
+    shareLinkNeverOpened: "Not opened yet",
+    failedCreateShareLink: "Couldn't create the link",
+    failedRevokeShareLink: "Couldn't revoke the link",
 
     notPublishedYet: "Not published yet.",
     live: "live",

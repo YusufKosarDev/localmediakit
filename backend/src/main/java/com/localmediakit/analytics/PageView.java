@@ -35,6 +35,14 @@ public class PageView {
     @Column(name = "viewed_at", nullable = false)
     private Instant viewedAt;
 
+    /**
+     * Which labelled share link this visit came through, if any. Null is the
+     * ordinary case -- a link pasted somewhere public, or one sent before the
+     * creator started labelling them -- and stays a perfectly good view.
+     */
+    @Column(name = "share_link_id")
+    private Long shareLinkId;
+
     protected PageView() {
         // for JPA
     }
@@ -53,6 +61,15 @@ public class PageView {
         this.referrer = referrer;
         this.device = device;
         this.viewedAt = viewedAt;
+    }
+
+    /** Set at ingestion when the beacon carried a token this kit recognises. */
+    public void attributeTo(Long shareLinkId) {
+        this.shareLinkId = shareLinkId;
+    }
+
+    public Long getShareLinkId() {
+        return shareLinkId;
     }
 
     public Long getId() {
