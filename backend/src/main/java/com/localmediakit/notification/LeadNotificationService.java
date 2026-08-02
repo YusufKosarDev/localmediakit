@@ -5,6 +5,7 @@ import com.localmediakit.lead.KitLead;
 import com.localmediakit.lead.KitLeadRepository;
 import com.localmediakit.mediakit.MediaKit;
 import com.localmediakit.mediakit.MediaKitRepository;
+import com.localmediakit.observability.OperationalMetrics;
 import com.localmediakit.shared.Locales;
 import com.localmediakit.user.User;
 import com.localmediakit.user.UserRepository;
@@ -44,6 +45,7 @@ public class LeadNotificationService {
     private final MediaKitRepository mediaKitRepository;
     private final UserRepository userRepository;
     private final MailSender mailSender;
+    private final OperationalMetrics metrics;
     private final TransactionTemplate transactionTemplate;
     private final String dashboardUrl;
     private final int hourlyCap;
@@ -58,6 +60,7 @@ public class LeadNotificationService {
                                    MediaKitRepository mediaKitRepository,
                                    UserRepository userRepository,
                                    MailSender mailSender,
+                                   OperationalMetrics metrics,
                                    TransactionTemplate transactionTemplate,
                                    // No inline default: the property is defined in
                                    // application.yml for every profile, and a missing
@@ -71,6 +74,7 @@ public class LeadNotificationService {
         this.mediaKitRepository = mediaKitRepository;
         this.userRepository = userRepository;
         this.mailSender = mailSender;
+        this.metrics = metrics;
         this.transactionTemplate = transactionTemplate;
         this.dashboardUrl = frontendUrl.replaceAll("/+$", "") + "/dashboard";
         this.hourlyCap = hourlyCap;
@@ -164,8 +168,18 @@ public class LeadNotificationService {
             mailSender.send(notification.getRecipientEmail(),
                     subjectFor(lead, locale), bodyFor(lead, kitTitle, locale));
             notification.markSent();
+            metrics.leadNotificationSent();
         } catch (MailDeliveryException e) {
             notification.markAttemptFailed(e.getMessage());
+            if (notification.getStatus() == NotificationStatus.FAILED) {
+                // Terminal: the retry budget is gone. A creator will not be told
+                // a brand contacted them, and until this was counted the only
+                // trace was a column nobody queried. The lead itself is safe in
+                // the inbox, so this is lost promptness, not lost data.
+                metrics.leadNotificationFailed();
+                log.error("Lead notification {} gave up after {} attempts: {}",
+                        notificationId, notification.getAttempts(), e.getMessage());
+            }
         }
     }
 

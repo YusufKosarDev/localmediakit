@@ -3,6 +3,7 @@ package com.localmediakit.mediakit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.localmediakit.collab.CollaborationService;
+import com.localmediakit.observability.OperationalMetrics;
 import com.localmediakit.ratecard.RateCardService;
 import com.localmediakit.stats.DemographicsService;
 import com.localmediakit.stats.StatsService;
@@ -39,6 +40,7 @@ public class MediaKitPublicationService {
     private final PlanPolicy planPolicy;
     private final PasswordEncoder passwordEncoder;
     private final UnlockRateLimiter unlockRateLimiter;
+    private final OperationalMetrics metrics;
 
     public MediaKitPublicationService(MediaKitAccess access,
                                       MediaKitRepository mediaKitRepository,
@@ -52,7 +54,8 @@ public class MediaKitPublicationService {
                                       RateCardService rateCardService,
                                       PlanPolicy planPolicy,
                                       PasswordEncoder passwordEncoder,
-                                      UnlockRateLimiter unlockRateLimiter) {
+                                      UnlockRateLimiter unlockRateLimiter,
+                                      OperationalMetrics metrics) {
         this.access = access;
         this.mediaKitRepository = mediaKitRepository;
         this.versionRepository = versionRepository;
@@ -66,6 +69,7 @@ public class MediaKitPublicationService {
         this.planPolicy = planPolicy;
         this.passwordEncoder = passwordEncoder;
         this.unlockRateLimiter = unlockRateLimiter;
+        this.metrics = metrics;
     }
 
     /** Freezes the current draft into a new immutable version and makes it the live one. */
@@ -216,6 +220,7 @@ public class MediaKitPublicationService {
     }
 
     private PublishResponse revalidateAndRespond(Activation result) {
+        metrics.publishCompleted();
         int lastStatus = -1;
         for (String slug : result.slugsToRevalidate()) {
             int status = revalidationClient.revalidate(slug);

@@ -49,7 +49,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        # health is public (the platform's uptime check calls it). prometheus is
+        # NOT: SecurityConfig permits only /actuator/health, so scraping needs a
+        # session token. That is the safe default rather than the convenient one
+        # — an open metrics endpoint tells a stranger how much this service is
+        # used and when it is failing. A real deployment would move the
+        # management endpoints to their own port (management.server.port) and
+        # leave that port off the public interface entirely.
+        include: health,prometheus
   health:
     mail:
       # Adding the mail starter auto-registers a health indicator that opens an

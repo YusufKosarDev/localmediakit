@@ -344,3 +344,38 @@ herhangi biri hala gelistirme varsayilanindaysa uygulamayi baslatmaz. Kontrol
 bilinen degerlerin listesi degil, bir isarettir — her gelistirme varsayilani
 `local-dev-` onekini tasir, kural da oneki reddeder; sonradan eklenen bir secret
 korumayi yalnizca kurala uyarak devralir.
+
+## Isletme: sessiz basarisizliklarin gorunur olmasi
+
+Bu sistemdeki bazi hatalar **bilerek olumcul degil**: edge'e ulasmayan bir
+revalidation, mail saglayicisinin reddettigi bir lead bildirimi, kota bitince
+duran bir istatistik batch'i. Kararlarin hepsi dogru — hicbiri kullanicinin
+istegine ya da verisine mal olmamali — ama "ele alindi" bir sure boyunca
+sessizce "kimse bakmiyor" anlamina geliyordu: outbox satiri `FAILED` isaretleyip
+devam ediyordu, o satirlara bakan kimse yoktu.
+
+- **`OperationalMetrics`** — izlenmeye deger olaylar tek bir sinifta adlandirilir.
+  Bu sinifi okumak, sistemin neyi problem saydigini soyler; call-site'lara
+  serpistirilmis string literal'ler ise bir yazim hatasinda ikinci ve bos bir
+  zaman serisi uretir, duz kalan grafik ise "hic olmuyor"dan ayirt edilemez.
+  Sayaclar: publish, revalidation basarisizligi, lead bildirimi gonderildi/
+  vazgecildi, statsync kota ve kaynak hatasi.
+- **En yaniltici durum ozel olarak isaretlenir** — publish commit oldu, pano
+  basarili diyor, ama public sayfa hala onceki snapshot'i servis ediyor olabilir.
+  Artik `ERROR` seviyesinde loglanir ve sayilir.
+- **Request ID** — `RequestIdFilter` her istege bir kimlik verir, log deseninde
+  (`logback-spring.xml`) gorunur ve `X-Request-Id` olarak geri doner. Gelen deger
+  onurlandirilir (servis zinciri tek kimlik paylasir) ama **temizlenir**: bu deger
+  log satirina yazildigi icin sinirsiz, cagiran-kontrolunde bir string log
+  forging demektir. Filtre rate limit'in de onunde calisir, boylece reddedilen
+  429'lar da izlenebilir.
+- **Metrikler herkese acik degil.** `/actuator/health` public (platformun uptime
+  kontrolu icin), `/actuator/prometheus` degil — bir servisin ne kadar
+  kullanildigi ve ne zaman bozuldugu, tanimadigin birine verilecek bilgi degil.
+  Gercek bir dagitimda bunlar ayri bir porta (`management.server.port`) tasinir.
+
+Loglar JSON degil, duz metin. Structured logging'in bedeli onu **ayristiran bir
+sey oldugunda** karsiligini verir; burada henuz yok (Render'in log goruntuleyicisi
+bir arama kutusu). Spring Boot 3.4 bunu tek bir property'ye indiriyor, dolayisiyla
+bir log pipeline'i olustugu gun tek satirlik degisiklik — bugun encoder bagimliligi
+eklemek o gunu pesin odemek olurdu.
