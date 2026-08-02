@@ -18,8 +18,12 @@ import { defineConfig, devices } from "@playwright/test";
  * that caching does not exist, so the snapshot test would pass without
  * exercising the mechanism it claims to prove.
  */
-const BACKEND_URL = "http://localhost:8080";
-const FRONTEND_URL = "http://localhost:3000";
+// Overridable so the suite can run on a machine where something else already
+// holds one of these ports -- which is the normal case for anyone with more
+// than one project checked out. The defaults are what CI uses, so nothing
+// about that run changes.
+const BACKEND_URL = process.env.E2E_BACKEND_URL ?? "http://localhost:8080";
+const FRONTEND_URL = process.env.E2E_FRONTEND_URL ?? "http://localhost:3000";
 
 /** Matches the backend's own default, so nothing has to be configured. */
 const REVALIDATE_SECRET = "local-dev-secret";

@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Globe, RefreshCw } from "lucide-react";
 import { Badge, Button, Input } from "@/app/_components/ui";
 import { del, get, post } from "../_lib/api";
+import { useResource } from "../_lib/useResource";
 import { formatDateTime, type Locale } from "@/app/_i18n";
 import type { Domain, Feedback, Translate } from "../_lib/types";
 
@@ -15,28 +16,23 @@ function toneFor(status: string) {
 
 /** Custom-domain DNS verification. The feature itself is still "coming soon". */
 export function DomainPanel({ kitId, feedback, t, locale }: { kitId: number; feedback: Feedback; t: Translate; locale: Locale }) {
-  const [domains, setDomains] = useState<Domain[]>([]);
   const [input, setInput] = useState("");
-
-  const load = useCallback(async () => {
-    const data = await get<Domain[]>(`/api/mediakits/${kitId}/domains`);
-    if (data) {
-      setDomains(data);
-      setInput("");
-    }
-  }, [kitId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { data: domains, reload } = useResource<Domain[]>(
+    `domains-${kitId}`,
+    () => get<Domain[]>(`/api/mediakits/${kitId}/domains`),
+    []
+  );
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
     feedback.clear();
     const result = await post(`/api/mediakits/${kitId}/domains`, { domain: input }, t("failedAddDomain"), 201);
     if (result.ok) {
+      // Clearing the field belongs to submitting it, not to reloading the list.
+      // It used to live in the loader, so re-checking or removing a different
+      // domain wiped whatever the user had typed but not yet added.
       setInput("");
-      await load();
+      await reload();
     } else {
       feedback.fail(result.message);
     }
@@ -45,14 +41,14 @@ export function DomainPanel({ kitId, feedback, t, locale }: { kitId: number; fee
   async function check(domainId: number) {
     feedback.clear();
     const result = await post(`/api/mediakits/${kitId}/domains/${domainId}/check`, undefined, t("failedCheckDomain"));
-    if (result.ok) await load();
+    if (result.ok) await reload();
     else feedback.fail(result.message);
   }
 
   async function remove(domainId: number) {
     feedback.clear();
     const result = await del(`/api/mediakits/${kitId}/domains/${domainId}`);
-    if (result.ok) await load();
+    if (result.ok) await reload();
     else feedback.fail(result.message);
   }
 

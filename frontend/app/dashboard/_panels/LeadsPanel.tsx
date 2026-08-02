@@ -1,36 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Badge, Button } from "@/app/_components/ui";
 import { del, get, put } from "../_lib/api";
+import { useResource } from "../_lib/useResource";
 import { formatDateTime, type Locale } from "@/app/_i18n";
 import type { Feedback, Lead, Translate } from "../_lib/types";
 
 /** Brand enquiries that arrived through the public page's contact form. */
 export function LeadsPanel({ kitId, feedback, t, locale }: { kitId: number; feedback: Feedback; t: Translate; locale: Locale }) {
-  const [leads, setLeads] = useState<Lead[]>([]);
-
-  const load = useCallback(async () => {
-    const data = await get<Lead[]>(`/api/mediakits/${kitId}/leads`);
-    if (data) setLeads(data);
-  }, [kitId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { data: leads, reload } = useResource<Lead[]>(
+    `leads-${kitId}`,
+    () => get<Lead[]>(`/api/mediakits/${kitId}/leads`),
+    []
+  );
 
   async function setStatus(leadId: number, status: string) {
     feedback.clear();
     const result = await put(`/api/mediakits/${kitId}/leads/${leadId}/status`, { status }, t("failedUpdate"));
-    if (result.ok) await load();
+    if (result.ok) await reload();
     else feedback.fail(result.message);
   }
 
   async function remove(leadId: number) {
     feedback.clear();
     const result = await del(`/api/mediakits/${kitId}/leads/${leadId}`);
-    if (result.ok) await load();
+    if (result.ok) await reload();
     else feedback.fail(result.message);
   }
 

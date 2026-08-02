@@ -19,6 +19,14 @@
 
     <properties>
         <java.version>21</java.version>
+        <!--
+            Tags kept out of the default `mvn test`. A property rather than a
+            literal because excludedGroups wins over -Dgroups: with the tag
+            hard-coded here, the job meant to run exactly these tests ran none
+            of them and passed. A green build that executed nothing is worse
+            than a red one.
+        -->
+        <surefire.excluded.groups>postgres</surefire.excluded.groups>
         <!-- One property for all three jjwt artifacts: they must move together,
              and separate versions arrive as three separate update proposals. -->
         <jjwt.version>0.13.0</jjwt.version>
@@ -189,7 +197,7 @@
                         comment already claims - while `-Dgroups=postgres` runs
                         exactly those, which is what the dedicated job does.
                     -->
-                    <excludedGroups>postgres</excludedGroups>
+                    <excludedGroups>${surefire.excluded.groups}</excludedGroups>
                 </configuration>
             </plugin>
         </plugins>

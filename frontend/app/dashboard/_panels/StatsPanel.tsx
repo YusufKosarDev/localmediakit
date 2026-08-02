@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, RefreshCw, X } from "lucide-react";
 import { Badge, Button, Input, Select } from "@/app/_components/ui";
 import { BACKEND, authHeaders, del, errorMessage, get, post, put } from "../_lib/api";
+import { useResource } from "../_lib/useResource";
 import { formatDateTime, formatNumber, type Locale } from "@/app/_i18n";
 import {
   CATEGORIES, PLATFORMS,
@@ -39,28 +40,31 @@ export function StatsPanel({
   /** Adding a measurement can complete an onboarding step. */
   onStatsChanged: () => Promise<void> | void;
 }) {
-  const [stats, setStats] = useState<Stat[]>([]);
-  const [demoEntries, setDemoEntries] = useState<DemoEntry[]>([]);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [statForm, setStatForm] = useState({ ...emptyStatForm });
   const [channelInput, setChannelInput] = useState("");
 
-  const load = useCallback(async () => {
-    const [s, d, sy] = await Promise.all([
-      get<Stat[]>(`/api/mediakits/${kitId}/stats`),
-      get<DemoEntry[]>(`/api/mediakits/${kitId}/demographics`),
-      get<SyncStatus>(`/api/mediakits/${kitId}/sources`),
-    ]);
-    if (s) setStats(s);
-    if (d) setDemoEntries(d);
-    if (sy) setSyncStatus(sy);
-    setChannelInput("");
-    setStatForm({ ...emptyStatForm });
-  }, [kitId]);
+  // Three reads that make up one screen, so one resource and one reload.
+  const { data, reload, setData } = useResource(
+    `stats-${kitId}`,
+    async () => {
+      const [s, d, sy] = await Promise.all([
+        get<Stat[]>(`/api/mediakits/${kitId}/stats`),
+        get<DemoEntry[]>(`/api/mediakits/${kitId}/demographics`),
+        get<SyncStatus>(`/api/mediakits/${kitId}/sources`),
+      ]);
+      return { stats: s ?? [], demoEntries: d ?? [], syncStatus: sy };
+    },
+    { stats: [] as Stat[], demoEntries: [] as DemoEntry[], syncStatus: null as SyncStatus | null }
+  );
+  const { stats, demoEntries, syncStatus } = data;
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  /**
+   * The demographics table is edited row by row before it is saved, so it needs
+   * a local setter. Named to match what it replaces, which keeps every call
+   * site below exactly as it was -- this is a change of where the state lives,
+   * not of what the panel does with it.
+   */
+  const setDemoEntries = (next: DemoEntry[]) => setData({ ...data, demoEntries: next });
 
   async function addStat(e: React.FormEvent) {
     e.preventDefault();
@@ -79,7 +83,11 @@ export function StatsPanel({
       201
     );
     if (result.ok) {
-      await load();
+      // Clearing the form belongs to submitting it, not to every reload: it
+      // used to sit in the loader, so connecting a channel or removing a
+      // measurement also emptied whatever was half-typed here.
+      setStatForm({ ...emptyStatForm });
+      await reload();
       await onStatsChanged();
     } else {
       feedback.fail(result.message);
@@ -107,7 +115,8 @@ export function StatsPanel({
     const result = await put(`/api/mediakits/${kitId}/sources/YOUTUBE`, { externalId: channelInput }, t("failedConnect"));
     if (result.ok) {
       feedback.notify(t("syncConnected"));
-      await load();
+      setChannelInput("");
+      await reload();
     } else {
       feedback.fail(result.message);
     }
@@ -127,7 +136,7 @@ export function StatsPanel({
     if (res.ok) {
       const data = await res.json();
       feedback.notify(data.lastError ? t("syncAttempted", { message: data.lastError }) : t("syncDone"));
-      await load();
+      await reload();
     } else if (res.status === 429) {
       feedback.fail(t("syncTooSoon"));
     } else {
@@ -138,7 +147,7 @@ export function StatsPanel({
   async function disconnect(platform: string) {
     feedback.clear();
     const result = await del(`/api/mediakits/${kitId}/sources/${platform}`, t("failedDisconnect"));
-    if (result.ok) await load();
+    if (result.ok) await reload();
     else feedback.fail(result.message);
   }
 

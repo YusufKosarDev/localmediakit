@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Button, Input, Select } from "@/app/_components/ui";
 import { del, get, post, put } from "../_lib/api";
+import { useResource } from "../_lib/useResource";
 import type { Collab, Feedback, RateItem, Translate } from "../_lib/types";
 
 const CURRENCIES = ["TRY", "USD", "EUR"];
@@ -17,25 +18,24 @@ const emptyRateForm = { serviceName: "", priceAmount: "", currency: "TRY", note:
  * are two lists on one screen, and the file stays readable at this size.
  */
 export function CollabsPanel({ kitId, feedback, t }: { kitId: number; feedback: Feedback; t: Translate }) {
-  const [collabs, setCollabs] = useState<Collab[]>([]);
-  const [rates, setRates] = useState<RateItem[]>([]);
   const [collabForm, setCollabForm] = useState({ ...emptyCollabForm });
   const [rateForm, setRateForm] = useState({ ...emptyRateForm });
 
-  const load = useCallback(async () => {
-    const [c, r] = await Promise.all([
-      get<Collab[]>(`/api/mediakits/${kitId}/collaborations`),
-      get<RateItem[]>(`/api/mediakits/${kitId}/ratecard`),
-    ]);
-    if (c) setCollabs(c);
-    if (r) setRates(r);
-    setCollabForm({ ...emptyCollabForm });
-    setRateForm({ ...emptyRateForm });
-  }, [kitId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Both lists are read together and rendered together, so they are one
+  // resource. Two hooks would mean two reloads after every write and a window
+  // where the panel shows one list refreshed and the other not.
+  const { data, reload, setData } = useResource(
+    `collabs-${kitId}`,
+    async () => {
+      const [c, r] = await Promise.all([
+        get<Collab[]>(`/api/mediakits/${kitId}/collaborations`),
+        get<RateItem[]>(`/api/mediakits/${kitId}/ratecard`),
+      ]);
+      return { collabs: c ?? [], rates: r ?? [] };
+    },
+    { collabs: [] as Collab[], rates: [] as RateItem[] }
+  );
+  const { collabs, rates } = data;
 
   async function addCollab(e: React.FormEvent) {
     e.preventDefault();
@@ -46,8 +46,15 @@ export function CollabsPanel({ kitId, feedback, t }: { kitId: number; feedback: 
       t("failedAddCollab"),
       201
     );
-    if (result.ok) await load();
-    else feedback.fail(result.message);
+    if (result.ok) {
+      // Emptying the form belongs to submitting it. It used to happen inside
+      // the loader, so deleting a row or reordering two also wiped whatever
+      // was half-typed in both forms below.
+      setCollabForm({ ...emptyCollabForm });
+      await reload();
+    } else {
+      feedback.fail(result.message);
+    }
   }
 
   /** @returns whether it saved — the reorder below depends on both writes. */
@@ -71,13 +78,13 @@ export function CollabsPanel({ kitId, feedback, t }: { kitId: number; feedback: 
     if (other < 0 || other >= collabs.length) return;
     const a = { ...collabs[index], displayOrder: other };
     const b = { ...collabs[other], displayOrder: index };
-    if ((await saveCollab(a)) && (await saveCollab(b))) await load();
+    if ((await saveCollab(a)) && (await saveCollab(b))) await reload();
   }
 
   async function deleteCollab(collabId: number) {
     feedback.clear();
     const result = await del(`/api/mediakits/${kitId}/collaborations/${collabId}`);
-    if (result.ok) await load();
+    if (result.ok) await reload();
     else feedback.fail(result.message);
   }
 
@@ -96,8 +103,12 @@ export function CollabsPanel({ kitId, feedback, t }: { kitId: number; feedback: 
       t("failedAddRate"),
       201
     );
-    if (result.ok) await load();
-    else feedback.fail(result.message);
+    if (result.ok) {
+      setRateForm({ ...emptyRateForm });
+      await reload();
+    } else {
+      feedback.fail(result.message);
+    }
   }
 
   async function saveRate(item: RateItem) {
@@ -123,14 +134,16 @@ export function CollabsPanel({ kitId, feedback, t }: { kitId: number; feedback: 
   async function deleteRate(itemId: number) {
     feedback.clear();
     const result = await del(`/api/mediakits/${kitId}/ratecard/${itemId}`);
-    if (result.ok) await load();
+    if (result.ok) await reload();
     else feedback.fail(result.message);
   }
 
+  // Rows are editable in place before they are saved, so these edit the local
+  // copy only. The next reload replaces them with what the server kept.
   const patchCollab = (i: number, patch: Partial<Collab>) =>
-    setCollabs(collabs.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+    setData({ ...data, collabs: collabs.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
   const patchRate = (i: number, patch: Partial<RateItem>) =>
-    setRates(rates.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+    setData({ ...data, rates: rates.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
 
   return (
     <div className="grid gap-3">
