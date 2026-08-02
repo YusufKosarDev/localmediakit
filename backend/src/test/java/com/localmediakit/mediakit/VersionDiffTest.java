@@ -35,7 +35,7 @@ class VersionDiffTest {
                                              List<MediaKitSnapshot.RateCardSnapshot> rateCard) {
         return new MediaKitSnapshot("slug", "Baslik", headline, null, "light",
                 "violet", "classic", "tr", "Uretici",
-                platforms, List.of(), List.of(), true, rateCard, true);
+                platforms, List.of(), List.of(), true, rateCard, true, null);
     }
 
     @Test
@@ -74,7 +74,7 @@ class VersionDiffTest {
         // A pre-rate-card snapshot deserializes with null lists; diff must not crash.
         // Pre-appearance snapshots have no accent or layout either.
         MediaKitSnapshot old = new MediaKitSnapshot("slug", "Baslik", null, null, "light",
-                null, null, null, "Uretici", null, null, null, null, null, null);
+                null, null, null, "Uretici", null, null, null, null, null, null, null);
         MediaKitSnapshot current = snapshot(null, List.of(),
                 List.of(new MediaKitSnapshot.RateCardSnapshot("Video", new BigDecimal("100"), "TRY", null)));
 

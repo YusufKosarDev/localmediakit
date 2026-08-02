@@ -34,7 +34,9 @@ public record MediaKitSnapshot(
         /** Array order IS the display order (frozen from display_order at publish). */
         List<RateCardSnapshot> rateCard,
         /** Frozen at publish: whether the public page renders the contact form. */
-        Boolean contactEnabled) {
+        Boolean contactEnabled,
+        /** The showcase. Absent in snapshots taken before the section existed. */
+        List<MediaSnapshot> media) {
 
     public record PlatformStatSnapshot(
             String platform,
@@ -65,6 +67,15 @@ public record MediaKitSnapshot(
             String serviceName,
             BigDecimal priceAmount,
             String currency,
+            String note) {
+    }
+
+    /** Array order IS the showcase order (frozen from display_order at publish). */
+    public record MediaSnapshot(
+            String title,
+            String url,
+            String thumbnailUrl,
+            String platform,
             String note) {
     }
 
@@ -110,5 +121,10 @@ public record MediaKitSnapshot(
     /** Snapshots published before the contact form existed never rendered it. */
     public boolean contactEnabledOrDefault() {
         return contactEnabled != null && contactEnabled;
+    }
+
+    /** Snapshots published before the showcase existed simply have none. */
+    public List<MediaSnapshot> mediaOrEmpty() {
+        return media == null ? List.of() : media;
     }
 }

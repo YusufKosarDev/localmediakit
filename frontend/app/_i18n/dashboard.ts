@@ -72,6 +72,7 @@ const dashboardStrings = {
   tabStats: "Istatistik & Kitle",
   tabCollabs: "Isbirlikleri & Ucretler",
   tabLeads: "Gelen Kutusu",
+  tabMedia: "Icerikler",
   tabAnalytics: "Analitik",
   tabVersions: "Versiyonlar",
   tabDomain: "Domain",
@@ -130,6 +131,17 @@ const dashboardStrings = {
   last30Days: "Son 30 gun",
   referrers: "Kaynaklar",
   devices: "Cihazlar",
+
+  /* ---- media showcase ---- */
+  mediaTitle: " One cikan icerikler",
+  mediaHint: "Markanin gormesini istediginiz calismalar. Link ve kapak gorseli; yukleme yok.",
+  mediaFieldTitle: "Baslik",
+  mediaFieldUrl: "Icerik linki (https://)",
+  mediaFieldThumb: "Kapak gorseli (https://, istege bagli)",
+  mediaFieldNote: "Not",
+  mediaPlatformNone: "Platform yok",
+  mediaNone: "Henuz icerik eklenmemis.",
+  failedAddMedia: "Icerik eklenemedi",
 
   /* ---- share links ---- */
   shareLinksTitle: "Markaya ozel linkler",
@@ -375,6 +387,7 @@ export const dashboardDict: Dict<Record<keyof DashboardStrings, string>> = {
     tabStats: "Stats & Audience",
     tabCollabs: "Collaborations & Rates",
     tabLeads: "Inbox",
+    tabMedia: "Work",
     tabAnalytics: "Analytics",
     tabVersions: "Versions",
     tabDomain: "Domain",
@@ -430,6 +443,16 @@ export const dashboardDict: Dict<Record<keyof DashboardStrings, string>> = {
     last30Days: "Last 30 days",
     referrers: "Sources",
     devices: "Devices",
+
+    mediaTitle: "Featured work",
+    mediaHint: "The pieces you want a brand to see. A link and a cover image; no uploads.",
+    mediaFieldTitle: "Title",
+    mediaFieldUrl: "Content link (https://)",
+    mediaFieldThumb: "Cover image (https://, optional)",
+    mediaFieldNote: "Note",
+    mediaPlatformNone: "No platform",
+    mediaNone: "No work added yet.",
+    failedAddMedia: "Couldn't add the item",
 
     shareLinksTitle: "Per-brand links",
     shareLinksHint:
