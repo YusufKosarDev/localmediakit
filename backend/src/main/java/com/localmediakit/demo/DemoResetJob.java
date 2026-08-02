@@ -7,8 +7,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Nightly demo reset so a reviewer always lands on clean, populated data even
+ * Hourly demo reset so a reviewer always lands on clean, populated data even
  * after someone has edited the demo account. Disabled in tests.
+ *
+ * <p>Hourly rather than nightly because the account is shared and advertised:
+ * a visitor who arrives just after someone else has emptied it should wait
+ * minutes for the product to look like itself again, not until tomorrow.
  */
 @Component
 @ConditionalOnProperty(name = "app.demo.seed-on-startup", havingValue = "true", matchIfMissing = true)

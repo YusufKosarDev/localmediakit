@@ -27,7 +27,7 @@ Kayit `frontend/demo/record.spec.ts` ile gercek yigina karsi uretilir
 - **Uygulama:** https://localmediakit.vercel.app
 - **Ornek public sayfa (edge-cached):** https://localmediakit.vercel.app/ornek-medya-kiti
 - **Panoyu gezmek icin:** `/login` → **"Demo olarak gez"** (dolu bir PRO hesabi;
-  her gece sifirlanir). Kimlik: `demo@localmediakit.app` / `demo1234`.
+  saat basi sifirlanir). Kimlik: `demo@localmediakit.app` / `demo1234`.
 - **API dokumantasyonu (Swagger):** https://localmediakit.onrender.com/swagger-ui.html
 
 > Backend Render'in ucretsiz katmaninda; 15 dakika istek almazsa uykuya gecer ve
@@ -190,11 +190,11 @@ flowchart LR
   gosterme" tercihi kaydedilseydi ondan sonraki herkes urunun ne oldugu
   anlatilmamis bir panoya duserdi. Kayit tutulmadigi icin her yeni ziyaretci
   tanitimi gorur; ayni tarayicida tekrarlamasin diye istemci tarafinda
-  bastirilir. Gece reset'i turu tetiklemez — sifirlanacak bir kayit yoktur.
+  bastirilir. Saatlik reset turu tetiklemez — sifirlanacak bir kayit yoktur.
 - **Paylasilan demo hesabinin korunmasi** — demo kimlik bilgileri giris
   sayfasinda yaziyor, dolayisiyla yikici ayar islemleri (sifre/e-posta degisimi,
   hesap silme) o hesapta 403 doner; aksi halde ilk ziyaretci sifreyi degistirip
-  digerlerini gecelik reset'e kadar disarida birakabilirdi. Zararsiz profil
+  digerlerini bir sonraki resete kadar disarida birakabilirdi. Zararsiz profil
   duzenlemeleri acik kalir.
 
 ## Ozellikler (hepsi ucretsiz, herkese acik)
@@ -269,10 +269,10 @@ flowchart LR
 
 ## Teknoloji
 
-- **Backend:** Java 21, Spring Boot 3.3 (Web, Security/JWT, Data JPA), Flyway,
+- **Backend:** Java 21, Spring Boot 3.5 (Web, Security/JWT, Data JPA), Flyway,
   Bucket4j (rate limit), stripe-java (test mode), springdoc/OpenAPI. Prod: Neon
   Postgres; local: H2 (PostgreSQL uyumluluk modu — ayni migration'lar).
-- **Frontend:** Next.js App Router (React, TypeScript), on-demand ISR + edge cache.
+- **Frontend:** Next.js 16 App Router (React 19, TypeScript), on-demand ISR + edge cache.
 - **Dagitim:** Backend → Render, Frontend → Vercel, DB → Neon. `main`'e push =
   otomatik deploy.
 
@@ -311,9 +311,21 @@ cd frontend && pnpm test     # 105 test (Vitest + Testing Library): public sayfa
                              # snapshot), sifre gate, auth hata eslemesi,
                              # JSON-LD kacisi, palet kontrasti, service worker,
                              # guvenlik basliklari, sunucu-durumu hook'u
+
+cd frontend && pnpm test:e2e # 13 Playwright testi, gercek yigina karsi (Next +
+                             # Spring Boot ayni anda ayakta): kayit→kit→yayin
+                             # akisi, pano, markaya ozel paylasim linkleri,
+                             # axe ile erisilebilirlik denetimi
 ```
 
-Her ikisi de her push'ta CI'da kosar (bkz. yukaridaki CI rozeti).
+Dort workflow var; ilk ucu her push'ta kosar:
+
+| Workflow | Ne yapar |
+| --- | --- |
+| `ci.yml` | Backend (H2), **backend gercek PostgreSQL'e karsi** (Testcontainers, `postgres` tag'li testler), frontend (typecheck + lint + test + build) |
+| `e2e.yml` | Playwright, iki sunucu birden ayakta |
+| `security.yml` | Trivy (bagimlilik CVE'leri, HIGH/CRITICAL'da kirilir) + CodeQL (java-kotlin ve javascript-typescript, `security-extended`) |
+| `mutation.yml` | PIT — haftalik ve elle tetiklenir, her push'ta degil |
 
 ## Proje yapisi
 
@@ -529,6 +541,7 @@ devam ediyordu, o satirlara bakan kimse yoktu.
 
 Loglar JSON degil, duz metin. Structured logging'in bedeli onu **ayristiran bir
 sey oldugunda** karsiligini verir; burada henuz yok (Render'in log goruntuleyicisi
-bir arama kutusu). Spring Boot 3.4 bunu tek bir property'ye indiriyor, dolayisiyla
-bir log pipeline'i olustugu gun tek satirlik degisiklik — bugun encoder bagimliligi
-eklemek o gunu pesin odemek olurdu.
+bir arama kutusu). Spring Boot 3.4'ten beri bu tek bir property
+(`logging.structured.format.console`) ve artik o surumun uzerindeyiz —
+dolayisiyla bir log pipeline'i olustugu gun degisiklik tek satir. Bugun acmak,
+kimsenin ayristirmadigi JSON'u Render'in arama kutusunda okunmaz hale getirirdi.
