@@ -1,6 +1,7 @@
 import { expect, type Page, type APIRequestContext } from "@playwright/test";
 
-export const BACKEND = "http://localhost:8080";
+/** Matches playwright.config.ts; see the note there about the default. */
+export const BACKEND = process.env.E2E_BACKEND_URL ?? "http://localhost:8080";
 
 /**
  * A throwaway account per test.

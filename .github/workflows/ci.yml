@@ -56,8 +56,12 @@ jobs:
       # the places where the database itself is what is being tested -- the
       # migrations, the hand-written native SQL, and the constraint errors the
       # retry logic depends on -- and leave the rest on H2 where it belongs.
+      # Clearing surefire.excluded.groups is what actually lets these run:
+      # excludedGroups wins over -Dgroups, so selecting the tag is not enough
+      # to un-exclude it. Without the second flag this job runs nothing and
+      # reports success, which is how a suite quietly stops testing anything.
       - name: Run the Postgres-tagged tests
-        run: mvn -B --no-transfer-progress test -Dgroups=postgres -DfailIfNoTests=false
+        run: mvn -B --no-transfer-progress test -Dgroups=postgres -Dsurefire.excluded.groups=
 
   frontend:
     name: Frontend (Next.js)

@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Eye } from "lucide-react";
 import { BACKEND, authHeaders, errorMessage } from "../_lib/api";
+import { useResource } from "../_lib/useResource";
 import { formatNumber, type Locale } from "@/app/_i18n";
 import type { Analytics, Feedback, Translate } from "../_lib/types";
 
@@ -29,23 +29,22 @@ const DeviceBars = dynamic(() => import("../_AnalyticsCharts").then((m) => m.Dev
 
 /** Visitor counters and trend charts for one kit's published page. */
 export function AnalyticsPanel({ kitId, feedback, t, locale }: { kitId: number; feedback: Feedback; t: Translate; locale: Locale }) {
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
-
-  const load = useCallback(async () => {
-    feedback.clear();
-    // Read directly: a failed analytics load has always surfaced a message,
-    // unlike the other panels' silent loaders.
-    const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/analytics`, { headers: authHeaders() });
-    if (res.ok) setAnalytics(await res.json());
-    else feedback.fail(await errorMessage(res, t("failedLoadAnalytics")));
-    // feedback identity is stable per render of the shell; kitId is what
-    // should re-trigger a load.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kitId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  // The one panel that reports a failed read. Analytics is the whole content
+  // of this tab, so showing nothing with no explanation would read as "no
+  // visitors yet" -- the opposite of what happened.
+  const { data: analytics } = useResource<Analytics | null>(
+    `analytics-${kitId}`,
+    async () => {
+      feedback.clear();
+      const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/analytics`, { headers: authHeaders() });
+      if (res.ok) return (await res.json()) as Analytics;
+      feedback.fail(await errorMessage(res, t("failedLoadAnalytics")));
+      // null leaves the previous value in place, which is the hook's contract
+      // and the behaviour this panel already had.
+      return null;
+    },
+    null
+  );
 
   if (!analytics) return null;
 

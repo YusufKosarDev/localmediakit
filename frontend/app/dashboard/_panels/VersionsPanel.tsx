@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Badge, Button, Select } from "@/app/_components/ui";
 import { BACKEND, authHeaders, get, post } from "../_lib/api";
+import { useResource } from "../_lib/useResource";
 import { formatDateTime, type Locale } from "@/app/_i18n";
 import type { Feedback, Version, VersionDiff, Translate } from "../_lib/types";
 
@@ -33,20 +34,26 @@ export function VersionsPanel({
   locale: Locale;
   onActivated: () => Promise<void> | void;
 }) {
-  const [versions, setVersions] = useState<Version[]>([]);
   const [diffSel, setDiffSel] = useState({ from: "", to: "" });
   const [diff, setDiff] = useState<VersionDiff | null>(null);
 
-  const load = useCallback(async () => {
-    const data = await get<Version[]>(`/api/mediakits/${kitId}/versions`);
-    if (data) setVersions(data);
-    setDiff(null);
-    setDiffSel({ from: "", to: "" });
-  }, [kitId]);
-
-  useEffect(() => {
-    load();
-  }, [load, reloadToken]);
+  // reloadToken is a dependency rather than a second effect: a publish adds a
+  // version, so the list has to be re-read for the same reason a kit switch does.
+  const { data: versions, reload } = useResource<Version[]>(
+    // reloadToken is part of the key rather than a second effect: a publish adds
+    // a version, so the list has to be re-read for the same reason a kit switch
+    // does, and both are just "this is a different list now".
+    `versions-${kitId}-${reloadToken}`,
+    () => {
+      // A comparison is between two specific versions; once the list behind it
+      // can have changed, showing the old result would be showing a diff of
+      // something the user is no longer looking at.
+      setDiff(null);
+      setDiffSel({ from: "", to: "" });
+      return get<Version[]>(`/api/mediakits/${kitId}/versions`);
+    },
+    []
+  );
 
   async function loadDiff() {
     feedback.clear();
@@ -64,7 +71,7 @@ export function VersionsPanel({
     const result = await post(`/api/mediakits/${kitId}/versions/${version}/activate`, undefined, t("failedRollback"));
     if (result.ok) {
       await onActivated();
-      await load();
+      await reload();
     } else {
       feedback.fail(result.message);
     }
