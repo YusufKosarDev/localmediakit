@@ -62,6 +62,15 @@ public class OperationalMetrics {
      */
     private final Counter passwordResetMailFailures;
 
+    /** A page that went live at the moment its creator chose. */
+    private final Counter scheduledPublishes;
+
+    /**
+     * A scheduled publish that did not happen. Invisible unless the creator
+     * goes looking: they set it and walked away believing the page is live.
+     */
+    private final Counter scheduledPublishFailures;
+
     public OperationalMetrics(MeterRegistry registry) {
         this.publishes = Counter.builder("localmediakit.publish.completed")
                 .description("Media kit publishes that produced a new active version")
@@ -83,6 +92,12 @@ public class OperationalMetrics {
                 .register(registry);
         this.passwordResetMailFailures = Counter.builder("localmediakit.password_reset.mail_failed")
                 .description("Password reset links issued but never delivered")
+                .register(registry);
+        this.scheduledPublishes = Counter.builder("localmediakit.scheduled_publish.completed")
+                .description("Kits published at their scheduled moment")
+                .register(registry);
+        this.scheduledPublishFailures = Counter.builder("localmediakit.scheduled_publish.failed")
+                .description("Scheduled publishes that did not go out")
                 .register(registry);
     }
 
@@ -112,5 +127,13 @@ public class OperationalMetrics {
 
     public void passwordResetMailFailed() {
         passwordResetMailFailures.increment();
+    }
+
+    public void scheduledPublishCompleted() {
+        scheduledPublishes.increment();
+    }
+
+    public void scheduledPublishFailed() {
+        scheduledPublishFailures.increment();
     }
 }

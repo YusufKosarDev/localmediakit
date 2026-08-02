@@ -15,7 +15,11 @@ public record MediaKitResponse(
         boolean passwordProtected,
         boolean contactEnabled,
         String createdAt,
-        String updatedAt) {
+        String updatedAt,
+        /** When this kit is due to publish itself; null when nothing is armed. */
+        String scheduledPublishAt,
+        /** Why the last scheduled attempt did not go out. */
+        String scheduleError) {
 
     public static MediaKitResponse from(MediaKit kit, String publishedSlug, boolean passwordProtected) {
         return new MediaKitResponse(
@@ -33,6 +37,8 @@ public record MediaKitResponse(
                 passwordProtected,
                 kit.isContactEnabled(),
                 kit.getCreatedAt().toString(),
-                kit.getUpdatedAt().toString());
+                kit.getUpdatedAt().toString(),
+                kit.getScheduledPublishAt() == null ? null : kit.getScheduledPublishAt().toString(),
+                kit.getScheduleError());
     }
 }

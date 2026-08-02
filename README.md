@@ -210,6 +210,7 @@ flowchart LR
 - Analitik — tekil ziyaretci + gunluk seri + referrer/cihaz kirilimi
 - Markaya ozel paylasim linki — her marka icin etiketli bir link; kimin actigi
   gorunur, iptal edilebilir
+- Zamanlanmis yayin — secilen anda otomatik publish
 - Versiyon gecmisi (tam) + her versiyona rollback + versiyon karsilastirma (diff)
 - PDF export (temiz) + sifre korumasi
 - Custom domain (yakinda) — DNS dogrulama iskeleti
@@ -296,7 +297,7 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 312 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 319 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, senkron cooldown,

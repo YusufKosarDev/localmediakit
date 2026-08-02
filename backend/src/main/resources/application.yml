@@ -87,6 +87,11 @@ app:
     # HS256 requires >= 32 bytes. Overridden by JWT_SECRET in every real environment.
     secret: ${JWT_SECRET:local-dev-jwt-secret-change-me-at-least-32-bytes-long}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:720}
+  scheduled-publish:
+    # The interval is the worst-case lateness a creator sees: a page set for
+    # 09:00 that goes live at 09:59 has missed the point of being scheduled.
+    job-interval-ms: ${SCHEDULED_PUBLISH_JOB_INTERVAL_MS:60000}
+    job-initial-delay-ms: ${SCHEDULED_PUBLISH_JOB_INITIAL_DELAY_MS:30000}
   password-reset:
     # Same lifetime as a draft preview link. Long enough to find the mail,
     # short enough that a link left in an inbox stops being a key.

@@ -18,6 +18,7 @@ import com.localmediakit.domain.DomainNotFoundException;
 import com.localmediakit.domain.InvalidDomainException;
 import com.localmediakit.auth.InvalidCredentialsException;
 import com.localmediakit.mediakit.InvalidAppearanceException;
+import com.localmediakit.mediakit.InvalidScheduleException;
 import com.localmediakit.mediakit.InvalidKitPasswordException;
 import com.localmediakit.mediakit.MediaKitNotFoundException;
 import com.localmediakit.mediakit.ReservedSlugException;
@@ -215,6 +216,11 @@ public class ApiExceptionHandler {
     /** 400 rather than 404: which of the three reasons it failed is not said. */
     @ExceptionHandler(InvalidResetTokenException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidResetToken(InvalidResetTokenException ex) {
+        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(InvalidScheduleException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidSchedule(InvalidScheduleException ex) {
         return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
     }
 

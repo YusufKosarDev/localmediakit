@@ -25,6 +25,10 @@ export type Kit = {
   publishedSlug: string | null;
   passwordProtected: boolean;
   contactEnabled: boolean;
+  /** ISO instant this kit is due to publish itself, or null. */
+  scheduledPublishAt: string | null;
+  /** Why the last scheduled attempt did not go out. */
+  scheduleError: string | null;
 };
 
 export type Version = { version: number; slug: string; publishedAt: string; active: boolean };
