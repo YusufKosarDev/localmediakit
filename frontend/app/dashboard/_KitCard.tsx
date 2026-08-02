@@ -6,6 +6,7 @@ import { tabs, type Feedback, type Kit, type Tab, type Translate } from "./_lib/
 import type { Locale } from "@/app/_i18n";
 import { EditPanel } from "./_panels/EditPanel";
 import { StatsPanel } from "./_panels/StatsPanel";
+import { MediaPanel } from "./_panels/MediaPanel";
 import { CollabsPanel } from "./_panels/CollabsPanel";
 import { LeadsPanel } from "./_panels/LeadsPanel";
 import { AnalyticsPanel } from "./_panels/AnalyticsPanel";
@@ -118,6 +119,7 @@ export function KitCard({
           {openTab === "stats" && (
             <StatsPanel kitId={kit.id} feedback={feedback} t={t} locale={locale} onStatsChanged={onProgressChanged} />
           )}
+          {openTab === "media" && <MediaPanel kitId={kit.id} feedback={feedback} t={t} />}
           {openTab === "collabs" && <CollabsPanel kitId={kit.id} feedback={feedback} t={t} />}
           {openTab === "leads" && <LeadsPanel kitId={kit.id} feedback={feedback} t={t} locale={locale} />}
           {openTab === "analytics" && (

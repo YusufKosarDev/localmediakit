@@ -152,7 +152,7 @@ class AppearanceFlowTest {
         MediaKitSnapshot legacy = new MediaKitSnapshot(
                 "eski-kit", "Eski Kit", "Basliik", null,
                 "light", null, null, null,
-                "Uretici", null, null, null, null, null, null);
+                "Uretici", null, null, null, null, null, null, null);
 
         assertThat(legacy.accentOrDefault()).isEqualTo(KitAppearance.DEFAULT_ACCENT);
         assertThat(legacy.layoutOrDefault()).isEqualTo(KitAppearance.DEFAULT_LAYOUT);

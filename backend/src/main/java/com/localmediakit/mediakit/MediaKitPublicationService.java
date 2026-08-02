@@ -3,6 +3,7 @@ package com.localmediakit.mediakit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.localmediakit.collab.CollaborationService;
+import com.localmediakit.media.MediaService;
 import com.localmediakit.observability.OperationalMetrics;
 import com.localmediakit.ratecard.RateCardService;
 import com.localmediakit.shared.ConstraintRetry;
@@ -38,6 +39,7 @@ public class MediaKitPublicationService {
     private final DemographicsService demographicsService;
     private final CollaborationService collaborationService;
     private final RateCardService rateCardService;
+    private final MediaService mediaService;
     private final PlanPolicy planPolicy;
     private final PasswordEncoder passwordEncoder;
     private final UnlockRateLimiter unlockRateLimiter;
@@ -53,6 +55,7 @@ public class MediaKitPublicationService {
                                       DemographicsService demographicsService,
                                       CollaborationService collaborationService,
                                       RateCardService rateCardService,
+                                      MediaService mediaService,
                                       PlanPolicy planPolicy,
                                       PasswordEncoder passwordEncoder,
                                       UnlockRateLimiter unlockRateLimiter,
@@ -67,6 +70,7 @@ public class MediaKitPublicationService {
         this.demographicsService = demographicsService;
         this.collaborationService = collaborationService;
         this.rateCardService = rateCardService;
+        this.mediaService = mediaService;
         this.planPolicy = planPolicy;
         this.passwordEncoder = passwordEncoder;
         this.unlockRateLimiter = unlockRateLimiter;
@@ -207,13 +211,19 @@ public class MediaKitPublicationService {
                 .map(r -> new MediaKitSnapshot.RateCardSnapshot(
                         r.getServiceName(), r.getPriceAmount(), r.getCurrency(), r.getNote()))
                 .toList();
+        var media = mediaService.listForKit(kit.getId()).stream()
+                .map(m -> new MediaKitSnapshot.MediaSnapshot(
+                        m.getTitle(), m.getUrl(), m.getThumbnailUrl(),
+                        m.getPlatform(), m.getNote()))
+                .toList();
         return new MediaKitSnapshot(
                 kit.getSlug(), kit.getTitle(), kit.getHeadline(), kit.getAvatarUrl(),
                 // Appearance is frozen here like everything else: editing the
                 // draft's look changes nothing publicly until the next publish.
                 kit.getTheme(), kit.getAccent(), kit.getLayout(), kit.getLanguage(),
                 owner.getDisplayName(), platforms, demographics, collaborations,
-                planPolicy.showsBranding(owner.getPlan()), rateCard, kit.isContactEnabled());
+                planPolicy.showsBranding(owner.getPlan()), rateCard, kit.isContactEnabled(),
+                media);
     }
 
     private Activation activate(MediaKit kit, MediaKitVersion version) {

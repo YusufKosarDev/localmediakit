@@ -29,7 +29,7 @@ class MediaKitSnapshotTest {
         return new MediaKitSnapshot(
                 "eski-kit", "Eski Kit", null, null, "light",
                 null, null, null, "Uretici",
-                null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
     }
 
     @Test
@@ -43,7 +43,7 @@ class MediaKitSnapshotTest {
         MediaKitSnapshot styled = new MediaKitSnapshot(
                 "kit", "Kit", null, null, "dark",
                 "ocean", "panel", "en", "Uretici",
-                null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
 
         assertThat(styled.accentOrDefault()).isEqualTo("ocean");
         assertThat(styled.layoutOrDefault()).isEqualTo("panel");
@@ -57,7 +57,7 @@ class MediaKitSnapshotTest {
         MediaKitSnapshot blank = new MediaKitSnapshot(
                 "kit", "Kit", null, null, "light",
                 "  ", "", null, "Uretici",
-                null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
 
         assertThat(blank.accentOrDefault()).isEqualTo(KitAppearance.DEFAULT_ACCENT);
         assertThat(blank.layoutOrDefault()).isEqualTo(KitAppearance.DEFAULT_LAYOUT);
@@ -66,6 +66,23 @@ class MediaKitSnapshotTest {
     @Test
     void snapshotsPredatingI18nStayTurkish() {
         assertThat(oldest().languageOrDefault()).isEqualTo("tr");
+    }
+
+    @Test
+    void aPagePublishedBeforeTheShowcaseExistedSimplyHasNone() {
+        // The newest nullable list, and the one most likely to be got wrong:
+        // every page published before this feature has null here, and a null
+        // reaching the renderer is a 500 on a page nobody touched.
+        assertThat(oldest().mediaOrEmpty()).isEmpty();
+
+        MediaKitSnapshot withMedia = new MediaKitSnapshot(
+                "kit", "Kit", null, null, "light", null, null, null, "Uretici",
+                null, null, null, null, null, null,
+                List.of(new MediaKitSnapshot.MediaSnapshot(
+                        "En iyi video", "https://example.com/v", null, "YOUTUBE", null)));
+
+        assertThat(withMedia.mediaOrEmpty()).hasSize(1);
+        assertThat(withMedia.mediaOrEmpty().get(0).title()).isEqualTo("En iyi video");
     }
 
     @Test
@@ -93,7 +110,7 @@ class MediaKitSnapshotTest {
                         "Marka", null, null, null, null)),
                 null,
                 List.of(new MediaKitSnapshot.RateCardSnapshot("Reels", null, "TRY", null)),
-                null);
+                null, null);
 
         assertThat(populated.platformsOrEmpty()).hasSize(1);
         assertThat(populated.platformsOrEmpty().get(0).platform()).isEqualTo("YOUTUBE");
@@ -113,7 +130,7 @@ class MediaKitSnapshotTest {
 
         MediaKitSnapshot hidden = new MediaKitSnapshot(
                 "kit", "Kit", null, null, "light", null, null, null, "Uretici",
-                null, null, null, false, null, null);
+                null, null, null, false, null, null, null);
         assertThat(hidden.showBadgeOrDefault()).isFalse();
     }
 
@@ -125,7 +142,7 @@ class MediaKitSnapshotTest {
 
         MediaKitSnapshot withForm = new MediaKitSnapshot(
                 "kit", "Kit", null, null, "light", null, null, null, "Uretici",
-                null, null, null, null, null, true);
+                null, null, null, null, null, true, null);
         assertThat(withForm.contactEnabledOrDefault()).isTrue();
     }
 }

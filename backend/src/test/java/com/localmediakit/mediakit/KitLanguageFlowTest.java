@@ -150,7 +150,7 @@ class KitLanguageFlowTest {
         MediaKitSnapshot legacy = new MediaKitSnapshot(
                 "eski-kit", "Eski Kit", null, null,
                 "light", null, null, null,
-                "Uretici", null, null, null, null, null, null);
+                "Uretici", null, null, null, null, null, null, null);
 
         assertThat(legacy.languageOrDefault()).isEqualTo("tr");
     }

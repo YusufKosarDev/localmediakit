@@ -58,6 +58,16 @@ export type ShareLink = {
   revokedAt: string | null;
 };
 
+export type MediaItem = {
+  id: number;
+  title: string;
+  url: string;
+  thumbnailUrl: string | null;
+  platform: string | null;
+  note: string | null;
+  displayOrder: number;
+};
+
 export type Domain = {
   id: number;
   domain: string;
@@ -130,7 +140,8 @@ export type VersionDiff = {
   demographics: { added: string[]; removed: string[]; changed: MetricChange[] };
 };
 
-export type Tab = "edit" | "stats" | "collabs" | "leads" | "analytics" | "versions" | "domain";
+export type Tab =
+  | "edit" | "stats" | "media" | "collabs" | "leads" | "analytics" | "versions" | "domain";
 
 
 
@@ -166,6 +177,9 @@ export type Translate = (
 export const tabs = (t: Translate): { id: Tab; label: string }[] => [
   { id: "edit", label: t("tabEdit") },
   { id: "stats", label: t("tabStats") },
+  // Next to the other content lists rather than at the end: the work and the
+  // brands who bought it are the same kind of thing to a creator filling this in.
+  { id: "media", label: t("tabMedia") },
   { id: "collabs", label: t("tabCollabs") },
   { id: "leads", label: t("tabLeads") },
   { id: "analytics", label: t("tabAnalytics") },

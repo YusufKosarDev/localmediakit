@@ -9,6 +9,8 @@ import com.localmediakit.billing.DemoUpgradeDisabledException;
 import com.localmediakit.billing.InvalidWebhookSignatureException;
 import com.localmediakit.collab.CollaborationNotFoundException;
 import com.localmediakit.lead.LeadNotFoundException;
+import com.localmediakit.media.MediaItemNotFoundException;
+import com.localmediakit.media.TooManyMediaItemsException;
 import com.localmediakit.ratecard.RateCardItemNotFoundException;
 import com.localmediakit.domain.DomainAlreadyExistsException;
 import com.localmediakit.domain.DomainNotFoundException;
@@ -207,6 +209,16 @@ public class ApiExceptionHandler {
     @ExceptionHandler(SyncCooldownException.class)
     public ResponseEntity<Map<String, Object>> handleSyncCooldown(SyncCooldownException ex) {
         return body(HttpStatus.TOO_MANY_REQUESTS, codeFor(ex), ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(MediaItemNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleMediaItemNotFound(MediaItemNotFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, codeFor(ex), ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(TooManyMediaItemsException.class)
+    public ResponseEntity<Map<String, Object>> handleTooManyMediaItems(TooManyMediaItemsException ex) {
+        return body(HttpStatus.CONFLICT, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(ShareLinkNotFoundException.class)

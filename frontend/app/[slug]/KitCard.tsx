@@ -31,6 +31,14 @@ export type Collaboration = {
   logoUrl: string | null;
 };
 
+export type MediaItem = {
+  title: string;
+  url: string;
+  thumbnailUrl: string | null;
+  platform: string | null;
+  note: string | null;
+};
+
 export type RateCardItem = {
   serviceName: string;
   priceAmount: number;
@@ -55,6 +63,8 @@ export type PublicKit = {
   demographics: Demographic[];
   collaborations: Collaboration[];
   rateCard: RateCardItem[] | null;
+  /** The showcase. Absent on snapshots published before the section existed. */
+  media?: MediaItem[] | null;
   showBadge: boolean;
   contactEnabled: boolean;
   isProtected: boolean;
@@ -124,6 +134,8 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
     .filter((g) => g.entries.length > 0);
   // Older snapshots predate the rate card; normalize the absent list.
   const rateCard = kit.rateCard ?? [];
+  // Same for the showcase, which is newer still.
+  const media = kit.media ?? [];
 
   return (
     // lang sits on the kit's own wrapper rather than <html>: App Router
@@ -296,6 +308,49 @@ export default function KitCard({ kit, preview = false }: { kit: PublicKit; prev
                       {col.resultNote && <div className="text-[13px] text-muted">{col.resultNote}</div>}
                     </div>
                   </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* The work itself. Cards link out rather than embed: an embedded
+              player is a third-party script on a page whose CSP allows none,
+              and the content is better watched where it lives. */}
+          {media.length > 0 && (
+            <Section title={t("sectionMedia")} delay="0.21s">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {media.map((m, i) => (
+                  <a
+                    key={i}
+                    href={m.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition hover:border-brand"
+                  >
+                    {m.thumbnailUrl && (
+                      // Plain img, not next/image: these are arbitrary remote
+                      // hosts a creator typed in, and next/image would need
+                      // every one of them allow-listed in the config.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={m.thumbnailUrl}
+                        alt=""
+                        loading="lazy"
+                        className="aspect-video w-full object-cover"
+                      />
+                    )}
+                    <div className="p-3">
+                      <div className="flex items-center gap-2">
+                        {m.platform && (
+                          <span className="rounded-md bg-brand-weak px-1.5 py-0.5 text-[11px] font-medium text-brand">
+                            {PLATFORMS[m.platform]?.name ?? m.platform}
+                          </span>
+                        )}
+                        <span className="min-w-0 truncate font-medium group-hover:text-brand">{m.title}</span>
+                      </div>
+                      {m.note && <div className="mt-1 text-[13px] text-muted">{m.note}</div>}
+                    </div>
+                  </a>
                 ))}
               </div>
             </Section>

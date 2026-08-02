@@ -12,6 +12,7 @@ const publicStrings = {
   sectionPlatforms: "Platformlar",
   sectionAudience: "Kitle",
   sectionCollaborations: "Marka Isbirlikleri",
+  sectionMedia: "Icerikler",
   sectionRateCard: "Calisma Ucretleri",
   sectionContact: "Iletisim",
 
@@ -58,6 +59,7 @@ export const publicDict: Dict<Record<keyof PublicStrings, string>> = {
     sectionPlatforms: "Platforms",
     sectionAudience: "Audience",
     sectionCollaborations: "Brand Collaborations",
+    sectionMedia: "Work",
     sectionRateCard: "Rates",
     sectionContact: "Contact",
 
