@@ -345,6 +345,49 @@ bilinen degerlerin listesi degil, bir isarettir — her gelistirme varsayilani
 `local-dev-` onekini tasir, kural da oneki reddeder; sonradan eklenen bir secret
 korumayi yalnizca kurala uyarak devralir.
 
+## Veri yasam dongusu
+
+`page_views` append-only ve **hicbir saklama siniri yoktu**: trafikle birlikte
+sonsuza kadar buyuyor, ucretsiz bir Postgres katmaninda, kimsenin bir daha
+bakmayacagi ziyaret satirlarini tutuyordu. Bu hem bir fatura hem de kimsenin
+vermek istemeyecegi bir veri koruma cevabi.
+
+Ama **duz bir DELETE de bedava degildi**: toplam goruntulenme ve tekil ziyaretci
+tum tablo uzerinden sayiliyor, dolayisiyla kirpma ureticinin omur boyu sayilarini
+sessizce geriye yururdu. Bu yuzden once toplanir:
+
+- **`page_view_daily`** — retention job her gunu tek satira katlar, sonra
+  arkasindaki ham satirlari siler. Ikisi **ayni transaction'da**: toplanip
+  silinmezse cift sayilir, silinip toplanmazsa goruntulenmeler kaybolur.
+- **Tekil ziyaretci sayisi yaklasik degil, tam korunur** — ve bu sansin degil
+  parmak izinin ozelligi: `visitor_hash` gunu de icerir, yani gece yarisi doner
+  ve ayni kisi yarin zaten baska bir hash'tir. "Tum zaman tekil ziyaretci" en
+  bastan gunluk tekillerin toplamiydi; tablo tam olarak onu saklar.
+- **Cutoff gece yarisina hizalanir** — hizalanmamis bir cutoff gunun ortasina
+  duser: sayim sabahi kapsar, silme tum gunu alir ve ogleden sonra sessizce
+  kaybolurdu. Hizalama bu durumu ele almak yerine ortadan kaldirir.
+- **Degisen tek sey:** referrer ve cihaz kirilimlari ham satirlardan
+  hesaplandigi icin "tum zaman" degil "saklama penceresi" olur. Bilincli:
+  iki yil onceki bir referrer kimsenin uzerine is yapmadigi bir sayidir ve onu
+  tam tutmak icin her ziyareti sonsuza kadar saklamak yanlis takas. Gunluk seri
+  zaten 30 gunluk, etkilenmez.
+
+Varsayilan pencere 90 gun (`ANALYTICS_RETENTION_DAYS`).
+
+**Migration'lar dolu veritabanina karsi test edilir.** Bunun somut bir sebebi
+var: V17 sirf V16 yuzunden var. V16 `users.theme`'i kucuk harfli bir
+varsayilanla ekleyip mevcut satirlari onunla doldurdu, kolon ise sabitleri
+LIGHT/DARK olan bir enum'a esleniyordu — o migration'dan onceki her hesap
+yuklenemez oldu ve kendi `/api/me` ucunda 500 dondu. **Bos semadan baslayan bir
+test paketi bunu goremezdi**; `MigrationOnPopulatedDatabaseTest` yarisina kadar
+migrate eder, canli bir veritabaninin tutacagi satirlari yazar ve sonra bitirir.
+
+**Yedekleme bu repoda degil, saglayicida.** Neon'un point-in-time restore'u
+veritabani duzeyinde bir ayardir; kod tarafinda karsiligi yok. Isletme
+kontrol listesi: PITR penceresinin acik oldugunu dogrula, bir geri yukleme
+denemesi yap (denenmemis yedek yedek degildir), ve `DATABASE_URL`'in pooled
+endpoint'i gosterdiginden emin ol.
+
 ## Eszamanlilik: kontrol-et-sonra-yaz yollari
 
 Uc yerde bir deger, "hali hazirda ne var" okunarak seciliyor: bir sonraki bos

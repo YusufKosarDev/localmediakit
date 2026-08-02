@@ -31,17 +31,20 @@ public class AnalyticsService {
     private static final Logger log = LoggerFactory.getLogger(AnalyticsService.class);
 
     private final PageViewRepository pageViewRepository;
+    private final PageViewDailyRepository dailyRepository;
     private final MediaKitVersionRepository versionRepository;
     private final MediaKitAccess access;
     private final VisitorFingerprint fingerprint;
     private final PlanPolicy planPolicy;
 
     public AnalyticsService(PageViewRepository pageViewRepository,
+                            PageViewDailyRepository dailyRepository,
                             MediaKitVersionRepository versionRepository,
                             MediaKitAccess access,
                             VisitorFingerprint fingerprint,
                             PlanPolicy planPolicy) {
         this.pageViewRepository = pageViewRepository;
+        this.dailyRepository = dailyRepository;
         this.versionRepository = versionRepository;
         this.access = access;
         this.fingerprint = fingerprint;
@@ -82,7 +85,13 @@ public class AnalyticsService {
     public AnalyticsResponse analyticsFor(String userEmail, Long kitId) {
         MediaKit kit = access.requireOwnedKit(userEmail, kitId);
         User owner = access.requireUser(userEmail);
-        long totalViews = pageViewRepository.countByMediaKitId(kit.getId());
+        // Lifetime totals span both halves of the data: the days that have been
+        // folded into the rollup, and the raw rows still inside the retention
+        // window. Reading only the raw table -- which is what this did before
+        // retention existed -- would make a creator's lifetime count shrink
+        // every time the job ran.
+        long totalViews = dailyRepository.sumViews(kit.getId())
+                + pageViewRepository.countByMediaKitId(kit.getId());
 
         if (!planPolicy.detailedAnalyticsEnabled(owner.getPlan())) {
             // FREE teaser: the total only.
@@ -97,14 +106,24 @@ public class AnalyticsService {
                         ((Number) row[1]).longValue(),
                         ((Number) row[2]).longValue()))
                 .toList();
+        // These two are read from raw rows only, so they cover the retention
+        // window rather than all time. Deliberate: keeping every visit forever
+        // to make a two-year-old referrer exact is the wrong trade, and nobody
+        // acts on one. Documented in the README rather than left to be noticed.
         List<AnalyticsResponse.CountEntry> referrers = toEntries(
                 pageViewRepository.topReferrers(kit.getId()), "(dogrudan)");
         List<AnalyticsResponse.CountEntry> devices = toEntries(
                 pageViewRepository.deviceBreakdown(kit.getId()), "UNKNOWN");
 
+        // Summing daily distinct counts is exact here, not an approximation:
+        // visitor_hash includes the day, so a returning visitor is already a
+        // different hash tomorrow and the all-time distinct count was always
+        // the sum of the daily ones.
+        long uniqueVisitors = dailyRepository.sumUniqueVisitors(kit.getId())
+                + pageViewRepository.countUniqueVisitors(kit.getId());
+
         return new AnalyticsResponse(
-                owner.getPlan().name(), totalViews,
-                pageViewRepository.countUniqueVisitors(kit.getId()),
+                owner.getPlan().name(), totalViews, uniqueVisitors,
                 byDay, referrers, devices);
     }
 
