@@ -17,12 +17,22 @@ import java.time.Instant;
 @Table(name = "media_kits")
 public class MediaKit {
 
+    private static final int MAX_SCHEDULE_ERROR = 500;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    /** Armed for a future publish; null when there is none pending. */
+    @Column(name = "scheduled_publish_at")
+    private Instant scheduledPublishAt;
+
+    /** Why the last scheduled attempt did not go out. */
+    @Column(name = "schedule_error", length = MAX_SCHEDULE_ERROR)
+    private String scheduleError;
 
     @Column(nullable = false, unique = true)
     private String slug;
@@ -211,5 +221,47 @@ public class MediaKit {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    /* --- scheduled publish --- */
+
+    /**
+     * Arms a publish for a future moment.
+     *
+     * <p>Setting a new time clears any error from a previous attempt: the
+     * creator has just told us to try again, and leaving yesterday's failure on
+     * screen would describe a schedule that no longer exists.
+     */
+    public void schedulePublishAt(Instant when) {
+        this.scheduledPublishAt = when;
+        this.scheduleError = null;
+    }
+
+    /** Disarms it. Also how the job marks a schedule as spent. */
+    public void clearSchedule() {
+        this.scheduledPublishAt = null;
+    }
+
+    /**
+     * Records why the moment passed without a publish, and disarms.
+     *
+     * <p>Not retried: the failures this can hit -- a plan limit, a kit whose
+     * owner disappeared -- do not become untrue in five minutes, and a schedule
+     * that keeps firing into the same wall is a loop nobody asked for. The
+     * creator sees the reason and decides.
+     */
+    public void failSchedule(String reason) {
+        this.scheduledPublishAt = null;
+        this.scheduleError = reason == null || reason.length() <= MAX_SCHEDULE_ERROR
+                ? reason
+                : reason.substring(0, MAX_SCHEDULE_ERROR);
+    }
+
+    public Instant getScheduledPublishAt() {
+        return scheduledPublishAt;
+    }
+
+    public String getScheduleError() {
+        return scheduleError;
     }
 }

@@ -1,7 +1,9 @@
 "use client";
 
-import { Lock, Unlock } from "lucide-react";
+import { useState } from "react";
+import { CalendarClock, Lock, Unlock } from "lucide-react";
 import { Button, Input, Label, Select } from "@/app/_components/ui";
+import { formatDateTime, type Locale } from "@/app/_i18n";
 import { del, put } from "../_lib/api";
 import { accents, LANGUAGES, layouts, type Feedback, type Kit, type Translate } from "../_lib/types";
 
@@ -17,15 +19,48 @@ export function EditPanel({
   kit,
   feedback,
   t,
+  locale,
   onField,
   onSaved,
 }: {
   kit: Kit;
   feedback: Feedback;
   t: Translate;
+  locale: Locale;
   onField: (field: keyof Kit, value: string | boolean) => void;
   onSaved: () => Promise<void> | void;
 }) {
+  const [when, setWhen] = useState("");
+
+  async function armSchedule() {
+    feedback.clear();
+    // datetime-local has no timezone; the Date constructor reads it in the
+    // creator's, which is the one they meant.
+    const result = await put(
+      `/api/mediakits/${kit.id}/schedule`,
+      { publishAt: new Date(when).toISOString() },
+      t("failedSchedule")
+    );
+    if (result.ok) {
+      setWhen("");
+      await onSaved();
+      feedback.notify(t("scheduleDone"));
+    } else {
+      feedback.fail(result.message);
+    }
+  }
+
+  async function cancelSchedule() {
+    feedback.clear();
+    const result = await del(`/api/mediakits/${kit.id}/schedule`, t("failedSchedule"), 200);
+    if (result.ok) {
+      await onSaved();
+      feedback.notify(t("scheduleCancelled"));
+    } else {
+      feedback.fail(result.message);
+    }
+  }
+
   async function save() {
     feedback.clear();
     const result = await put(`/api/mediakits/${kit.id}`, {
@@ -202,6 +237,46 @@ export function EditPanel({
         )}
       </div>
       <p className="text-xs text-faint">{t("publishNote")}</p>
+
+      {/* Scheduled publish. Sits under the publish note because it is the same
+          decision moved in time, and reads better right after the sentence
+          explaining that nothing goes out until you publish. */}
+      <fieldset className="rounded-lg border border-line p-3">
+        <legend className="flex items-center gap-1.5 px-1 text-sm font-medium">
+          <CalendarClock className="h-3.5 w-3.5 text-brand" /> {t("scheduleTitle")}
+        </legend>
+        <p className="text-xs text-muted">{t("scheduleHint")}</p>
+
+        {kit.scheduleError && (
+          <p className="mt-2 text-xs text-danger">
+            {t("scheduleFailedNotice", { reason: kit.scheduleError })}
+          </p>
+        )}
+
+        {kit.scheduledPublishAt ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <span>{t("scheduleArmed", { when: formatDateTime(kit.scheduledPublishAt, locale) })}</span>
+            <Button size="sm" variant="ghost" onClick={cancelSchedule}>
+              {t("scheduleCancel")}
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {/* datetime-local reads and writes the creator's own clock; the
+                value is converted to an instant before it is sent, so the
+                server never has to guess which timezone a wall clock meant. */}
+            <Input
+              type="datetime-local"
+              className="w-56"
+              value={when}
+              onChange={(e) => setWhen(e.target.value)}
+            />
+            <Button size="sm" disabled={!when} onClick={armSchedule}>
+              {t("scheduleSet")}
+            </Button>
+          </div>
+        )}
+      </fieldset>
     </div>
   );
 }

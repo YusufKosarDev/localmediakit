@@ -24,17 +24,20 @@ public class MediaKitController {
     private final MediaKitPublicationService publicationService;
     private final KitPreviewService previewService;
     private final KitDuplicationService duplicationService;
+    private final ScheduledPublishService scheduledPublishService;
     private final VersionDiffService versionDiffService;
 
     public MediaKitController(MediaKitService mediaKitService,
                               MediaKitPublicationService publicationService,
                               KitPreviewService previewService,
                               KitDuplicationService duplicationService,
+                              ScheduledPublishService scheduledPublishService,
                               VersionDiffService versionDiffService) {
         this.mediaKitService = mediaKitService;
         this.publicationService = publicationService;
         this.previewService = previewService;
         this.duplicationService = duplicationService;
+        this.scheduledPublishService = scheduledPublishService;
         this.versionDiffService = versionDiffService;
     }
 
@@ -78,6 +81,23 @@ public class MediaKitController {
     @PostMapping("/{id}/publish")
     public PublishResponse publish(Authentication authentication, @PathVariable Long id) {
         return publicationService.publish(currentEmail(authentication), id);
+    }
+
+    /**
+     * Arms a publish for later. PUT because a kit has at most one pending
+     * schedule and setting it again replaces it -- there is no queue to append
+     * to, which is also why the state lives on the kit.
+     */
+    @PutMapping("/{id}/schedule")
+    public MediaKitResponse schedule(Authentication authentication,
+                                     @PathVariable Long id,
+                                     @Valid @RequestBody ScheduleRequest request) {
+        return scheduledPublishService.schedule(currentEmail(authentication), id, request.publishAt());
+    }
+
+    @DeleteMapping("/{id}/schedule")
+    public MediaKitResponse cancelSchedule(Authentication authentication, @PathVariable Long id) {
+        return scheduledPublishService.cancel(currentEmail(authentication), id);
     }
 
     @PostMapping("/{id}/preview-link")

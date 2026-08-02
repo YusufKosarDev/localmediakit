@@ -119,7 +119,7 @@ export function KitCard({
       {openTab && (
         <div className="border-t border-line bg-page/40 p-4">
           {openTab === "edit" && (
-            <EditPanel kit={kit} feedback={feedback} t={t} onField={onKitField} onSaved={onKitSaved} />
+            <EditPanel kit={kit} feedback={feedback} t={t} locale={locale} onField={onKitField} onSaved={onKitSaved} />
           )}
           {openTab === "stats" && (
             <StatsPanel kitId={kit.id} feedback={feedback} t={t} locale={locale} onStatsChanged={onProgressChanged} />
