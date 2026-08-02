@@ -117,7 +117,11 @@ public class LeadNotificationService {
      * one bad address cannot roll back the rest of the batch, and a thrown
      * exception is recorded on the row instead of escaping into the scheduler.
      *
-     * @return how many rows were attempted
+     * @return how many rows were attempted, or -1 if a previous run is still
+     *         going. The two are worth telling apart, and were not: "nothing
+     *         was due" and "this did not run at all" both answered 0, which is
+     *         exactly the ambiguity that makes a silent skip hard to diagnose.
+     *         {@code StatsSyncService.runSyncBatch} already used -1 for it.
      */
     public int runDispatchBatch() {
         if (!mailSender.available()) {
@@ -142,7 +146,7 @@ public class LeadNotificationService {
                 attempted[0]++;
             }
         });
-        return ran ? attempted[0] : 0;
+        return ran ? attempted[0] : -1;
     }
 
     /** Called only from inside a transaction opened by {@link #runDispatchBatch()}. */

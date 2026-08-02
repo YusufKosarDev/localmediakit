@@ -309,7 +309,19 @@ export default function DashboardPage() {
               onChange={(e) => setForm({ ...form, headline: e.target.value })} />
             <Input placeholder={t("fieldAvatarUrl")} value={form.avatarUrl}
               onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} />
-            <Select value={form.theme} onChange={(e) => setForm({ ...form, theme: e.target.value })}>
+            {/* The inputs around this one are named by their placeholder. A
+                select has none, so without a label it reached a screen reader
+                as an unnamed combo box -- "light theme, dark theme" with no
+                indication of what is being chosen. Hidden rather than visible
+                because this is a compact grid where every other field names
+                itself in place; the settings page, which has room, uses a
+                visible Label for the same control. */}
+            <label htmlFor="create-kit-theme" className="sr-only">{t("fieldThemeLabel")}</label>
+            <Select
+              id="create-kit-theme"
+              value={form.theme}
+              onChange={(e) => setForm({ ...form, theme: e.target.value })}
+            >
               <option value="light">{t("themeLightOption")}</option>
               <option value="dark">{t("themeDarkOption")}</option>
             </Select>
