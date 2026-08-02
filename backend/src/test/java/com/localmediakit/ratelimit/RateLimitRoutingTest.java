@@ -46,6 +46,46 @@ class RateLimitRoutingTest {
         return statusAfterTwoRequests(method, path, "203.0.113.9") == 429;
     }
 
+    /**
+     * The other half of a throttle's job, and the half nothing was checking:
+     * a request it allows has to actually reach the application.
+     *
+     * <p>Every assertion in this class reads a status code, and a filter that
+     * dropped allowed requests on the floor would leave the response at its
+     * default 200 and satisfy all of them. Mutation testing found it by deleting
+     * the chain call and watching the suite stay green.
+     */
+    @Test
+    void anAllowedRequestIsPassedOn() throws Exception {
+        RateLimitFilter filter = filter();
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");
+        request.setRequestURI("/api/auth/login");
+        request.setRemoteAddr("203.0.113.10");
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, new MockHttpServletResponse(), chain);
+
+        assertThat(chain.getRequest()).as("the throttle must not swallow what it allows").isNotNull();
+    }
+
+    /** And a request it refuses must NOT reach the application. */
+    @Test
+    void aThrottledRequestIsStoppedBeforeTheApplication() throws Exception {
+        RateLimitFilter filter = filter();
+        MockFilterChain secondChain = new MockFilterChain();
+        for (int i = 0; i < 2; i++) {
+            MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");
+            request.setRequestURI("/api/auth/login");
+            request.setRemoteAddr("203.0.113.11");
+            MockFilterChain chain = i == 0 ? new MockFilterChain() : secondChain;
+            filter.doFilter(request, new MockHttpServletResponse(), chain);
+        }
+
+        assertThat(secondChain.getRequest())
+                .as("a 429 that still ran the request would throttle nothing")
+                .isNull();
+    }
+
     @Test
     void everyAbuseProneEndpointIsThrottled() throws Exception {
         assertThat(isThrottled("POST", "/api/auth/login")).as("login: credential brute-force").isTrue();

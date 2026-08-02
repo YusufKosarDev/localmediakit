@@ -1,6 +1,10 @@
 package com.localmediakit.observability;
 
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
+import org.springframework.mock.web.MockFilterChain;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,5 +47,45 @@ class RequestIdFilterTest {
     @Test
     void capsTheLength() {
         assertThat(RequestIdFilter.resolve("a".repeat(500))).hasSize(64);
+    }
+
+    @Test
+    void anIdExactlyAtTheLimitIsKeptWhole() {
+        // The boundary itself: truncating at the limit rather than past it would
+        // quietly rewrite ids that were already the right size.
+        String atTheLimit = "b".repeat(64);
+
+        assertThat(RequestIdFilter.resolve(atTheLimit)).isEqualTo(atTheLimit);
+    }
+
+    /* --- the filter body, not just the rule --- */
+
+    @Test
+    void theIdReachesTheResponseAndTheRequestReachesTheApplication() throws Exception {
+        // Both halves matter and neither was covered here: an id that never
+        // makes it onto the response cannot be quoted in a bug report, and a
+        // filter that forgets to continue the chain would silently answer every
+        // request with an empty 200.
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/me");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        new RequestIdFilter().doFilter(request, response, chain);
+
+        assertThat(response.getHeader(RequestIdFilter.HEADER)).isNotBlank();
+        assertThat(chain.getRequest()).isNotNull();
+    }
+
+    @Test
+    void theLoggingContextIsClearedSoAPooledThreadDoesNotInheritIt() throws Exception {
+        // Threads are reused. An id left behind would stamp the previous
+        // request's identity onto whatever this thread serves next, which is
+        // worse than having no id at all: the log would be confidently wrong.
+        new RequestIdFilter().doFilter(
+                new MockHttpServletRequest("GET", "/api/me"),
+                new MockHttpServletResponse(),
+                new MockFilterChain());
+
+        assertThat(MDC.get(RequestIdFilter.MDC_KEY)).isNull();
     }
 }
