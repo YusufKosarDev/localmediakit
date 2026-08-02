@@ -32,8 +32,12 @@ jobs:
       # multi-minute database download on every run, and it reads both
       # ecosystems in this repository (backend/pom.xml, frontend/pnpm-lock.yaml)
       # in one pass.
+      # The tag carries the v. Referenced without it this step does not run a
+      # scan that passes -- it fails to resolve at all, which is a red job for
+      # a reason unrelated to any dependency, and the answer it was added to
+      # give ("is what is on main exploitable right now") never arrived.
       - name: Scan dependencies
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -68,7 +72,7 @@ jobs:
           cache: maven
 
       - name: Initialise CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           # security-extended over the default set: this application takes
@@ -84,6 +88,6 @@ jobs:
         run: mvn -B --no-transfer-progress -f backend/pom.xml -DskipTests compile
 
       - name: Analyse
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}
