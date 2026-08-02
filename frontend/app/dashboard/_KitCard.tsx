@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Eye, Lock, Send, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, Eye, Lock, Send, Trash2 } from "lucide-react";
 import { Badge, Button, Card } from "@/app/_components/ui";
 import { tabs, type Feedback, type Kit, type Tab, type Translate } from "./_lib/types";
 import type { Locale } from "@/app/_i18n";
@@ -32,6 +32,7 @@ export function KitCard({
   onPreview,
   onPublish,
   onDelete,
+  onDuplicate,
   onTabSelect,
   onKitField,
   onKitSaved,
@@ -47,6 +48,7 @@ export function KitCard({
   onPreview: () => void;
   onPublish: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
   onTabSelect: (tab: Tab) => void;
   onKitField: (field: keyof Kit, value: string | boolean) => void;
   onKitSaved: () => Promise<void> | void;
@@ -84,6 +86,9 @@ export function KitCard({
           </Button>
           <Button size="sm" onClick={onPublish}>
             <Send className="h-3.5 w-3.5" /> {t("publish")}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={onDuplicate} title={t("duplicate")}>
+            <Copy className="h-3.5 w-3.5" />
           </Button>
           <Button size="sm" variant="danger" onClick={onDelete}>
             <Trash2 className="h-3.5 w-3.5" />

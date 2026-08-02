@@ -149,6 +149,27 @@ export default function DashboardPage() {
     }
   }
 
+  /**
+   * The suffix is added here rather than on the server: which word a creator
+   * expects depends on the language they are reading, and that is known on this
+   * side of the wire.
+   */
+  async function duplicateKit(id: number, title: string) {
+    feedback.clear();
+    const result = await post<Kit>(
+      `/api/mediakits/${id}/duplicate`,
+      { title: `${title} ${t("duplicateSuffix")}` },
+      t("failedDuplicate"),
+      201
+    );
+    if (result.ok) {
+      await refreshKitsAndProgress();
+      feedback.notify(t("duplicated"));
+    } else {
+      feedback.fail(result.message);
+    }
+  }
+
   async function openPreview(kitId: number) {
     feedback.clear();
     // Open the tab synchronously inside the click gesture — popup blockers
@@ -355,6 +376,7 @@ export default function DashboardPage() {
               onPreview={() => openPreview(kit.id)}
               onPublish={() => publishKit(kit.id)}
               onDelete={() => deleteKit(kit.id)}
+              onDuplicate={() => duplicateKit(kit.id, kit.title)}
               onTabSelect={(tab) => selectTab(kit.id, tab)}
               onKitField={(field, value) => updateKitField(kit.id, field, value)}
               onKitSaved={loadKits}

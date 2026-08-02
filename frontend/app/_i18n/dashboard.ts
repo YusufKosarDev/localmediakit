@@ -38,6 +38,10 @@ const dashboardStrings = {
   publish: "Yayinla",
   passwordProtected: "sifreli",
   published: "Yayinlandi.",
+  duplicate: "Kopyala",
+  duplicateSuffix: "(kopya)",
+  duplicated: "Kit kopyalandi. Kopya taslak olarak olusturuldu.",
+  failedDuplicate: "Kit kopyalanamadi",
   confirmDeleteKit: "Bu kiti silmek istediginize emin misiniz?",
 
   /* ---- edit panel ---- */
@@ -353,6 +357,10 @@ export const dashboardDict: Dict<Record<keyof DashboardStrings, string>> = {
     publish: "Publish",
     passwordProtected: "protected",
     published: "Published.",
+    duplicate: "Duplicate",
+    duplicateSuffix: "(copy)",
+    duplicated: "Kit duplicated. The copy was created as a draft.",
+    failedDuplicate: "Couldn't duplicate the kit",
     confirmDeleteKit: "Delete this kit?",
 
     accentLegend: "Accent colour",
