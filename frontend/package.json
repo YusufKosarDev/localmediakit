@@ -43,6 +43,10 @@
   },
   "packageManager": "pnpm@9.15.4",
   "pnpm": {
+    "overrides": {
+      "postcss": "^8.5.25",
+      "sharp": "^0.35.0"
+    },
     "supportedArchitectures": {
       "os": [
         "win32",
