@@ -36,19 +36,22 @@ public class AnalyticsService {
     private final MediaKitAccess access;
     private final VisitorFingerprint fingerprint;
     private final PlanPolicy planPolicy;
+    private final ShareLinkService shareLinkService;
 
     public AnalyticsService(PageViewRepository pageViewRepository,
                             PageViewDailyRepository dailyRepository,
                             MediaKitVersionRepository versionRepository,
                             MediaKitAccess access,
                             VisitorFingerprint fingerprint,
-                            PlanPolicy planPolicy) {
+                            PlanPolicy planPolicy,
+                            ShareLinkService shareLinkService) {
         this.pageViewRepository = pageViewRepository;
         this.dailyRepository = dailyRepository;
         this.versionRepository = versionRepository;
         this.access = access;
         this.fingerprint = fingerprint;
         this.planPolicy = planPolicy;
+        this.shareLinkService = shareLinkService;
     }
 
     /**
@@ -75,9 +78,13 @@ public class AnalyticsService {
         if (alreadyCounted) {
             return;
         }
-        pageViewRepository.save(new PageView(
+        PageView view = new PageView(
                 kitId, request.slug(), visitor,
-                referrerHost(request.referrer()), UserAgents.device(userAgent)));
+                referrerHost(request.referrer()), UserAgents.device(userAgent));
+        // Resolved against this kit only, so a token from someone else's kit
+        // cannot move a view into their numbers.
+        view.attributeTo(shareLinkService.resolveForKit(request.shareToken(), kitId));
+        pageViewRepository.save(view);
     }
 
     /** Owner-facing aggregates; detail level depends on the owner's plan. */

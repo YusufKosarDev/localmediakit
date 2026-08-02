@@ -1,5 +1,7 @@
 package com.localmediakit.shared;
 
+import com.localmediakit.analytics.ShareLinkNotFoundException;
+import com.localmediakit.analytics.TooManyShareLinksException;
 import com.localmediakit.auth.EmailAlreadyUsedException;
 import com.localmediakit.billing.AlreadyProException;
 import com.localmediakit.billing.BillingNotConfiguredException;
@@ -205,6 +207,16 @@ public class ApiExceptionHandler {
     @ExceptionHandler(SyncCooldownException.class)
     public ResponseEntity<Map<String, Object>> handleSyncCooldown(SyncCooldownException ex) {
         return body(HttpStatus.TOO_MANY_REQUESTS, codeFor(ex), ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(ShareLinkNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleShareLinkNotFound(ShareLinkNotFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, codeFor(ex), ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(TooManyShareLinksException.class)
+    public ResponseEntity<Map<String, Object>> handleTooManyShareLinks(TooManyShareLinksException ex) {
+        return body(HttpStatus.CONFLICT, codeFor(ex), ex.getMessage(), null);
     }
 
     /**

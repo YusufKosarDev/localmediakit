@@ -9,6 +9,7 @@ import { StatsPanel } from "./_panels/StatsPanel";
 import { CollabsPanel } from "./_panels/CollabsPanel";
 import { LeadsPanel } from "./_panels/LeadsPanel";
 import { AnalyticsPanel } from "./_panels/AnalyticsPanel";
+import { ShareLinksPanel } from "./_panels/ShareLinksPanel";
 import { VersionsPanel } from "./_panels/VersionsPanel";
 import { DomainPanel } from "./_panels/DomainPanel";
 
@@ -119,7 +120,22 @@ export function KitCard({
           )}
           {openTab === "collabs" && <CollabsPanel kitId={kit.id} feedback={feedback} t={t} />}
           {openTab === "leads" && <LeadsPanel kitId={kit.id} feedback={feedback} t={t} locale={locale} />}
-          {openTab === "analytics" && <AnalyticsPanel kitId={kit.id} feedback={feedback} t={t} locale={locale} />}
+          {openTab === "analytics" && (
+            <div className="grid gap-6">
+              <AnalyticsPanel kitId={kit.id} feedback={feedback} t={t} locale={locale} />
+              {/* Same tab as the aggregate numbers on purpose: "how many looked"
+                  and "which of the brands I sent it to looked" are one question
+                  a creator asks, and splitting them across tabs would make the
+                  second one hard to find. */}
+              <ShareLinksPanel
+                kitId={kit.id}
+                publishedSlug={kit.publishedSlug}
+                feedback={feedback}
+                t={t}
+                locale={locale}
+              />
+            </div>
+          )}
           {openTab === "versions" && (
             <VersionsPanel
               kitId={kit.id}

@@ -41,6 +41,23 @@ export type Stat = {
 
 export type DemoEntry = { category: string; label: string; percentage: number | string };
 
+/**
+ * A labelled link the creator sends to one brand. `url` is relative -- the
+ * backend assembles the shape, the dashboard prefixes its own origin, so
+ * neither side has to know the other's host.
+ */
+export type ShareLink = {
+  id: number;
+  label: string;
+  token: string;
+  url: string;
+  active: boolean;
+  views: number;
+  uniqueVisitors: number;
+  createdAt: string;
+  revokedAt: string | null;
+};
+
 export type Domain = {
   id: number;
   domain: string;
