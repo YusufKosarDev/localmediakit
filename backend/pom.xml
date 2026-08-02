@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.5</version>
+        <version>3.5.12</version>
         <relativePath/>
     </parent>
 
@@ -30,6 +30,15 @@
         <!-- One property for all three jjwt artifacts: they must move together,
              and separate versions arrive as three separate update proposals. -->
         <jjwt.version>0.13.0</jjwt.version>
+        <!--
+            Ahead of what the Boot BOM pins. The driver the BOM brings carries
+            three fixed advisories, one of them in channel-binding
+            authentication (CVE-2025-49146), and this is the driver the
+            production database is reached with. Overriding the property is the
+            supported way to move a managed version; drop it when the BOM
+            catches up, which the vulnerability scan will not let us forget.
+        -->
+        <postgresql.version>42.7.12</postgresql.version>
     </properties>
 
     <dependencies>
