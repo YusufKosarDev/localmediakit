@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.localmediakit.collab.CollaborationService;
 import com.localmediakit.observability.OperationalMetrics;
 import com.localmediakit.ratecard.RateCardService;
+import com.localmediakit.shared.ConstraintRetry;
 import com.localmediakit.stats.DemographicsService;
 import com.localmediakit.stats.StatsService;
 import com.localmediakit.user.PlanPolicy;
@@ -72,9 +73,20 @@ public class MediaKitPublicationService {
         this.metrics = metrics;
     }
 
-    /** Freezes the current draft into a new immutable version and makes it the live one. */
+    /**
+     * Freezes the current draft into a new immutable version and makes it the
+     * live one.
+     *
+     * <p>Retried on a constraint violation: the version number is chosen by
+     * reading the current highest and adding one, so two publishes of the same
+     * kit at once can both pick the same number and one loses to
+     * UNIQUE (media_kit_id, version_number). A second attempt reads the number
+     * the winner committed and takes the next -- which is the correct outcome,
+     * two versions in the order they were published, rather than the 500 this
+     * used to be. A double-clicked publish button is enough to reach it.
+     */
     public PublishResponse publish(String userEmail, Long kitId) {
-        Activation result = transactionTemplate.execute(status -> {
+        Activation result = ConstraintRetry.retrying(() -> transactionTemplate.execute(status -> {
             MediaKit kit = access.requireOwnedKit(userEmail, kitId);
             User owner = access.requireUser(userEmail);
             // Plan gate: on FREE only the oldest kit(s) within the limit may
@@ -88,10 +100,13 @@ public class MediaKitPublicationService {
             String json = toJson(buildSnapshot(kit, owner));
             // Freeze the current password into the version, like the badge/stats:
             // draft password changes only reach the public page on republish.
-            MediaKitVersion version = versionRepository.save(new MediaKitVersion(
+            // Flushed rather than merely saved: the insert has to happen inside
+            // this attempt, or the violation surfaces at commit and escapes the
+            // retry that exists to absorb it.
+            MediaKitVersion version = versionRepository.saveAndFlush(new MediaKitVersion(
                     kit.getId(), nextNumber, kit.getSlug(), json, kit.getPasswordHash()));
             return activate(kit, version);
-        });
+        }));
         return revalidateAndRespond(result);
     }
 
