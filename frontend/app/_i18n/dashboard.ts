@@ -128,6 +128,8 @@ const dashboardStrings = {
   leadArchived: "arsiv",
   leadMarkRead: "Okundu",
   leadArchive: "Arsivle",
+  leadExport: "CSV indir",
+  failedExport: "Disa aktarilamadi",
 
   /* ---- analytics panel ---- */
   totalViews: "toplam goruntulenme",
@@ -445,6 +447,8 @@ export const dashboardDict: Dict<Record<keyof DashboardStrings, string>> = {
     leadArchived: "archived",
     leadMarkRead: "Mark as read",
     leadArchive: "Archive",
+    leadExport: "Download CSV",
+    failedExport: "Couldn't export",
 
     totalViews: "total views",
     uniqueVisitors: "unique visitors",

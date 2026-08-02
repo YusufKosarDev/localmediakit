@@ -278,6 +278,8 @@
                                 <!-- The bot gate in front of every anonymous public write. -->
                                 <param>com.localmediakit.analytics.UserAgents</param>
                                 <param>com.localmediakit.shared.ConstraintRetry</param>
+                                <!-- Exported cells carry text a stranger typed. -->
+                                <param>com.localmediakit.shared.Csv</param>
                                 <param>com.localmediakit.observability.RequestIdFilter</param>
                             </targetClasses>
                             <targetTests>
@@ -300,6 +302,7 @@
                                 <param>com.localmediakit.mediakit.KitAppearanceTest</param>
                                 <param>com.localmediakit.analytics.UserAgentsTest</param>
                                 <param>com.localmediakit.shared.ConstraintRetryTest</param>
+                                <param>com.localmediakit.shared.CsvTest</param>
                                 <param>com.localmediakit.observability.RequestIdFilterTest</param>
                             </targetTests>
                             <!--

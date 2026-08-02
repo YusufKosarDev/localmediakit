@@ -206,7 +206,7 @@ flowchart LR
 - One cikan icerikler — link + kapak gorseli, publish ile snapshot'a donar
 - Rate card (calisma ucretleri)
 - YouTube istatistik senkronu — elle "simdi senkronla" + gunluk otomatik
-- Marka iletisim formu + gelen kutusu (tum gecmis)
+- Marka iletisim formu + gelen kutusu (tum gecmis) + CSV disa aktarim
 - Analitik — tekil ziyaretci + gunluk seri + referrer/cihaz kirilimi
 - Markaya ozel paylasim linki — her marka icin etiketli bir link; kimin actigi
   gorunur, iptal edilebilir
@@ -295,7 +295,7 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 292 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 305 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, senkron cooldown,

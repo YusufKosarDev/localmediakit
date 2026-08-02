@@ -1,8 +1,8 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import { Badge, Button } from "@/app/_components/ui";
-import { del, get, put } from "../_lib/api";
+import { BACKEND, authHeaders, del, errorMessage, get, put } from "../_lib/api";
 import { useResource } from "../_lib/useResource";
 import { formatDateTime, type Locale } from "@/app/_i18n";
 import type { Feedback, Lead, Translate } from "../_lib/types";
@@ -29,12 +29,46 @@ export function LeadsPanel({ kitId, feedback, t, locale }: { kitId: number; feed
     else feedback.fail(result.message);
   }
 
+  /**
+   * Fetched rather than linked. The endpoint needs the bearer token, which an
+   * anchor cannot send, so the file is pulled with the same headers as every
+   * other call and handed to the browser as a blob.
+   */
+  async function exportCsv() {
+    feedback.clear();
+    try {
+      const res = await fetch(`${BACKEND}/api/mediakits/${kitId}/leads/export`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        feedback.fail(await errorMessage(res, t("failedExport")));
+        return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `leads-${kitId}.csv`;
+      link.click();
+      // The object URL pins the blob in memory until it is released.
+      URL.revokeObjectURL(url);
+    } catch {
+      feedback.fail(t("failedExport"));
+    }
+  }
+
   return (
     <div className="grid gap-2.5">
       {leads.length === 0 && (
         <p className="text-sm text-muted">
           {t("noLeads")}
         </p>
+      )}
+      {leads.length > 0 && (
+        <div className="flex justify-end">
+          <Button size="sm" variant="secondary" onClick={exportCsv}>
+            <Download className="h-3.5 w-3.5" /> {t("leadExport")}
+          </Button>
+        </div>
       )}
       {leads.map((l) => (
         <div

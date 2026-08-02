@@ -93,6 +93,13 @@ class RateLimitRoutingTest {
         assertThat(isThrottled("POST", "/api/track")).as("view beacon").isTrue();
         assertThat(isThrottled("POST", "/api/public/kits/demo/unlock")).as("password unlock").isTrue();
         assertThat(isThrottled("POST", "/api/public/kits/demo/contact")).as("contact form").isTrue();
+        // Both halves of recovery. Requesting is a mail amplifier aimed at
+        // somebody else's inbox; confirming is a guess at a token, which is the
+        // same shape of attack as guessing a password.
+        assertThat(isThrottled("POST", "/api/auth/password-reset/request"))
+                .as("reset request: mail amplification").isTrue();
+        assertThat(isThrottled("POST", "/api/auth/password-reset/confirm"))
+                .as("reset confirm: token guessing").isTrue();
     }
 
     /**
