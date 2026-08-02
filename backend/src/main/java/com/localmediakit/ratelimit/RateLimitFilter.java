@@ -101,6 +101,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if ("POST".equalsIgnoreCase(method)) {
             return path.equals("/api/me/password") || path.equals("/api/me/email");
         }
+        // The export verifies nothing, so it is here for the other reason: it
+        // hands over in one request what otherwise takes dozens, and a stolen
+        // session should not get the whole account in a single call unthrottled.
+        if ("GET".equalsIgnoreCase(method)) {
+            return path.equals("/api/me/export");
+        }
         return "DELETE".equalsIgnoreCase(method) && path.equals("/api/me");
     }
 

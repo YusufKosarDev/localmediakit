@@ -129,6 +129,10 @@ const dashboardStrings = {
   leadMarkRead: "Okundu",
   leadArchive: "Arsivle",
   leadExport: "CSV indir",
+  accountExportTitle: "Verilerimi indir",
+  accountExportHint: "Hesabinizdaki her seyi tek bir JSON dosyasi olarak indirin: profil, kitler, istatistik, isbirlikleri, ucretler, icerikler, marka teklifleri. Ziyaretci kayitlari yer almaz — onlar sizin verinizin degil, sayfanizi acan kisilerin verisidir.",
+  accountExportButton: "JSON indir",
+  failedAccountExport: "Veriler indirilemedi",
   failedExport: "Disa aktarilamadi",
 
   /* ---- analytics panel ---- */
@@ -448,6 +452,10 @@ export const dashboardDict: Dict<Record<keyof DashboardStrings, string>> = {
     leadMarkRead: "Mark as read",
     leadArchive: "Archive",
     leadExport: "Download CSV",
+    accountExportTitle: "Download my data",
+    accountExportHint: "Everything in your account as one JSON file: profile, kits, stats, collaborations, rates, work, brand enquiries. Visitor records are not included — those are not your data, they belong to the people who opened your page.",
+    accountExportButton: "Download JSON",
+    failedAccountExport: "Couldn't download your data",
     failedExport: "Couldn't export",
 
     totalViews: "total views",
