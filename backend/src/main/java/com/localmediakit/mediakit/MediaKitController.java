@@ -23,15 +23,18 @@ public class MediaKitController {
     private final MediaKitService mediaKitService;
     private final MediaKitPublicationService publicationService;
     private final KitPreviewService previewService;
+    private final KitDuplicationService duplicationService;
     private final VersionDiffService versionDiffService;
 
     public MediaKitController(MediaKitService mediaKitService,
                               MediaKitPublicationService publicationService,
                               KitPreviewService previewService,
+                              KitDuplicationService duplicationService,
                               VersionDiffService versionDiffService) {
         this.mediaKitService = mediaKitService;
         this.publicationService = publicationService;
         this.previewService = previewService;
+        this.duplicationService = duplicationService;
         this.versionDiffService = versionDiffService;
     }
 
@@ -57,6 +60,19 @@ public class MediaKitController {
                                    @PathVariable Long id,
                                    @Valid @RequestBody UpdateMediaKitRequest request) {
         return mediaKitService.update(currentEmail(authentication), id, request);
+    }
+
+    /**
+     * A draft copy. 201 like any other creation, because that is what it is --
+     * the response is the new kit, not the source.
+     */
+    @PostMapping("/{id}/duplicate")
+    @ResponseStatus(HttpStatus.CREATED)
+    public MediaKitResponse duplicate(Authentication authentication,
+                                      @PathVariable Long id,
+                                      @Valid @RequestBody(required = false) DuplicateKitRequest request) {
+        return duplicationService.duplicate(currentEmail(authentication), id,
+                request == null ? null : request.title());
     }
 
     @PostMapping("/{id}/publish")

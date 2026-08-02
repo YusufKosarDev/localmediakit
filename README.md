@@ -199,7 +199,7 @@ flowchart LR
 
 ## Ozellikler (hepsi ucretsiz, herkese acik)
 
-- Sinirsiz medya kiti
+- Sinirsiz medya kiti + kit kopyalama (marka basina ayri kit)
 - Public sayfa (rozet yok) + uretilen sosyal paylasim karti (OG)
 - Istatistik + engagement + demografi
 - Draft onizleme linki (30 dk)
@@ -295,7 +295,7 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 285 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 292 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, senkron cooldown,
