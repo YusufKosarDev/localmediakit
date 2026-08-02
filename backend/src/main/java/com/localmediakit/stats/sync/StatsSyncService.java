@@ -4,6 +4,7 @@ import com.localmediakit.domain.ReentrancyGuard;
 import com.localmediakit.mediakit.MediaKit;
 import com.localmediakit.mediakit.MediaKitAccess;
 import com.localmediakit.mediakit.MediaKitRepository;
+import com.localmediakit.observability.OperationalMetrics;
 import com.localmediakit.stats.Platform;
 import com.localmediakit.stats.RecordStatsRequest;
 import com.localmediakit.stats.StatsService;
@@ -39,6 +40,7 @@ public class StatsSyncService {
     private final StatsProviderRegistry providers;
     private final StatsService statsService;
     private final PlanPolicy planPolicy;
+    private final OperationalMetrics metrics;
     private final TransactionTemplate transactionTemplate;
     // Own instance, NOT the shared domain-job bean: the two scheduled batches
     // must never block each other.
@@ -52,6 +54,7 @@ public class StatsSyncService {
                             StatsProviderRegistry providers,
                             StatsService statsService,
                             PlanPolicy planPolicy,
+                            OperationalMetrics metrics,
                             TransactionTemplate transactionTemplate,
                             @Value("${app.statsync.sync-interval-ms:86400000}") long syncIntervalMs,
                             @Value("${app.statsync.manual-cooldown-ms:60000}") long manualCooldownMs) {
@@ -61,6 +64,7 @@ public class StatsSyncService {
         this.providers = providers;
         this.statsService = statsService;
         this.planPolicy = planPolicy;
+        this.metrics = metrics;
         this.transactionTemplate = transactionTemplate;
         this.syncInterval = Duration.ofMillis(syncIntervalMs);
         this.manualCooldown = Duration.ofMillis(manualCooldownMs);
@@ -168,8 +172,13 @@ public class StatsSyncService {
                             status -> syncEligibleById(id));
                     if (failure != null) {
                         attempted[0]++;
+                        metrics.statsSyncSourceFailed();
                         if (failure == StatsProviderException.Kind.QUOTA) {
-                            log.warn("Stats sync batch aborted: provider quota exhausted");
+                            // Every remaining source stays stale until the quota
+                            // resets, and the batch says nothing else about it.
+                            metrics.statsSyncQuotaExhausted();
+                            log.error("Stats sync batch aborted after {} sources: provider quota "
+                                    + "exhausted, the rest stay stale until it resets", attempted[0]);
                             break;
                         }
                     } else {
@@ -178,6 +187,7 @@ public class StatsSyncService {
                 } catch (SkippedSourceException e) {
                     // Not an attempt: FREE owner, deleted kit or vanished provider.
                 } catch (Exception e) {
+                    metrics.statsSyncSourceFailed();
                     log.warn("Stats sync failed for source {}: {}", id, e.getMessage());
                 }
             }

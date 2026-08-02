@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Logging is read in the host's log viewer, so the pattern has one job: make a
+    single request's lines findable among everything else happening at the same
+    time. RequestIdFilter puts the id in the MDC; %X{requestId} is what makes it
+    visible, and without it the correlation exists in memory and nowhere else.
+
+    Plain text rather than JSON on purpose. Structured logging earns its cost
+    when something parses it, and nothing here does yet — Render's viewer is a
+    text search box. Spring Boot 3.4 ships structured output as one property
+    (logging.structured.format.console), so this becomes a one-line change the
+    day a log pipeline exists; adding an encoder dependency today would be
+    paying for that day early.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="REQUEST_ID_PATTERN" value="%clr([%X{requestId:-no-request}]){faint}"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                %clr(%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) ${REQUEST_ID_PATTERN} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}
+            </pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

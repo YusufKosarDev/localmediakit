@@ -27,7 +27,10 @@ public class RateLimitConfig {
                 new RateLimitFilter(registry, enabled, loginCapacity, registerCapacity,
                         trackCapacity, unlockCapacity, contactCapacity, accountCapacity));
         bean.addUrlPatterns("/api/*");
-        bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        // Still ahead of Spring Security, but one step behind the request-id
+        // filter: a rejected request has to carry an id too, or a 429 is a log
+        // line nobody can trace back to a caller.
+        bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
         return bean;
     }
 }

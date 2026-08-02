@@ -1,6 +1,7 @@
 package com.localmediakit.mediakit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.localmediakit.observability.OperationalMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,12 +35,15 @@ public class RevalidationClient {
 
     private final String revalidateUrl;
     private final String revalidateSecret;
+    private final OperationalMetrics metrics;
 
     public RevalidationClient(
             @Value("${app.revalidate.url}") String revalidateUrl,
-            @Value("${app.revalidate.secret}") String revalidateSecret) {
+            @Value("${app.revalidate.secret}") String revalidateSecret,
+            OperationalMetrics metrics) {
         this.revalidateUrl = revalidateUrl;
         this.revalidateSecret = revalidateSecret;
+        this.metrics = metrics;
     }
 
     /**
@@ -56,11 +60,36 @@ public class RevalidationClient {
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info("Revalidation for slug '{}' returned status {}", slug, response.statusCode());
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                log.info("Revalidation for slug '{}' returned status {}", slug, response.statusCode());
+            } else {
+                // A non-2xx here is the misleading case: the publish succeeded,
+                // the dashboard says so, and the public page can still be
+                // serving the previous snapshot. It is an error even though
+                // nothing threw.
+                metrics.revalidationFailed();
+                log.error("Revalidation for slug '{}' was rejected with status {}: the public page "
+                        + "may still serve the previous snapshot", slug, response.statusCode());
+            }
             return response.statusCode();
         } catch (Exception e) {
-            log.warn("Revalidation for slug '{}' failed: {}", slug, e.getMessage());
+            metrics.revalidationFailed();
+            log.error("Revalidation for slug '{}' could not be delivered ({}): the public page "
+                    + "may still serve the previous snapshot", slug, describe(e));
             return -1;
         }
+    }
+
+    /**
+     * Connection failures routinely carry no message -- a plain ConnectException
+     * is the common case here -- and "could not be delivered: null" tells the
+     * person reading it nothing at all. The type name is the minimum that
+     * distinguishes a refused connection from a timeout from a bad URL.
+     */
+    static String describe(Exception e) {
+        String message = e.getMessage();
+        return message == null || message.isBlank()
+                ? e.getClass().getSimpleName()
+                : e.getClass().getSimpleName() + ": " + message;
     }
 }
