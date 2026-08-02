@@ -17,10 +17,19 @@ public class SlugService {
     private static final int MAX_LENGTH = 60;
     private static final String FALLBACK = "kit";
 
+    /**
+     * Words a kit slug may not take, because the frontend already answers on
+     * them. This list and {@code frontend/app}'s top-level directories are one
+     * fact written down twice, and the copy that drifts is this one — a route is
+     * added in the other project, ships, and nothing here notices until a
+     * creator's page quietly stops resolving. {@code ReservedSlugRoutesTest}
+     * reads the directory and fails when a segment is missing here, so the list
+     * is checked rather than remembered.
+     */
     private static final Set<String> RESERVED = Set.of(
             "app", "api", "admin", "login", "register", "dashboard", "me", "public",
             "demo", "preview", "static", "assets", "_next", "favicon.ico", "robots.txt",
-            "sitemap.xml");
+            "sitemap.xml", "forgot", "reset", "offline", "settings");
 
     /** Normalizes text to a URL-safe slug (lowercase, hyphenated, ASCII). */
     public String slugify(String input) {
