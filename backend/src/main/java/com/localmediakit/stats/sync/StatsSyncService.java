@@ -5,6 +5,7 @@ import com.localmediakit.mediakit.MediaKit;
 import com.localmediakit.mediakit.MediaKitAccess;
 import com.localmediakit.mediakit.MediaKitRepository;
 import com.localmediakit.observability.OperationalMetrics;
+import com.localmediakit.shared.ConstraintRetry;
 import com.localmediakit.stats.Platform;
 import com.localmediakit.stats.RecordStatsRequest;
 import com.localmediakit.stats.StatsService;
@@ -76,21 +77,38 @@ public class StatsSyncService {
      * Connects (or re-points) a platform source. The external account is
      * validated by fetching it immediately — which also lands the first data
      * point. A bad handle fails loudly here and stores nothing.
+     *
+     * <p>The upstream call happens BEFORE the transaction opens rather than
+     * inside it. Holding a database transaction open across a network call is
+     * the thing the publish path was built to avoid, and this method was quietly
+     * doing it: a slow YouTube response pinned a connection from a pool of five.
+     * Validating first also keeps the old behaviour that a bad handle stores
+     * nothing, since there is no transaction to roll back yet.
+     *
+     * <p>The write is then retried, because find-or-create races with itself:
+     * two requests for the same kit and platform -- a double-clicked connect
+     * button -- can both miss the row and both insert, and one loses to
+     * uq_stats_sources_kit_platform. On the second attempt the row is there and
+     * the branch that updates it runs instead.
      */
-    @Transactional
     public SyncSourceResponse connect(String userEmail, Long kitId, Platform platform, String externalId) {
-        MediaKit kit = access.requireOwnedKit(userEmail, kitId);
+        String handle = externalId.trim();
+        Long ownedKitId = transactionTemplate.execute(status ->
+                access.requireOwnedKit(userEmail, kitId).getId());
         StatsProvider provider = providers.forPlatform(platform)
                 .orElseThrow(SyncNotConfiguredException::new);
-        FetchedStats fetched = fetchForCaller(provider, externalId.trim());
+        FetchedStats fetched = fetchForCaller(provider, handle);
 
-        StatsSource source = sourceRepository
-                .findByMediaKitIdAndPlatform(kit.getId(), platform)
-                .orElseGet(() -> sourceRepository.save(new StatsSource(kit.getId(), platform, externalId.trim())));
-        source.updateExternalId(externalId.trim());
-        append(kit.getId(), platform, fetched);
-        source.recordSuccess(Instant.now());
-        return SyncSourceResponse.from(source);
+        return ConstraintRetry.retrying(() -> transactionTemplate.execute(status -> {
+            StatsSource source = sourceRepository
+                    .findByMediaKitIdAndPlatform(ownedKitId, platform)
+                    .orElseGet(() -> new StatsSource(ownedKitId, platform, handle));
+            source.updateExternalId(handle);
+            source.recordSuccess(Instant.now());
+            sourceRepository.saveAndFlush(source);
+            append(ownedKitId, platform, fetched);
+            return SyncSourceResponse.from(source);
+        }));
     }
 
     @Transactional(readOnly = true)

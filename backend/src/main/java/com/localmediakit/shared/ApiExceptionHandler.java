@@ -28,6 +28,9 @@ import com.localmediakit.stats.sync.SyncUpstreamException;
 import com.localmediakit.user.PlanLimitExceededException;
 import com.localmediakit.user.ProtectedAccountException;
 import com.localmediakit.shared.UnsupportedLocaleException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -41,6 +44,8 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     /**
      * Unparseable bodies (bad JSON, unknown enum values like an unsupported
@@ -200,6 +205,27 @@ public class ApiExceptionHandler {
     @ExceptionHandler(SyncCooldownException.class)
     public ResponseEntity<Map<String, Object>> handleSyncCooldown(SyncCooldownException ex) {
         return body(HttpStatus.TOO_MANY_REQUESTS, codeFor(ex), ex.getMessage(), null);
+    }
+
+    /**
+     * A write the database refused as a duplicate.
+     *
+     * <p>{@link ConstraintRetry} absorbs the racing case, so anything arriving
+     * here is a collision that did not clear on a second look -- a value that is
+     * genuinely taken. That is the caller's situation to resolve, not a fault of
+     * this server, and 409 says so where the previous 500 blamed the wrong side
+     * and told an operator to go looking for a bug that is not there.
+     *
+     * <p>The message is deliberately generic: the constraint name and the
+     * offending value are in the exception, and putting either in a response
+     * tells a caller about rows they cannot see.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex) {
+        log.warn("Write rejected as a duplicate after retries: {}", ex.getMostSpecificCause().getMessage());
+        return body(HttpStatus.CONFLICT, "DATA_INTEGRITY_VIOLATION",
+                "That value is already taken. Please try a different one.", null);
     }
 
     /**

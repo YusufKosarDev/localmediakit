@@ -1,5 +1,6 @@
 package com.localmediakit.mediakit;
 
+import com.localmediakit.shared.ConstraintRetry;
 import com.localmediakit.user.PlanPolicy;
 import com.localmediakit.user.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,22 +42,32 @@ public class MediaKitService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    @Transactional
+    /**
+     * Creates a kit. The slug is chosen by reading which ones are taken, so two
+     * requests racing on the same title can both settle on the same free slug
+     * and one of them loses to the unique constraint. Retrying re-reads, finds
+     * the committed row, and takes the suffix the collision logic was written to
+     * produce -- which is what the loser should have got in the first place.
+     */
     public MediaKitResponse create(String userEmail, CreateMediaKitRequest request) {
-        User user = access.requireUser(userEmail);
-        planPolicy.assertCanCreateMediaKit(user.getPlan(), mediaKitRepository.countByUserId(user.getId()));
+        return ConstraintRetry.retrying(() -> transactionTemplate.execute(status -> {
+            User user = access.requireUser(userEmail);
+            planPolicy.assertCanCreateMediaKit(user.getPlan(), mediaKitRepository.countByUserId(user.getId()));
 
-        String slug = resolveSlug(request.slug(), request.title(), null);
-        MediaKit kit = new MediaKit(
-                user.getId(), slug, request.title().trim(),
-                request.headline(), request.avatarUrl(),
-                request.theme(), request.accent(), request.layout(),
-                // A new kit defaults to the language the owner administers in;
-                // a sensible starting point, still per-kit and overridable.
-                request.language() == null || request.language().isBlank()
-                        ? user.getLocale() : request.language());
-        mediaKitRepository.save(kit);
-        return toResponse(kit);
+            String slug = resolveSlug(request.slug(), request.title(), null);
+            MediaKit kit = new MediaKit(
+                    user.getId(), slug, request.title().trim(),
+                    request.headline(), request.avatarUrl(),
+                    request.theme(), request.accent(), request.layout(),
+                    // A new kit defaults to the language the owner administers in;
+                    // a sensible starting point, still per-kit and overridable.
+                    request.language() == null || request.language().isBlank()
+                            ? user.getLocale() : request.language());
+            // Flush inside the attempt: without it the insert happens at commit,
+            // outside this try, and the violation escapes the retry entirely.
+            mediaKitRepository.saveAndFlush(kit);
+            return toResponse(kit);
+        }));
     }
 
     @Transactional(readOnly = true)
@@ -92,28 +103,31 @@ public class MediaKitService {
      * Edits only the DRAFT. The published snapshot (and so the public page) is
      * untouched until the owner explicitly publishes again.
      */
-    @Transactional
+    /** Edits only the DRAFT; retried for the same slug race as {@link #create}. */
     public MediaKitResponse update(String userEmail, Long id, UpdateMediaKitRequest request) {
-        MediaKit kit = access.requireOwnedKit(userEmail, id);
-        kit.updateDetails(request.title().trim(), request.headline(), request.avatarUrl(),
-                request.theme(), request.accent(), request.layout(),
-                request.language() == null || request.language().isBlank()
-                        ? kit.getLanguage() : request.language());
-        if (request.contactEnabled() != null) {
-            kit.setContactEnabled(request.contactEnabled());
-        }
-
-        if (request.slug() != null && !request.slug().isBlank()) {
-            String desired = slugService.slugify(request.slug());
-            if (!desired.equals(kit.getSlug())) {
-                if (slugService.isReserved(desired)) {
-                    throw new ReservedSlugException(desired);
-                }
-                String unique = slugService.makeUnique(desired, candidate -> slugTaken(candidate, id));
-                kit.changeSlug(unique);
+        return ConstraintRetry.retrying(() -> transactionTemplate.execute(status -> {
+            MediaKit kit = access.requireOwnedKit(userEmail, id);
+            kit.updateDetails(request.title().trim(), request.headline(), request.avatarUrl(),
+                    request.theme(), request.accent(), request.layout(),
+                    request.language() == null || request.language().isBlank()
+                            ? kit.getLanguage() : request.language());
+            if (request.contactEnabled() != null) {
+                kit.setContactEnabled(request.contactEnabled());
             }
-        }
-        return toResponse(kit);
+
+            if (request.slug() != null && !request.slug().isBlank()) {
+                String desired = slugService.slugify(request.slug());
+                if (!desired.equals(kit.getSlug())) {
+                    if (slugService.isReserved(desired)) {
+                        throw new ReservedSlugException(desired);
+                    }
+                    String unique = slugService.makeUnique(desired, candidate -> slugTaken(candidate, id));
+                    kit.changeSlug(unique);
+                }
+            }
+            mediaKitRepository.saveAndFlush(kit);
+            return toResponse(kit);
+        }));
     }
 
     /**

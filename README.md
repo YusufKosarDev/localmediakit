@@ -345,6 +345,38 @@ bilinen degerlerin listesi degil, bir isarettir — her gelistirme varsayilani
 `local-dev-` onekini tasir, kural da oneki reddeder; sonradan eklenen bir secret
 korumayi yalnizca kurala uyarak devralir.
 
+## Eszamanlilik: kontrol-et-sonra-yaz yollari
+
+Uc yerde bir deger, "hali hazirda ne var" okunarak seciliyor: bir sonraki bos
+slug, bir sonraki versiyon numarasi, bir platformun kaynak satiri. Okuma ile
+yazma arasinda baska bir istek o degeri alabilir ve bunu **yalnizca unique
+constraint fark eder.** Fark etmesi gereken de odur — karar uygulamaya tasinsa,
+neredeyse hic olmayan bir seye karsi okuma yolunda satir kilitlemek gerekirdi.
+
+Yanlis olan sey tepkiydi: ihlal 500 olarak disari cikiyordu. Ayni anda ayni
+basligi yazan iki kisi bir kit ve bir sunucu hatasi uretiyordu — oysa zaten var
+olan cakisma mantigi ikincisine bir sonek verecekti. Yayin butonuna cift
+tiklamak da ayni sonucu veriyordu.
+
+- **`ConstraintRetry`** — ihlali yakalar ve isi yeniden calistirir; ikinci okuma
+  commit edilmis satiri gorur ve bir sonraki degeri secer. Her deneme kendi
+  transaction'idir: constraint ihlaline ugramis bir JPA transaction bitmistir.
+- **Deneme sayisi rakip sayisiyla olceklenir** — her turda tam bir kazanan
+  cikar, dolayisiyla N rakip N deneme ister. Sinirli tutulur: yeniden deneme
+  her ihlali cozemez, gercekten dolu bir deger onuncu denemede de doludur ve
+  sonsuz donmek, kullanicinin duymasi gereken bir istegi hic cevap vermeyen bir
+  thread'e cevirir.
+- **Tukendiginde 409, 500 degil** — "o deger alinmis" dogru, "bu sunucu bozuk"
+  degil. Constraint adi ve carpisan deger yanita konmaz; ikisi de cagirana
+  goremeyecegi satirlari anlatir.
+- **Yan kazanc:** `connect` upstream cagrisini artik transaction'in **disinda**
+  yapiyor. Yavas bir YouTube yaniti bes baglantilik havuzdan birini tutuyordu —
+  tam da publish yolunun kacinmak icin kuruldugu sey.
+
+Testler yarisi umut ederek degil bir `CyclicBarrier` ile uretir: iki thread'i
+oylesine baslatmak cogunlukla onlari sirayla kosturur ve test, iddia ettigi
+kosulu hic olusturmadan gecer.
+
 ## Isletme: sessiz basarisizliklarin gorunur olmasi
 
 Bu sistemdeki bazi hatalar **bilerek olumcul degil**: edge'e ulasmayan bir
