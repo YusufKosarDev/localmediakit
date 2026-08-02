@@ -7,6 +7,7 @@ import com.localmediakit.mediakit.MediaKitAccess;
 import com.localmediakit.mediakit.MediaKitRepository;
 import com.localmediakit.mediakit.MediaKitVersionRepository;
 import com.localmediakit.notification.LeadNotificationService;
+import com.localmediakit.shared.Csv;
 import com.localmediakit.user.PlanPolicy;
 import com.localmediakit.user.User;
 import org.springframework.stereotype.Service;
@@ -101,6 +102,28 @@ public class LeadService {
                 .limit(planPolicy.maxVisibleLeads(owner.getPlan()))
                 .map(LeadResponse::from)
                 .toList();
+    }
+
+    /**
+     * The inbox as a spreadsheet.
+     *
+     * <p>Built from {@link #list} rather than from its own query, so the plan's
+     * visibility rule cannot be bypassed by exporting instead of reading: an
+     * export that returned rows the interface hides would make the gate
+     * decorative.
+     */
+    @Transactional(readOnly = true)
+    public String exportCsv(String userEmail, Long kitId) {
+        StringBuilder csv = new StringBuilder();
+        csv.append(Csv.row(List.of("createdAt", "brandName", "email", "status", "message")))
+                .append("\r\n");
+        for (LeadResponse lead : list(userEmail, kitId)) {
+            csv.append(Csv.row(List.of(
+                            lead.createdAt(), lead.brandName(), lead.email(),
+                            lead.status(), lead.message())))
+                    .append("\r\n");
+        }
+        return csv.toString();
     }
 
     @Transactional
