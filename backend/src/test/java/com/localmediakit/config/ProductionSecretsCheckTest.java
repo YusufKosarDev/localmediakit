@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -19,35 +21,64 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 class ProductionSecretsCheckTest {
 
+    private static Map<String, String> one(String name, String value) {
+        Map<String, String> secrets = new LinkedHashMap<>();
+        secrets.put(name, value);
+        return secrets;
+    }
+
     @Test
     void acceptsARealSecret() {
-        assertThatCode(() -> ProductionSecretsCheck.requireRealSecret(
-                "JWT_SECRET", "0f2c9a4e7b1d8365f0a2c4e6b8d0f2a4"))
+        assertThatCode(() -> ProductionSecretsCheck.requireRealSecrets(
+                one("JWT_SECRET", "0f2c9a4e7b1d8365f0a2c4e6b8d0f2a4")))
                 .doesNotThrowAnyException();
     }
 
     @Test
     void rejectsTheDevelopmentDefault() {
-        assertThatThrownBy(() -> ProductionSecretsCheck.requireRealSecret(
-                "JWT_SECRET", "local-dev-jwt-secret-change-me-at-least-32-bytes-long"))
+        assertThatThrownBy(() -> ProductionSecretsCheck.requireRealSecrets(
+                one("JWT_SECRET", "local-dev-jwt-secret-change-me-at-least-32-bytes-long")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("JWT_SECRET");
     }
 
     @Test
     void rejectsAnUnsetOrBlankVariable() {
-        assertThatThrownBy(() -> ProductionSecretsCheck.requireRealSecret("ANALYTICS_SALT", null))
+        assertThatThrownBy(() -> ProductionSecretsCheck.requireRealSecrets(
+                one("ANALYTICS_SALT", null)))
                 .isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> ProductionSecretsCheck.requireRealSecret("ANALYTICS_SALT", "   "))
+        assertThatThrownBy(() -> ProductionSecretsCheck.requireRealSecrets(
+                one("ANALYTICS_SALT", "   ")))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void neverEchoesTheValueItRejected() {
         // A startup log is not a place to print a secret, not even a wrong one.
-        assertThatThrownBy(() -> ProductionSecretsCheck.requireRealSecret(
-                "REVALIDATE_SECRET", "local-dev-secret"))
+        assertThatThrownBy(() -> ProductionSecretsCheck.requireRealSecrets(
+                one("REVALIDATE_SECRET", "local-dev-secret")))
                 .hasMessageNotContaining("local-dev-secret");
+    }
+
+    /**
+     * The reason the check reports rather than stops: each attempt costs a
+     * deploy. Naming one variable per boot is how an operator sets three
+     * secrets across three image builds instead of one.
+     */
+    @Test
+    void namesEveryUnsetVariableAtOnce() {
+        Map<String, String> secrets = new LinkedHashMap<>();
+        secrets.put("JWT_SECRET", "0f2c9a4e7b1d8365f0a2c4e6b8d0f2a4");
+        secrets.put("REVALIDATE_SECRET", "local-dev-secret");
+        secrets.put("ANALYTICS_SALT", null);
+
+        assertThatThrownBy(() -> ProductionSecretsCheck.requireRealSecrets(secrets))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("REVALIDATE_SECRET")
+                .hasMessageContaining("ANALYTICS_SALT")
+                // The one that was set correctly must not appear, or the list
+                // stops being a list of things to fix.
+                .hasMessageNotContaining("JWT_SECRET");
     }
 
     /**

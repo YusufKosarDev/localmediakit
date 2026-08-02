@@ -4,6 +4,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Refuses to start production while a development secret is still in place.
  *
@@ -39,22 +43,46 @@ public class ProductionSecretsCheck {
             @Value("${app.jwt.secret}") String jwtSecret,
             @Value("${app.revalidate.secret}") String revalidateSecret,
             @Value("${app.analytics.salt}") String analyticsSalt) {
-        requireRealSecret("JWT_SECRET", jwtSecret);
-        requireRealSecret("REVALIDATE_SECRET", revalidateSecret);
-        requireRealSecret("ANALYTICS_SALT", analyticsSalt);
+        // Ordered, so the message reads the same way twice and a fix can be
+        // checked off against it.
+        Map<String, String> secrets = new LinkedHashMap<>();
+        secrets.put("JWT_SECRET", jwtSecret);
+        secrets.put("REVALIDATE_SECRET", revalidateSecret);
+        secrets.put("ANALYTICS_SALT", analyticsSalt);
+        requireRealSecrets(secrets);
     }
 
     /**
      * Package-private and static so the rule can be tested without booting a
-     * production context. The failure names the environment variable to set and
-     * never echoes the value — a startup log is not a place to print secrets,
-     * including the wrong one.
+     * production context.
+     *
+     * <p>Every variable is checked before anything is thrown, and the failure
+     * names all of them. Stopping at the first one is correct but expensive to
+     * act on: a deploy on a free tier is minutes of image build, so one missing
+     * variable per attempt turns a five-minute fix into an afternoon of
+     * discovering them one at a time. The operator should be able to read the
+     * list once, set what is on it, and deploy once.
+     *
+     * <p>Names only. A startup log is not a place to print a secret, including
+     * the wrong one.
      */
-    static void requireRealSecret(String environmentVariable, String value) {
-        if (value == null || value.isBlank() || value.startsWith(DEV_MARKER)) {
+    static void requireRealSecrets(Map<String, String> valuesByEnvironmentVariable) {
+        List<String> missing = valuesByEnvironmentVariable.entrySet().stream()
+                .filter(entry -> isUnsetOrDevelopmentDefault(entry.getValue()))
+                .map(Map.Entry::getKey)
+                .toList();
+
+        if (!missing.isEmpty()) {
             throw new IllegalStateException(
-                    "Refusing to start: " + environmentVariable + " is unset or still holds the "
-                            + "development default. Set it to a real secret in this environment.");
+                    "Refusing to start: " + String.join(", ", missing)
+                            + (missing.size() == 1 ? " is" : " are")
+                            + " unset or still holding the development default. Set "
+                            + (missing.size() == 1 ? "it" : "them")
+                            + " to a real secret in this environment.");
         }
+    }
+
+    private static boolean isUnsetOrDevelopmentDefault(String value) {
+        return value == null || value.isBlank() || value.startsWith(DEV_MARKER);
     }
 }
