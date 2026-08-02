@@ -74,6 +74,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (path.equals("/api/auth/register")) {
             return new Rule("register", registerCapacity);
         }
+        // Both halves of recovery, on the login budget. Requesting is a mail
+        // amplifier pointed at somebody else's inbox; confirming is a guess at
+        // a token, which is the same shape of attack as guessing a password.
+        if (path.startsWith("/api/auth/password-reset/")) {
+            return new Rule("login", loginCapacity);
+        }
         if (path.equals("/api/track")) {
             return new Rule("track", trackCapacity);
         }

@@ -213,6 +213,7 @@ flowchart LR
 - Versiyon gecmisi (tam) + her versiyona rollback + versiyon karsilastirma (diff)
 - PDF export (temiz) + sifre korumasi
 - Custom domain (yakinda) — DNS dogrulama iskeleti
+- Sifremi unuttum — tek kullanimlik, 30 dk omurlu sifirlama linki
 - Hesap ayarlari — profil (ad/avatar/pano temasi), sifre ve e-posta degistirme,
   hesap silme
 - Onboarding — karsilama turu + veriden turetilen baslangic kontrol listesi
@@ -224,13 +225,13 @@ flowchart LR
 > dogrular; urun karari geregi herkes PRO oldugu icin bu limitler pratikte
 > tetiklenmez. Ucretli planlar `User` varsayilanini geri alarak yeniden acilir.
 
-> **Bilinen sinir — e-posta degisimi dogrulanmaz.** Projede mail gonderici yok,
-> dolayisiyla onay linki atilamiyor. Degisim bunun yerine **mevcut sifreyle**
+> **Bilinen sinir — e-posta degisimi dogrulanmaz.** Degisim **mevcut sifreyle**
 > onaylanir: bu, acik kalmis bir oturumun hesabi sessizce baska bir adrese
 > tasimasini engelleyen asil kontrol. Ancak kullanici adresi yanlis yazarsa
-> bunu yakalayacak bir mekanizma yok (sifre sifirlama akisi da olmadigi icin
-> model kendi icinde tutarli). Gercek dogrulama icin `pending_email` +
-> token kolonu ve bir mail saglayici gerekir.
+> bunu yakalayacak bir mekanizma yok. Gercek dogrulama icin `pending_email` +
+> token kolonu gerekir; mail altyapisi artik mevcut, dolayisiyla bu **artik bir
+> engel degil, yapilmamis bir is.** (Sifre sifirlama akisi bu sinira dayanarak
+> yoktu; o eksik kapatildi — asagiya bakin.)
 >
 > **Lead bildirimleri ucuncu taraf bir servisten geciyor.** Bir marka iletisim
 > formunu doldurdugunda uretici e-posta alir; bu e-posta yapilandirilmis SMTP
@@ -294,7 +295,7 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 277 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 285 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, senkron cooldown,

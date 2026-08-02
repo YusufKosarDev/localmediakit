@@ -87,6 +87,14 @@ export default function LoginPage() {
             <Button type="submit" disabled={busy} className="w-full">
               {busy ? t("busy") : t("loginSubmit")}
             </Button>
+            {/* Below the button rather than beside the password field: it is
+                the way out of a failed sign-in, and that is when people look
+                for it. */}
+            <p className="text-center text-sm">
+              <Link href="/forgot" className="text-muted hover:text-brand hover:underline">
+                {t("forgotLink")}
+              </Link>
+            </p>
           </form>
 
           <div className="my-5 flex items-center gap-3 text-xs text-faint">

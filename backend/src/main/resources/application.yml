@@ -87,6 +87,13 @@ app:
     # HS256 requires >= 32 bytes. Overridden by JWT_SECRET in every real environment.
     secret: ${JWT_SECRET:local-dev-jwt-secret-change-me-at-least-32-bytes-long}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:720}
+  password-reset:
+    # Same lifetime as a draft preview link. Long enough to find the mail,
+    # short enough that a link left in an inbox stops being a key.
+    ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:30}
+    # Per account, not per client: the IP throttle covers volume, this covers
+    # using many clients to bury one person in mail.
+    max-per-hour: ${PASSWORD_RESET_MAX_PER_HOUR:5}
   preview:
     # Lifetime of a signed draft-preview link (minutes).
     ttl-minutes: ${PREVIEW_TTL_MINUTES:30}

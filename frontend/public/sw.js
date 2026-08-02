@@ -35,7 +35,7 @@ const OFFLINE_URL = "/offline";
  * prefix rule like "starts with /d" would be one typo away from swallowing a
  * kit whose slug begins the same way.
  */
-const APP_ROUTES = ["/dashboard", "/dashboard/settings", "/login", "/register", OFFLINE_URL];
+const APP_ROUTES = ["/dashboard", "/dashboard/settings", "/login", "/register", "/forgot", OFFLINE_URL];
 
 /** Immutable, content-hashed build output. Safe to serve from cache forever. */
 function isBuildAsset(url) {
