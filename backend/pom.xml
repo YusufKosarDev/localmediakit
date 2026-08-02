@@ -146,6 +146,30 @@
             <version>1.4.2</version>
             <scope>test</scope>
         </dependency>
+
+        <!--
+            A real PostgreSQL for the handful of tests where H2's compatibility
+            mode is the thing under test rather than a convenience. Tagged
+            "postgres" and excluded from the default run (see surefire below),
+            so the fast suite stays fast and needs no Docker.
+        -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- @ServiceConnection: points the context at the container without a
+             single duplicated JDBC URL. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -153,6 +177,20 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!--
+                        The Postgres tests need a Docker daemon, which `mvn test`
+                        on a laptop cannot assume. Excluding them by tag keeps
+                        the default build self-contained - the property the CI
+                        comment already claims - while `-Dgroups=postgres` runs
+                        exactly those, which is what the dedicated job does.
+                    -->
+                    <excludedGroups>postgres</excludedGroups>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -216,6 +254,23 @@
                                 <param>com.localmediakit.ratelimit.RateLimiterRegistry</param>
                                 <param>com.localmediakit.stats.engagement.*</param>
                                 <param>com.localmediakit.domain.ReentrancyGuard</param>
+                                <!--
+                                    The backward-compatibility rules for already
+                                    published snapshots. The product's central
+                                    promise is that a published page does not
+                                    change until its owner republishes, and
+                                    these accessors are where that survives
+                                    every field added since. They were outside
+                                    this scope while the only tests touching
+                                    them booted Spring.
+                                -->
+                                <param>com.localmediakit.mediakit.MediaKitSnapshot</param>
+                                <!-- The curated look list the contrast guarantee rests on. -->
+                                <param>com.localmediakit.mediakit.KitAppearance</param>
+                                <!-- The bot gate in front of every anonymous public write. -->
+                                <param>com.localmediakit.analytics.UserAgents</param>
+                                <param>com.localmediakit.shared.ConstraintRetry</param>
+                                <param>com.localmediakit.observability.RequestIdFilter</param>
                             </targetClasses>
                             <targetTests>
                                 <!--
@@ -233,6 +288,11 @@
                                 <param>com.localmediakit.domain.ReentrancyGuardTest</param>
                                 <param>com.localmediakit.domain.DomainVerificationLogicTest</param>
                                 <param>com.localmediakit.ratelimit.RateLimitRoutingTest</param>
+                                <param>com.localmediakit.mediakit.MediaKitSnapshotTest</param>
+                                <param>com.localmediakit.mediakit.KitAppearanceTest</param>
+                                <param>com.localmediakit.analytics.UserAgentsTest</param>
+                                <param>com.localmediakit.shared.ConstraintRetryTest</param>
+                                <param>com.localmediakit.observability.RequestIdFilterTest</param>
                             </targetTests>
                             <!--
                                 Accessors only. Mutating a getter's return value is
@@ -258,7 +318,24 @@
                                 suite where each test boots Spring.
                             -->
                             <timeoutConstant>10000</timeoutConstant>
-                            <mutationThreshold>90</mutationThreshold>
+                            <!--
+                                Raised from 90 as the note above intended, once
+                                the measured score moved to 97.6% and held.
+                                Still below the measurement: the three survivors
+                                are equivalent mutants and cannot be killed, so
+                                a threshold at the measured number would make
+                                the build depend on nobody ever adding a fourth.
+
+                                The equivalents, so the next person does not
+                                spend an afternoon on them: both "changed
+                                conditional boundary" survivors sit on
+                                `length() > MAX` guards where the mutated `>=`
+                                takes substring(0, MAX) of a string of exactly
+                                MAX characters - the same string. The
+                                ReentrancyGuard one replaces a `return true`
+                                with `true`.
+                            -->
+                            <mutationThreshold>95</mutationThreshold>
                             <outputFormats>
                                 <param>HTML</param>
                                 <param>XML</param>
