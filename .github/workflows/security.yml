@@ -1,0 +1,89 @@
+name: Security
+
+# Dependabot already opens pull requests when a dependency has a newer version.
+# That is an upgrade habit, not a security gate: it says nothing about whether
+# what is on main right now has a known vulnerability, and a grouped weekly PR
+# can sit for days. These two jobs answer the other question -- is the code as
+# it stands exploitable by something already published -- and they answer it on
+# every push rather than on a schedule somebody stops reading.
+on:
+  push:
+  pull_request:
+  schedule:
+    # Mondays 05:00 UTC. A dependency does not have to change for a CVE to be
+    # filed against it, so the answer can go stale with no commit to trigger it.
+    - cron: "0 5 * * 1"
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dependencies:
+    name: Known vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Trivy rather than OWASP dependency-check: no NVD API key to hold, no
+      # multi-minute database download on every run, and it reads both
+      # ecosystems in this repository (backend/pom.xml, frontend/pnpm-lock.yaml)
+      # in one pass.
+      - name: Scan dependencies
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          # A gate, not a report. Anything below high is noise at this size and
+          # would train everyone to ignore the job -- which is how a critical
+          # one gets ignored too.
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [java-kotlin, javascript-typescript]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v5.6.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # security-extended over the default set: this application takes
+          # anonymous input on public endpoints (the view beacon, the contact
+          # form, the unlock) and hands out links other people open. The extra
+          # queries are the ones about that shape of code.
+          queries: security-extended
+
+      # Explicit rather than autobuild: autobuild guesses, and a guess that
+      # quietly compiles nothing produces an empty database and a green tick.
+      - name: Build the backend
+        if: matrix.language == 'java-kotlin'
+        run: mvn -B --no-transfer-progress -f backend/pom.xml -DskipTests compile
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
