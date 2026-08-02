@@ -10,6 +10,7 @@ import com.localmediakit.billing.InvalidWebhookSignatureException;
 import com.localmediakit.collab.CollaborationNotFoundException;
 import com.localmediakit.lead.LeadNotFoundException;
 import com.localmediakit.media.MediaItemNotFoundException;
+import com.localmediakit.recovery.InvalidResetTokenException;
 import com.localmediakit.media.TooManyMediaItemsException;
 import com.localmediakit.ratecard.RateCardItemNotFoundException;
 import com.localmediakit.domain.DomainAlreadyExistsException;
@@ -209,6 +210,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(SyncCooldownException.class)
     public ResponseEntity<Map<String, Object>> handleSyncCooldown(SyncCooldownException ex) {
         return body(HttpStatus.TOO_MANY_REQUESTS, codeFor(ex), ex.getMessage(), null);
+    }
+
+    /** 400 rather than 404: which of the three reasons it failed is not said. */
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidResetToken(InvalidResetTokenException ex) {
+        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(MediaItemNotFoundException.class)

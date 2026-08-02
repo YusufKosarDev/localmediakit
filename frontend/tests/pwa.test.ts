@@ -115,6 +115,10 @@ describe("service worker routing", () => {
 
   it("keeps the app route list free of anything that could match a slug", () => {
     const { routing } = loadServiceWorker();
+    // /reset/<token> is deliberately absent from the list and stays absent:
+    // a cached password-reset page is a spent link served from a browser.
+    expect(routing.routeFor({ method: "GET", url: `${ORIGIN}/reset/abc123` }, ORIGIN)).toBeNull();
+
     for (const route of routing.APP_ROUTES) {
       expect(route.startsWith("/")).toBe(true);
       // A bare "/" would put every public page in scope.

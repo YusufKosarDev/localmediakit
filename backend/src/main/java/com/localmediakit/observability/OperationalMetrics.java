@@ -54,6 +54,14 @@ public class OperationalMetrics {
     /** A single source that failed to refresh. Filed on the source as lastError too. */
     private final Counter statsSyncFailures;
 
+    /**
+     * A reset link that was issued but never delivered. Invisible from the
+     * outside by design -- the endpoint says nothing either way -- so this
+     * counter is the only place it shows up. Someone locked out of their
+     * account, waiting for a mail that is not coming.
+     */
+    private final Counter passwordResetMailFailures;
+
     public OperationalMetrics(MeterRegistry registry) {
         this.publishes = Counter.builder("localmediakit.publish.completed")
                 .description("Media kit publishes that produced a new active version")
@@ -72,6 +80,9 @@ public class OperationalMetrics {
                 .register(registry);
         this.statsSyncFailures = Counter.builder("localmediakit.statsync.source_failed")
                 .description("Stat sources that failed to refresh")
+                .register(registry);
+        this.passwordResetMailFailures = Counter.builder("localmediakit.password_reset.mail_failed")
+                .description("Password reset links issued but never delivered")
                 .register(registry);
     }
 
@@ -97,5 +108,9 @@ public class OperationalMetrics {
 
     public void statsSyncSourceFailed() {
         statsSyncFailures.increment();
+    }
+
+    public void passwordResetMailFailed() {
+        passwordResetMailFailures.increment();
     }
 }
