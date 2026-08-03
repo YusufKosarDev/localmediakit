@@ -32,6 +32,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * what the endpoint refuses to tell a caller, and about a token being usable
  * exactly once -- a reset flow that leaks whether an address is registered, or
  * that accepts a replayed link, is worse than not having one.
+ *
+ * <p>The mail is queued rather than sent in the request, so every test that
+ * wants to read one drains the outbox first. That step is spelled out at each
+ * call site instead of being hidden in {@code requestReset}: the request
+ * producing no mail on its own is the property under test elsewhere, and a
+ * helper that quietly sent one would make those tests pass for the wrong
+ * reason.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -43,11 +50,32 @@ class PasswordResetFlowTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private PasswordResetNotificationService dispatcher;
+
     @MockBean
     private MailSender mailSender;
 
+    @Autowired
+    private PasswordResetNotificationRepository notifications;
+
+    @Autowired
+    private PasswordResetTokenRepository tokens;
+
+    @Autowired
+    private org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+
+    /**
+     * The batch drains the whole queue, so a row left behind by an earlier test
+     * would be delivered inside this one and break the exactly-once verify that
+     * every mail-reading assertion here depends on.
+     */
     @BeforeEach
-    void mailerIsConfigured() {
+    void emptyQueueAndConfiguredMailer() {
+        transactionTemplate.executeWithoutResult(status -> {
+            notifications.deleteAllInBatch();
+            tokens.deleteAllInBatch();
+        });
         reset(mailSender);
         when(mailSender.available()).thenReturn(true);
         doNothing().when(mailSender).send(anyString(), anyString(), anyString());
@@ -58,6 +86,7 @@ class PasswordResetFlowTest {
         register("reset-happy@example.com", "eskisifre123");
 
         requestReset("reset-happy@example.com");
+        dispatcher.runDispatchBatch();
         String token = tokenFromMail();
 
         confirm(token, "yenisifre456").andExpect(status().isNoContent());
@@ -75,7 +104,14 @@ class PasswordResetFlowTest {
         requestReset("reset-known@example.com").andExpect(status().isAccepted());
         requestReset("kesinlikle-yok@example.com").andExpect(status().isAccepted());
 
-        // ...and only the real one produced a mail.
+        // Neither request touched the mail provider. That is what keeps the two
+        // the same length as well as the same shape: the old inline send made a
+        // registered address about a second slower to answer, which answered
+        // the question this endpoint exists not to answer.
+        verify(mailSender, never()).send(anyString(), anyString(), anyString());
+
+        // ...and once the queue drains, only the real one produced a mail.
+        dispatcher.runDispatchBatch();
         verify(mailSender, times(1)).send(anyString(), anyString(), anyString());
     }
 
@@ -83,6 +119,7 @@ class PasswordResetFlowTest {
     void aTokenWorksOnceAndNotTwice() throws Exception {
         register("reset-replay@example.com", "sifre12345");
         requestReset("reset-replay@example.com");
+        dispatcher.runDispatchBatch();
         String token = tokenFromMail();
 
         confirm(token, "birincisifre1").andExpect(status().isNoContent());
@@ -98,10 +135,12 @@ class PasswordResetFlowTest {
         // not still be holding a working link.
         register("reset-multi@example.com", "sifre12345");
         requestReset("reset-multi@example.com");
+        dispatcher.runDispatchBatch();
         String first = tokenFromMail();
         reset(mailSender);
         when(mailSender.available()).thenReturn(true);
         requestReset("reset-multi@example.com");
+        dispatcher.runDispatchBatch();
         String second = tokenFromMail();
 
         confirm(second, "yenisifre789").andExpect(status().isNoContent());
@@ -122,6 +161,7 @@ class PasswordResetFlowTest {
         register("reset-nomail@example.com", "sifre12345");
 
         requestReset("reset-nomail@example.com").andExpect(status().isAccepted());
+        dispatcher.runDispatchBatch();
 
         verify(mailSender, never()).send(anyString(), anyString(), anyString());
     }
@@ -130,6 +170,7 @@ class PasswordResetFlowTest {
     void theMailNeverContainsThePasswordAndSaysWhatToDoIfItWasNotYou() throws Exception {
         register("reset-body@example.com", "gizlisifre12");
         requestReset("reset-body@example.com");
+        dispatcher.runDispatchBatch();
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(mailSender).send(anyString(), anyString(), body.capture());
@@ -148,6 +189,11 @@ class PasswordResetFlowTest {
                 .when(mailSender).send(anyString(), anyString(), anyString());
         register("reset-smtp@example.com", "sifre12345");
 
+        requestReset("reset-smtp@example.com").andExpect(status().isAccepted());
+        // The send now happens after the caller has been answered, so a
+        // provider outage cannot reach them at all -- not as an error, and not
+        // as the extra seconds an inline retry would have cost.
+        dispatcher.runDispatchBatch();
         requestReset("reset-smtp@example.com").andExpect(status().isAccepted());
     }
 

@@ -155,6 +155,24 @@ flowchart LR
   backoff'la yeniden dener ve butce bitince FAILED olarak kayda gecer.
   `@Async` yerine outbox secildi: Render'in ucretsiz instance'i uykuya gectigi
   icin ucustaki bir gonderim sessizce kaybolurdu.
+- **Sifre sifirlama da outbox'ta — ve sebebi dayaniklilik degil, zamanlama.**
+  Bu mail once istegin *icinde* gonderiliyordu; gerekce de yaziliydi: arka plan
+  job'u duz metin token'a ihtiyac duyar, oysa hash'in var olma sebebi tam da onu
+  saklamamak. Gerekce dogruydu ama bedeli olcumle ortaya cikti: hesabi olan bir
+  adres icin istek ~1.5 sn, olmayan icin ~0.2 sn suruyordu. Bu sayfanin ilk
+  vaadi "uc, adresin kayitli olup olmadigini asla soylemez" — **sure de bir
+  cevaptir**, ve elinde adres listesi olan biri icin bu bir uyelik sorgusuydu.
+  Kuyruga alinca her yol ayni ucuz isi yapar.
+  Duz metin itirazi gecersiz kilinmadi, **cozuldu**: kuyruk satiri token'i degil
+  token satirinin **id'sini** tutar, gonderim ani gelince o satir *dondurulur* —
+  yeni sir, yeni hash, yeni son kullanma. Boylece giris yapabilecek hicbir sey
+  diske inmez.
+  Rotasyonun ikinci getirisi token omruyle ilgili: token istekte uretilip
+  saklansaydi, backoff 1/5/25 dakika oldugu icin son deneme **30 dakikalik
+  omrunu coktan doldurmus** bir link yollardi. Uretim gonderim aninda oldugu
+  icin 30 dakika **her zaman mailin ciktigi andan** baslar; gec gelen bir mail
+  bile calisir. Ayrica istek basina tek token satiri kalir, yani yeniden
+  denemeler saatlik cap'i sisirip kullaniciyi tam ihtiyaci anda kilitleyemez.
 - **Mail saglayicisi koda yazilmadi** — entegrasyon vendor SDK'si degil duz
   SMTP uzerinden. Aday saglayicilarin hepsi (Brevo, SendGrid, Resend, Mailgun)
   SMTP konusuyor, dolayisiyla saglayici degistirmek yalnizca ortam degiskeni
@@ -297,7 +315,7 @@ public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
 
 Testler:
 ```
-cd backend && mvn test       # 322 test: slug, snapshot, engagement, analitik,
+cd backend && mvn test       # 330 test: slug, snapshot, engagement, analitik,
                              # billing/webhook idempotency, sifre/brute-force,
                              # onizleme tokeni, lead ingestion/honeypot, rate card,
                              # DNS durum makinesi, rate limit, senkron cooldown,
@@ -523,8 +541,12 @@ devam ediyordu, o satirlara bakan kimse yoktu.
   Bu sinifi okumak, sistemin neyi problem saydigini soyler; call-site'lara
   serpistirilmis string literal'ler ise bir yazim hatasinda ikinci ve bos bir
   zaman serisi uretir, duz kalan grafik ise "hic olmuyor"dan ayirt edilemez.
-  Sayaclar: publish, revalidation basarisizligi, lead bildirimi gonderildi/
-  vazgecildi, statsync kota ve kaynak hatasi.
+  Sayaclar: publish, zamanlanmis publish, revalidation basarisizligi, lead
+  bildirimi gonderildi/vazgecildi, **sifre sifirlama maili gonderildi/
+  vazgecildi**, statsync kota ve kaynak hatasi.
+  Sifre sifirlamanin iki sayaci birlikte okunur: `mail_sent` artmiyorsa mail
+  yolu kopuktur, `mail_failed` artiyorsa kuyruk yeniden deneme butcesini
+  tuketmistir. Prod'da mailin neden gitmedigini bulan olcum tam olarak buydu.
 - **En yaniltici durum ozel olarak isaretlenir** — publish commit oldu, pano
   basarili diyor, ama public sayfa hala onceki snapshot'i servis ediyor olabilir.
   Artik `ERROR` seviyesinde loglanir ve sayilir.

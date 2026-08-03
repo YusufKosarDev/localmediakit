@@ -94,11 +94,19 @@ app:
     job-initial-delay-ms: ${SCHEDULED_PUBLISH_JOB_INITIAL_DELAY_MS:30000}
   password-reset:
     # Same lifetime as a draft preview link. Long enough to find the mail,
-    # short enough that a link left in an inbox stops being a key.
+    # short enough that a link left in an inbox stops being a key. The clock
+    # starts when the mail is SENT, not when it was asked for: the dispatcher
+    # mints the token per attempt, so a retried delivery is never dead on
+    # arrival.
     ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:30}
     # Per account, not per client: the IP throttle covers volume, this covers
     # using many clients to bury one person in mail.
     max-per-hour: ${PASSWORD_RESET_MAX_PER_HOUR:5}
+    # The outbox drain. Half the lead interval because somebody is waiting on
+    # this mail to get back into their account.
+    batch-size: ${PASSWORD_RESET_BATCH_SIZE:20}
+    job-interval-ms: ${PASSWORD_RESET_JOB_INTERVAL_MS:30000}
+    job-initial-delay-ms: ${PASSWORD_RESET_JOB_INITIAL_DELAY_MS:15000}
   preview:
     # Lifetime of a signed draft-preview link (minutes).
     ttl-minutes: ${PREVIEW_TTL_MINUTES:30}

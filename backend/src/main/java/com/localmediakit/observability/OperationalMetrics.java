@@ -60,6 +60,7 @@ public class OperationalMetrics {
      * counter is the only place it shows up. Someone locked out of their
      * account, waiting for a mail that is not coming.
      */
+    private final Counter passwordResetMailsSent;
     private final Counter passwordResetMailFailures;
 
     /** A page that went live at the moment its creator chose. */
@@ -90,8 +91,11 @@ public class OperationalMetrics {
         this.statsSyncFailures = Counter.builder("localmediakit.statsync.source_failed")
                 .description("Stat sources that failed to refresh")
                 .register(registry);
+        this.passwordResetMailsSent = Counter.builder("localmediakit.password_reset.mail_sent")
+                .description("Password reset links accepted by the mail provider")
+                .register(registry);
         this.passwordResetMailFailures = Counter.builder("localmediakit.password_reset.mail_failed")
-                .description("Password reset links issued but never delivered")
+                .description("Password reset links that exhausted their retry budget")
                 .register(registry);
         this.scheduledPublishes = Counter.builder("localmediakit.scheduled_publish.completed")
                 .description("Kits published at their scheduled moment")
@@ -123,6 +127,10 @@ public class OperationalMetrics {
 
     public void statsSyncSourceFailed() {
         statsSyncFailures.increment();
+    }
+
+    public void passwordResetMailSent() {
+        passwordResetMailsSent.increment();
     }
 
     public void passwordResetMailFailed() {

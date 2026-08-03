@@ -61,6 +61,24 @@ public class PasswordResetToken {
         this.usedAt = Instant.now();
     }
 
+    /**
+     * Replaces the secret behind this permission and restarts its clock.
+     *
+     * <p>Called once per delivery attempt. The alternative — mailing the token
+     * minted when the request came in — would need that plaintext to survive in
+     * the outbox, which is the one thing {@code token_hash} exists to prevent,
+     * and would post a link whose 30 minutes had been running since long before
+     * it was sent. A retry 25 minutes late would arrive already dead.
+     *
+     * <p>Rotating in place rather than inserting a replacement keeps it at one
+     * row per request, so retries cannot inflate the per-account hourly cap and
+     * lock somebody out of asking again while mail is failing them.
+     */
+    public void rotate(String newTokenHash, Duration ttl) {
+        this.tokenHash = newTokenHash;
+        this.expiresAt = Instant.now().plus(ttl);
+    }
+
     public Long getId() {
         return id;
     }
