@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v5.6.0
+        uses: actions/setup-java@v5.7.0
         with:
           distribution: temurin
           java-version: "21"
@@ -28,7 +28,7 @@ jobs:
 
       # pnpm before setup-node, so the cache can resolve the pnpm store. The
       # version comes from frontend/package.json's packageManager field.
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.0.9
         with:
           package_json_file: frontend/package.json
 
