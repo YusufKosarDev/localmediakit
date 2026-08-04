@@ -1,569 +1,204 @@
 # LocalMediaKit
 
 [![CI](https://github.com/YusufKosarDev/localmediakit/actions/workflows/ci.yml/badge.svg)](https://github.com/YusufKosarDev/localmediakit/actions/workflows/ci.yml)
+[![Security](https://github.com/YusufKosarDev/localmediakit/actions/workflows/security.yml/badge.svg)](https://github.com/YusufKosarDev/localmediakit/actions/workflows/security.yml)
+[![E2E](https://github.com/YusufKosarDev/localmediakit/actions/workflows/e2e.yml/badge.svg)](https://github.com/YusufKosarDev/localmediakit/actions/workflows/e2e.yml)
 
-Icerik ureticileri (influencer) icin **canli medya kiti** platformu. Uretici;
-takipci/etkilesim istatistiklerini, kitle demografisini ve gecmis marka
-isbirliklerini tek bir sayfada toplar ve markalarla paylasilabilir bir link
-olarak **yayinlar**. Marka bu sayfaya baktiginda uretici bunu analitikten gorur.
+**A living media kit for content creators.** A creator collects their audience
+numbers, demographics and past brand work on one page and publishes it as a link
+they send to brands. When a brand opens that link, the creator sees it.
 
-> **Egitim / portfolyo projesi.** Uygulama tamamen **ucretsiz** — tum ozellikler
-> herkese acik, arayuzde hicbir odeme/yukseltme ogesi yok. Stripe abonelik
-> entegrasyonu (idempotent webhook, imza dogrulama, hosted Checkout, plan durum
-> makinesi) kodda **butunuyle duruyor ama devre disi**: `PlanPolicy` katmani ve
-> FREE/PRO ayrimi mimari olarak korunur, yeni hesaplar PRO baslar. Ucretli
-> planlar ileride yalnizca varsayilani geri alarak yeniden acilabilir. "Custom
-> domain" ozelligi bir vaat degil, backend olgunlugunu gosteren bir DNS-dogrulama
-> **iskeletidir** ("yakinda" olarak isaretli).
+*[Türkçe README](README.tr.md)*
 
-## Canli demo
+![Sign up, build a kit, publish, and open the page a brand receives](docs/media/demo.gif)
 
-![Kayit ol, medya kiti olustur, yayinla, public sayfayi ac](docs/demo.gif)
+*Recorded against the real stack with Playwright ([`frontend/demo/`](frontend/demo/)) — no edits, no speed-up. Also available as [webm](docs/media/demo.webm).*
 
-_Kayit → kit olusturma → istatistik → **Yayinla** → markanin gordugu public sayfa.
-Kayit `frontend/demo/record.spec.ts` ile gercek yigina karsi uretilir
-(`pnpm run demo:record`); montaj yok, hizlandirma yok._
-
-- **Uygulama:** https://localmediakit.vercel.app
-- **Ornek public sayfa (edge-cached):** https://localmediakit.vercel.app/ornek-medya-kiti
-- **Panoyu gezmek icin:** `/login` → **"Demo olarak gez"** (dolu bir PRO hesabi;
-  saat basi sifirlanir). Kimlik: `demo@localmediakit.app` / `demo1234`.
-- **API dokumantasyonu (Swagger):** https://localmediakit.onrender.com/swagger-ui.html
-
-> Backend Render'in ucretsiz katmaninda; 15 dakika istek almazsa uykuya gecer ve
-> ilk istek ~50-60 saniye surer. **Public sayfa bundan etkilenmez** — edge'den
-> statik gelir. Panoya girerken ilk yanit gecikirse sebebi budur.
-
-| Pano (write path) | Public sayfa (read path) |
+| | |
 | --- | --- |
-| ![Pano](docs/dashboard.png) | ![Public sayfa](docs/public-page.png) |
+| **Live app** | https://localmediakit.vercel.app |
+| **A published page** | https://localmediakit.vercel.app/ornek-medya-kiti |
+| **API docs** | https://localmediakit.onrender.com/swagger-ui.html |
+| **Browse the dashboard** | `/login` → **"Demo olarak gez"** (`demo@localmediakit.app` / `demo1234`, resets hourly) |
 
-## Mimarinin kalbi: write-path / read-path ayrimi
+> The backend runs on a free tier that sleeps after 15 minutes idle, so the
+> first dashboard request can take ~50 seconds. **Published pages are not
+> affected** — they are served from the edge and never touch the backend. That
+> is the whole point of the section below.
 
-Projenin merkezi karar, **markaya gonderilen public sayfanin backend'e
-dokunmadan, edge'den statik servis edilmesidir.** Uretici yayinladiginda backend
-degismez bir snapshot uretir ve edge cache'i on-demand revalidate eder; ziyaretci
-her zaman edge'den HIT alir. Backend uykuda olsa bile public sayfa acilir.
+---
+
+## The architecture in one decision
+
+Everything else in this project follows from a single split: **the page a brand
+opens must never depend on the backend being awake.**
+
+The obvious implementation is to fetch the kit at request time and render it.
+That was rejected, and rejecting it is the design. A link a creator has already
+sent to a brand cannot be allowed to load in 50 seconds because the free
+instance behind it happened to be asleep — the moment that link is opened is the
+one moment the product exists to serve.
+
+So publishing does not "make the page live". Publishing **freezes the draft into
+an immutable snapshot** (`media_kit_versions.content_json`) and revalidates the
+edge cache once. From then on the visitor is served static HTML from the CDN.
+The backend can be down; the page still opens.
 
 ```mermaid
 flowchart LR
-    subgraph Yonetim["Yonetim (write path)"]
-        U[Uretici] -->|JWT| D[Next.js Dashboard]
+    subgraph W["Write path — the creator"]
+        U[Creator] -->|JWT| D[Next.js dashboard]
         D -->|REST| B[Spring Boot API<br/>Render]
         B -->|immutable snapshot| DB[(Neon Postgres)]
-        B -->|secret ile revalidate| RV[Next.js /api/revalidate]
+        B -->|on-demand revalidate| RV[/api/revalidate/]
     end
-    subgraph Vitrin["Vitrin (read path)"]
-        M[Marka / ziyaretci] -->|statik HTML| E[Vercel Edge]
-        E -.->|yalniz publish aninda regenerate| RV
-        M -.->|bloklamayan beacon| B
+    subgraph R["Read path — the brand"]
+        M[Brand] -->|static HTML| E[Vercel edge]
+        E -.->|regenerated only on publish| RV
+        M -.->|non-blocking beacon| B
     end
     RV -->|revalidateTag| E
 ```
 
-- **Publish** = mevcut draft'tan **degismez (immutable) snapshot** uretir
-  (`media_kit_versions.content_json`). Draft sonradan degisse bile public sayfa
-  republish'e kadar sabit kalir. Istatistik, demografi, isbirlikleri ve rate card
-  hep publish anindaki degerleriyle **donar**. (Snapshot hala bir `showBadge`
-  bayragi tasir ama urun ucretsize donunce rozet arayuzden kaldirildi.)
-- **Public okuma** her zaman AKTIF snapshot'tan; ziyaretci akisi backend'e bagli
-  degil (Adim 0'da `X-Vercel-Cache: HIT` ile kanitlandi).
+The consequence that makes it real: **editing a draft does not touch the
+published page.** Stats, demographics, collaborations, rate card and appearance
+are all frozen at the moment of publish, and only another publish moves them.
 
-## One cikan mimari kararlar
+![Editing the draft leaves the published page unchanged until the creator publishes again](docs/media/snapshot.gif)
 
-- **Edge HIT + immutable snapshot** — yukaridaki write/read ayrimi. Sifreli kitler
-  bu kuralin tek istisnasi: hassas veri edge'e hic girmez, kilit acma per-request
-  backend'den gelir; **normal kitler yine de edge HIT.**
-- **Draft onizleme — publish'in bilincli tersi.** Sahip kisa omurlu imzali bir
-  link uretir (`typ=preview` claim'li JWT; oturum tokeni olarak ASLA kabul
-  edilmez, tersi de gecerli); link CANLI taslagi per-request, `no-store` ile
-  gosterir. Yayinli sayfa donmus snapshot + edge cache iken onizleme taze veri +
-  sifir cache — ayni `KitCard` bileseni, iki zit servis stratejisi.
-- **Uretilen OG gorseli** — `opengraph-image.tsx` sayfayla AYNI tag'li fetch'i
-  okur: publish tek revalidate ile sayfayi da sosyal karti da tazeler, gorsel
-  uyuyan backend'i uyandirmaz. Sifreli kitin kartina istatistik/headline hic girmez.
-- **Engagement motoru — Strategy pattern.** Her platformun formulu farkli
-  (Instagram takipci-bazli, YouTube/TikTok izlenme-bazli). `EngagementCalculator`
-  arayuzu + platform basina implementasyon + registry: yeni platform = yeni sinif,
-  mevcut kod degismez (Open/Closed).
-- **Otomatik istatistik senkronu — Strategy'nin ikizi.** `StatsProvider` arayuzu
-  + registry (yalniz KULLANILABILIR provider'lar: API key'siz provider hic yokmus
-  gibi davranir — graceful-enable). YouTube Data API v3 key ile abone/izlenme
-  ceker; baglarken dogrulayan fetch ilk olcumu de dusurur. Saatlik batch job
-  (overlap guard, kaynak basina transaction, QUOTA'da batch'i durdurma) yalniz
-  PRO sahiplerin kaynaklarini gunluk tazeler; her basarili fetch append-only
-  `platform_stats` serisine yazar — engagement/buyume bedavaya hesaplanir.
-- **Append-only zaman serisi** — `platform_stats` ve `page_views` her olcumde yeni
-  satir ekler (upsert yok); trend/buyume ve analitik agregasyonu bundan hesaplanir.
-- **Versiyon diff** — append-only versiyon tablosunun ikinci getirisi: iki donmus
-  snapshot arasindaki fark saf bir fonksiyon (sifir yeni durum). Eski sema
-  nesillerinden snapshot'lar da diff'lenir (eksik listeler normalize edilir);
-  gorunurluk kurali gecmis listesiyle ayni (FREE pencere ici, PRO tum gecmis).
-- **Fire-and-forget analytics beacon** — statik-edge ile analitik gerginligini
-  cozer: sayfa render'dan SONRA bloklamayan bir `POST /api/track` atilir; backend
-  uyuyorsa sessizce duser, edge HIT bozulmaz. Anonim gunluk-donen ziyaretci hash'i
-  (ham IP saklanmaz), 30 dk oturum penceresiyle dedup, bot filtresi.
-- **Marka iletisim formu (lead inbox)** — beacon'in anti-abuse modelinin ayni
-  disiplinle ikinci kullanimi: honeypot alani, bot filtresi, ziyaretci basina
-  pencere limiti, IP-bazli rate limit; uc HER durumda 202 doner (slug var mi,
-  form acik mi — hicbiri sizmaz). Kapatma anahtari cift katmanli: alim ANINDA
-  durur (draft bayragi), form ise donmus sayfadan ancak republish ile kalkar.
-- **Rate card** — hizmet basina fiyat listesi; istatistik/isbirlikleri gibi
-  publish aninda snapshot'a donar, taslak fiyat degisikligi yayindaki sayfayi
-  oynatmaz.
-- **Idempotent Stripe webhook** — event id ile dedup, etkilerle ayni transaction'da;
-  Stripe redelivery'leri yutulur, imza dogrulanir (sahte webhook 400).
-- **Graceful-enable** — Stripe env'leri varsa gercek hosted Checkout; yoksa demo
-  plan-degistirme ucu devrede (gercek billing aktifken bu uc 403 — odeme bypass'i
-  olamaz). Ayni desen tum opsiyonel entegrasyonlarda. Urun ucretsize donunce bu
-  akisin **arayuzu kaldirildi**; backend uclari (webhook/checkout/demo-switch)
-  dormant olarak kodda kalir, boylece entegrasyon okunabilir.
-- **Async DNS dogrulama job'u** — `@Scheduled` batch, overlap guard, per-domain
-  transaction + try/catch (biri patlarsa job cokmez), JNDI ile timeout'lu DNS
-  cozumleme, `DnsResolver` arayuzuyle test edilebilir durum makinesi.
-- **IDOR'un temsil edilemez olmasi** — hesap uclarinin tamami `/api/me` altinda
-  ve ozneyi yalnizca JWT principal'indan cozer. `/api/users/{id}` karsiligi
-  bilerek yok: path'te, query'de veya govdede kullanici kimligi kabul edilmedigi
-  icin bir kullanici digerini adresleyemez. Kit uclarindaki `findByIdAndUserId`
-  sahiplik sorgusunun ayni fikri.
-- **Hesap silme = public iz birakmama** — silme, kitleri toplu sorguyla degil
-  tek tek `MediaKitService.delete` uzerinden kaldirir: yayin isaretcisini ayirir,
-  cascade'i calistirir ve commit'ten sonra slug'i revalidate ederek public
-  sayfayi edge'den duserur. Silinen bir hesabin medya kitinin acik web'de
-  erisilebilir kalmasi bu islemin asla uretmemesi gereken sonuc.
-- **Gorunum secenekleri erisilebilirligi bozamaz** — vurgu rengi serbest secim
-  degil, kurate bir liste. Her rengin kontrasti gercekten uzerine cizildigi
-  yuzeylere karsi hesaplanarak secildi (--brand metin olarak page/surface/weak
-  uzerinde, --brand-strong beyaz yazili buton zemini olarak); dordu de her iki
-  modda WCAG AA gecer. `tests/palette.test.ts` bu oranlari sevk edilen
-  `globals.css`ten yeniden hesaplar, dolayisiyla kontrasti zayif bir renk
-  eklenirse CI kirilir. Renk secici koyulsaydi erisilemez bir sayfa uretmek
-  kullanicinin elinde olurdu; bu tasarimda ifade edilemez.
-- **Gorunum de snapshot.a donar** — taslakta rengi/duzeni degistirmek yayindaki
-  sayfayi degistirmez; Adim 3.ten beri gecerli kural burada da aynen isler.
-  Vurgu ve duzen alanlari snapshot.a **yeni nullable alanlar** olarak eklendi:
-  bunlar var olmadan once yayinlanmis snapshot.lar orijinal gorunumu
-  render etmeye devam eder (`accentOrDefault`), yani ozellik hicbir yayindaki
-  sayfanin gorunumunu degistirmedi.
-- **Bildirim outbox'i — lead asla e-postaya bagli degil** — bir marka formu
-  doldurdugunda bildirim satiri lead ile **ayni transaction'da** yazilir (ucuz
-  bir insert, ag cagrisi yok); gonderim sonradan zamanlanmis bir batch'te olur.
-  Yani mail saglayicisi markanin gonderimi islenirken hic devreye girmez: onu
-  yavaslatamaz, basarisiz edemez, lead'i kaybettiremez. SMTP coktugunde olan
-  tek sey satirlarin PENDING beklemesidir. Batch her satiri kendi
-  transaction'inda isler (bir kotu adres digerlerini geri almaz), ustel
-  backoff'la yeniden dener ve butce bitince FAILED olarak kayda gecer.
-  `@Async` yerine outbox secildi: Render'in ucretsiz instance'i uykuya gectigi
-  icin ucustaki bir gonderim sessizce kaybolurdu.
-- **Sifre sifirlama da outbox'ta — ve sebebi dayaniklilik degil, zamanlama.**
-  Bu mail once istegin *icinde* gonderiliyordu; gerekce de yaziliydi: arka plan
-  job'u duz metin token'a ihtiyac duyar, oysa hash'in var olma sebebi tam da onu
-  saklamamak. Gerekce dogruydu ama bedeli olcumle ortaya cikti: hesabi olan bir
-  adres icin istek ~1.5 sn, olmayan icin ~0.2 sn suruyordu. Bu sayfanin ilk
-  vaadi "uc, adresin kayitli olup olmadigini asla soylemez" — **sure de bir
-  cevaptir**, ve elinde adres listesi olan biri icin bu bir uyelik sorgusuydu.
-  Kuyruga alinca her yol ayni ucuz isi yapar.
-  Duz metin itirazi gecersiz kilinmadi, **cozuldu**: kuyruk satiri token'i degil
-  token satirinin **id'sini** tutar, gonderim ani gelince o satir *dondurulur* —
-  yeni sir, yeni hash, yeni son kullanma. Boylece giris yapabilecek hicbir sey
-  diske inmez.
-  Rotasyonun ikinci getirisi token omruyle ilgili: token istekte uretilip
-  saklansaydi, backoff 1/5/25 dakika oldugu icin son deneme **30 dakikalik
-  omrunu coktan doldurmus** bir link yollardi. Uretim gonderim aninda oldugu
-  icin 30 dakika **her zaman mailin ciktigi andan** baslar; gec gelen bir mail
-  bile calisir. Ayrica istek basina tek token satiri kalir, yani yeniden
-  denemeler saatlik cap'i sisirip kullaniciyi tam ihtiyaci anda kilitleyemez.
-- **Mail saglayicisi koda yazilmadi** — entegrasyon vendor SDK'si degil duz
-  SMTP uzerinden. Aday saglayicilarin hepsi (Brevo, SendGrid, Resend, Mailgun)
-  SMTP konusuyor, dolayisiyla saglayici degistirmek yalnizca ortam degiskeni
-  degisikligi. Host/gonderen bos birakilirsa ozellik sessizce kapali kalir.
-- **pnpm, npm degil — platformlar arasi lockfile** — bu sorun uc kez tekrarladi
-  (55f9c77, Adim 21, Adim 24). Windows'ta lockfile'i yeniden yazan hicbir npm
-  komutu, Linux'un ihtiyac duydugu `@emnapi/*` opsiyonel paketlerini korumuyor:
-  bunlar `cpu: ["wasm32"]` olan WASM yedek paketlerinin cocuklari, yerel platform
-  onlari cozmeyince npm buduyor, Linux'ta `npm ci` ise ariyor. npm'de bunun
-  karsiligi bir ozellik yok — `--os`/`--cpu` yalnizca kurulumu filtreler, lock
-  uretimini tamamlamaz. pnpm'in `supportedArchitectures` alani tam da bunun icin
-  var: lock hangi platformda uretilirse uretilsin, listelenen tum platformlarin
-  opsiyonel bagimliliklarini icerir. Her seferinde elle onarim yerine yapisal
-  cozum.
-- **Service worker public snapshot'lara dokunamaz** — yayinlanmis kitler edge'de
-  cache'lenen ve publish ile degisen anlik goruntuler. Bir service worker bu
-  mekanizmanin onunde durur: cache'ledigi seyi tarayicidan servis eder ve hicbir
-  revalidation oraya ulasamaz. Bu yuzden worker cache'lemeyi opt-in kabul eder;
-  yalnizca tanidigi URL'ler (hash'li build ciktilari + sabit app rota listesi)
-  icin `respondWith` cagirir, kalan her sey — public kit sayfalari, `/api/*`,
-  OG gorselleri, backend origin'i — hic dokunulmadan aga gider. Kara liste
-  olsaydi yarin eklenen bir public rota sessizce cache'lenirdi. Ustelik worker
-  **yalnizca giris yapilmis yuzeylerden** kaydedilir: sadece bir kit linki acan
-  ziyaretcinin tarayicisinda hic service worker olusmaz.
-- **Onboarding durumu saklanmaz, turetilir** — kontrol listesinin adimlari
-  (kit var mi / istatistik var mi / yayinlandi mi) hesabin gercek verisinden
-  okunur; saklanan tek sey "kapatildi" bilgisi. Boylece bir kit silindiginde
-  liste hala tamamlandi iddiasinda bulunamaz. Adimlar `MediaKitResponse`'a
-  eklenmedi — kit listeleme yolu sekli ve sorgu sayisi degismesin diye ayri bir
-  `/api/me/onboarding` ucunda 2 sorguda hesaplanir.
-- **Demo hesabinda onboarding bilerek kalicilastirilmaz** — demo tek bir hesap
-  ama arkasindan surekli farkli insanlar geziyor. Ilk ziyaretcinin "bir daha
-  gosterme" tercihi kaydedilseydi ondan sonraki herkes urunun ne oldugu
-  anlatilmamis bir panoya duserdi. Kayit tutulmadigi icin her yeni ziyaretci
-  tanitimi gorur; ayni tarayicida tekrarlamasin diye istemci tarafinda
-  bastirilir. Saatlik reset turu tetiklemez — sifirlanacak bir kayit yoktur.
-- **Paylasilan demo hesabinin korunmasi** — demo kimlik bilgileri giris
-  sayfasinda yaziyor, dolayisiyla yikici ayar islemleri (sifre/e-posta degisimi,
-  hesap silme) o hesapta 403 doner; aksi halde ilk ziyaretci sifreyi degistirip
-  digerlerini bir sonraki resete kadar disarida birakabilirdi. Zararsiz profil
-  duzenlemeleri acik kalir.
+*The claim, on camera: edit the draft → the public page is unchanged → publish → now it changes. ([webm](docs/media/snapshot.webm))*
 
-## Ozellikler (hepsi ucretsiz, herkese acik)
+Two things had to bend around this, and both are in the repository rather than
+in a comment:
 
-- Sinirsiz medya kiti + kit kopyalama (marka basina ayri kit)
-- Public sayfa (rozet yok) + uretilen sosyal paylasim karti (OG)
-- Istatistik + engagement + demografi
-- Draft onizleme linki (30 dk)
-- One cikan icerikler — link + kapak gorseli, publish ile snapshot'a donar
-- Rate card (calisma ucretleri)
-- YouTube istatistik senkronu — elle "simdi senkronla" + gunluk otomatik
-- Marka iletisim formu + gelen kutusu (tum gecmis) + CSV disa aktarim
-- Analitik — tekil ziyaretci + gunluk seri + referrer/cihaz kirilimi
-- Markaya ozel paylasim linki — her marka icin etiketli bir link; kimin actigi
-  gorunur, iptal edilebilir
-- Zamanlanmis yayin — secilen anda otomatik publish
-- Versiyon gecmisi (tam) + her versiyona rollback + versiyon karsilastirma (diff)
-- PDF export (temiz) + sifre korumasi
-- Custom domain (yakinda) — DNS dogrulama iskeleti
-- Sifremi unuttum — tek kullanimlik, 30 dk omurlu sifirlama linki
-- Hesap verisi disa aktarma (JSON) — ziyaretci kayitlari haric
-- Hesap ayarlari — profil (ad/avatar/pano temasi), sifre ve e-posta degistirme,
-  hesap silme
-- Onboarding — karsilama turu + veriden turetilen baslangic kontrol listesi
-- Kurulabilir pano (PWA) — ana ekrana eklenip uygulama gibi acilir
-- Lead bildirimi — marka formu doldurunca e-posta (ayarlardan kapatilabilir)
-- Public sayfa gorunumu — 6 kurate vurgu rengi + 2 duzen varyanti (publish ile donar)
+- **Analytics.** A static page cannot report a view server-side. A non-blocking
+  beacon fires *after* render; if the backend is asleep it fails silently and
+  the edge HIT is untouched.
+- **Password-protected kits.** The one deliberate exception: sensitive data
+  never enters the edge cache at all, and unlocking is a per-request backend
+  call. Everything else still gets an edge HIT.
 
-> Kodda `PlanPolicy` hala FREE/PRO ayrimini tanimlar ve testler her iki dali da
-> dogrular; urun karari geregi herkes PRO oldugu icin bu limitler pratikte
-> tetiklenmez. Ucretli planlar `User` varsayilanini geri alarak yeniden acilir.
+---
 
-> **Bilinen sinir — e-posta degisimi dogrulanmaz.** Degisim **mevcut sifreyle**
-> onaylanir: bu, acik kalmis bir oturumun hesabi sessizce baska bir adrese
-> tasimasini engelleyen asil kontrol. Ancak kullanici adresi yanlis yazarsa
-> bunu yakalayacak bir mekanizma yok. Gercek dogrulama icin `pending_email` +
-> token kolonu gerekir; mail altyapisi artik mevcut, dolayisiyla bu **artik bir
-> engel degil, yapilmamis bir is.** (Sifre sifirlama akisi bu sinira dayanarak
-> yoktu; o eksik kapatildi — asagiya bakin.)
->
-> **Lead bildirimleri ucuncu taraf bir servisten geciyor.** Bir marka iletisim
-> formunu doldurdugunda uretici e-posta alir; bu e-posta yapilandirilmis SMTP
-> saglayicisi uzerinden gonderilir, yani **uretici hesabinin e-posta adresi o
-> saglayiciya gider**. Icerik bilerek eksik tutulur: marka adi, kit basligi ve
-> mesajin kisaltilmis hali gonderilir; **markanin e-posta adresi gonderilmez**
-> (gereksiz yere ucuncu tarafa aktarilmasin diye — uretici panodan gorur).
-> Ziyaretci parmak izi, IP veya token hicbir sekilde yer almaz. Bildirimler
-> hesap ayarlarindan kapatilabilir; kapatildiginda lead'ler yine Gelen
-> Kutusu'na duser, sadece e-posta gitmez.
->
-> **Domain dogrulamasi yapilamiyor, bu yuzden teslimat kalitesi sinirli.**
-> Uygulama `localmediakit.vercel.app` uzerinde ve o domain bize ait olmadigi
-> icin SPF/DKIM kaydi eklenemiyor. Saglayicida yalnizca **tek gonderen adres**
-> dogrulanabiliyor, dolayisiyla e-postalar spam klasorune dusebilir. Bu, ozel
-> bir domain alinana kadar yapisal bir sinir — gizlenecek bir sey degil.
+## Engineering decisions worth reading
 
-> **PWA'nin bu urundeki degeri sinirli — abartmiyorum.** Urunun ana yuzeyi
-> birine gonderdiginiz bir link; kimse bir linki gormek icin uygulama kurmaz ve
-> o sayfalar zaten service worker kapsaminin disinda. Pano ise tablo, grafik ve
-> cok sekmeli form girisi, yani buyuk olcude masa basi isi. Kurulabilirligin
-> gercek karsiligi tek bir dar senaryoda: uretici telefonundan "marka kitime
-> bakti mi?" diye analitige goz atiyor — kisa, tekrarlayan bir is ve ana ekran
-> kisayolu bunu kisaltiyor. Cevrimdisi calisma iddiasi yok: panodaki her sey
-> backend'den canli okunur, bu yuzden baglanti yoksa yapilan tek sey bunu
-> durustce soyleyen bir ekran gostermek.
+**IDOR is unrepresentable, not prevented.** Every account endpoint lives under
+`/api/me` and resolves the subject *only* from the JWT principal. There is no
+`/api/users/{id}` — deliberately. A user id is never accepted in a path, query
+or body, so one user addressing another is not a check that can be forgotten; it
+is a request that cannot be expressed. Kit endpoints carry the same idea as
+`findByIdAndUserId` ownership queries.
 
-> **Avatar bir URL'dir, yukleme degil.** Barindirma ucretsiz katmanda calisiyor
-> ve diski her deploy'da siliniyor; nesne deposu eklemek ya ucretli bir servis
-> ya da sessizce veri kaybeden bir cozum olurdu. Kit avatari zaten ayni kurali
-> (`https://` zorunlu) kullaniyor, boylece tek bir zihinsel model var. Ileride
-> yukleme eklenirse kolon degismeden kalir.
+**A timing side-channel closed by moving mail to an outbox.** Password reset
+promises that a registered address and an unknown one are indistinguishable.
+Measured against a real provider, they were not: the endpoint took ~1.5s for an
+address with an account and ~0.2s for one without, because the SMTP call
+happened inline. That is a membership oracle for anyone holding a list of
+addresses. The mail is now queued and every request does one insert and returns
+— measured live at 0.26–0.45s for both cases, indistinguishable within jitter.
+The obvious objection (an outbox needs the plaintext token, which is exactly
+what the stored hash withholds) was answered rather than overruled: the queue
+row references the token row, and the dispatcher **rotates** it at send time —
+new secret, new hash, new expiry. Nothing that can log in is ever at rest, and
+because the 30-minute lifetime starts when the mail leaves, a delivery delayed
+by a retry is never dead on arrival.
 
-## Teknoloji
+**Outbox for anything a third party could lose.** A brand's enquiry is written
+in the same transaction as the notification row — a cheap insert, no network
+call — so the mail provider cannot slow down, fail, or lose a lead. When SMTP is
+down the only thing that happens is rows waiting in `PENDING`. Each row is
+delivered in its own transaction with exponential backoff and a terminal
+`FAILED` state, so one bad address cannot roll back the deliveries around it.
 
-- **Backend:** Java 21, Spring Boot 3.5 (Web, Security/JWT, Data JPA), Flyway,
-  Bucket4j (rate limit), stripe-java (test mode), springdoc/OpenAPI. Prod: Neon
-  Postgres; local: H2 (PostgreSQL uyumluluk modu — ayni migration'lar).
-- **Frontend:** Next.js 16 App Router (React 19, TypeScript), on-demand ISR + edge cache.
-- **Dagitim:** Backend → Render, Frontend → Vercel, DB → Neon. `main`'e push =
-  otomatik deploy.
+**Analytics that cannot identify anyone.** The visitor fingerprint is
+`sha256(ip | user-agent | day | salt)`; the raw IP never leaves the function
+that hashes it and is never stored. Because the hash includes the day it rotates
+at midnight, which also means "all-time unique visitors" was always a sum of
+daily uniques — so the retention job can fold raw rows into a daily rollup and
+delete them without moving the lifetime numbers.
 
-## Yerel calistirma
+**Engagement as a strategy, with `Optional.empty()` over a misleading zero.**
+Each platform computes engagement differently (Instagram from followers,
+YouTube and TikTok from views). One interface, one implementation per platform,
+a registry. The part that matters is the return type: a platform with
+insufficient data returns empty rather than `0.0`, because a rate card showing
+"0% engagement" is worse than showing nothing.
 
-Backend (JDK 21):
-```
-cd backend
-mvn spring-boot:run          # H2 in-memory, sifir kurulum; http://localhost:8080
-```
+**Accent colours are a curated list, not a colour picker.** Every accent's
+contrast was computed against the surfaces it is actually drawn on, in both
+light and dark mode, and all pass WCAG AA. `tests/palette.test.ts` recomputes
+those ratios *from the shipped CSS*, so adding an inaccessible colour breaks
+CI. A picker would have made producing an unreadable page a user's choice; in
+this design it cannot be expressed.
 
-Frontend:
-```
-cd frontend
-pnpm install                 # corepack pnpm'i saglar (packageManager alani)
-cp .env.example .env.local   # BACKEND_URL + REVALIDATE_SECRET + NEXT_PUBLIC_BACKEND_URL
-pnpm build && pnpm start
-```
+**Secrets fail loudly.** Every security-critical value has a working local
+default so a clone runs with zero setup — which means a missing production
+variable would silently sign session tokens with a key published in this
+repository. `ProductionSecretsCheck` refuses to boot the prod profile while any
+of them still carries the `local-dev-` marker. It checks the *marker*, not a
+list, so a secret added later inherits the protection by following the
+convention. This has already fired in production once, exactly as intended.
 
-`http://localhost:3000` acilir; kayit olup dashboard'dan kit olusturup yayinlayin,
-public sayfa `http://localhost:3000/<slug>` adresinde gorunur.
+---
 
-Testler:
-```
-cd backend && mvn test       # 330 test: slug, snapshot, engagement, analitik,
-                             # billing/webhook idempotency, sifre/brute-force,
-                             # onizleme tokeni, lead ingestion/honeypot, rate card,
-                             # DNS durum makinesi, rate limit, senkron cooldown,
-                             # prod secret kontrolu, eszamanli yazma yarislari,
-                             # analitik retention, dolu DB migration testi,
-                             # N+1 koruma, rezerve slug <-> frontend rotalari,
-                             # mimari kurallar (ArchUnit), ...
+## Quality
 
-cd frontend && pnpm test     # 105 test (Vitest + Testing Library): public sayfa
-                             # snapshot render'i (istatistik/rozet/preview/eski
-                             # snapshot), sifre gate, auth hata eslemesi,
-                             # JSON-LD kacisi, palet kontrasti, service worker,
-                             # guvenlik basliklari, sunucu-durumu hook'u
-
-cd frontend && pnpm test:e2e # 13 Playwright testi, gercek yigina karsi (Next +
-                             # Spring Boot ayni anda ayakta): kayit→kit→yayin
-                             # akisi, pano, markaya ozel paylasim linkleri,
-                             # axe ile erisilebilirlik denetimi
-```
-
-Dort workflow var; ilk ucu her push'ta kosar:
-
-| Workflow | Ne yapar |
+| | |
 | --- | --- |
-| `ci.yml` | Backend (H2), **backend gercek PostgreSQL'e karsi** (Testcontainers, `postgres` tag'li testler), frontend (typecheck + lint + test + build) |
-| `e2e.yml` | Playwright, iki sunucu birden ayakta |
-| `security.yml` | Trivy (bagimlilik CVE'leri, HIGH/CRITICAL'da kirilir) + CodeQL (java-kotlin ve javascript-typescript, `security-extended`) |
-| `mutation.yml` | PIT — haftalik ve elle tetiklenir, her push'ta degil |
+| **Backend** | 330 tests (JUnit) — including concurrency races driven by `CyclicBarrier`, migrations run against a *populated* database, and N+1 query-count assertions |
+| **Frontend** | 105 tests (Vitest + Testing Library) |
+| **End-to-end** | 13 Playwright tests against both servers running for real |
+| **Architecture** | ArchUnit rules fail the build — no field injection, controllers never touch repositories, entities never depend on the web layer |
+| **Mutation** | PIT on the critical packages: 144 mutations, 97% killed |
+| **CI** | Four workflows: `ci.yml` (H2 + **a second job against real PostgreSQL** via Testcontainers + frontend), `e2e.yml`, `security.yml` (Trivy + CodeQL `security-extended`), `mutation.yml` |
 
-## Proje yapisi
+Two of those exist because of specific incidents. `MigrationOnPopulatedDatabaseTest`
+exists because a migration once added a lowercase default to a column mapped to
+an uppercase enum: every pre-existing account became unloadable and returned 500
+on its own `/api/me`. A suite that starts from an empty schema cannot see that.
+The reserved-slug test reads `frontend/app` and fails the **backend** build when
+a route is added without reserving the word — because three routes had already
+shipped that a creator could have claimed as their kit's URL.
 
+---
+
+## Honest limits
+
+- **Mail lands in spam more often than it should.** The sender is a `gmail.com`
+  address relayed through Brevo, so DMARC alignment fails. Fixing it properly
+  needs a custom domain with SPF/DKIM, which is also why the app still lives on
+  `*.vercel.app`.
+- **Single instance is assumed in three places** — rate-limit buckets, the
+  password-attempt counter, and the scheduled jobs' overlap guards are all
+  in-memory. A second instance would not crash; it would silently multiply the
+  limits and run batches twice, which is the more dangerous failure. The fix is
+  Redis-backed Bucket4j and ShedLock, in that order.
+- **Avatars are URLs, not uploads.** Free-tier disks are wiped on deploy, so
+  object storage would mean either a paid service or a feature that quietly
+  loses data.
+- **`<html lang>` is hardcoded to `tr`.** A kit published in English still
+  declares Turkish, which a screen reader will act on. The published language is
+  already per-kit; the layout has not caught up.
+- **No API versioning.** There is one client, in this repository, deployed from
+  the same commit. Versioning earns its keep when clients you do not control
+  exist; the fragile part — the shape of the cached public payload — is already
+  handled by `PUBLIC_SCHEMA_VERSION`.
+- **Email changes are confirmed by password, not by a link.** Re-authentication
+  is the control that actually matters, but a typo in the new address is not
+  caught. Now that mail exists, this is unbuilt rather than blocked.
+
+---
+
+## Running it locally
+
+```bash
+cd backend  && mvn spring-boot:run     # H2 in-memory, zero setup, :8080
+cd frontend && pnpm install && pnpm build && pnpm start   # :3000
 ```
-backend/  Spring Boot API
-  auth, user            JWT kayit/giris, plan (PlanPolicy)
-  mediakit              kit CRUD, slug, publish/snapshot/versiyon, sifre
-  stats                 istatistik zaman serisi, engagement (Strategy), demografi
-  stats/sync            StatsProvider (YouTube API) + scheduled sync batch
-  collab                marka isbirlikleri
-  ratecard              calisma ucretleri (publish'te snapshot'a donar)
-  lead                  marka iletisim formu ingestion + gelen kutusu
-  analytics             ziyaretci beacon ingestion + agregasyon
-  billing               Stripe test-mode + graceful-enable demo upgrade
-  domain                custom domain DNS dogrulama (scheduled job)
-  ratelimit             Bucket4j filtresi
-  demo                  demo hesap seed + test-hesabi temizligi
-  user                  plan politikasi + hesap ayarlari (profil/sifre/e-posta/silme)
-frontend/ Next.js App Router
-  app/[slug]            public sayfa (edge), KitCard, PasswordGate, PrintButton, beacon, OG gorseli
-  app/preview/[token]   draft onizleme (per-request, no-store, noindex)
-  app/dashboard         kit editoru + istatistik/analitik/versiyon/domain panelleri
-  app/dashboard/settings profil, sifre/e-posta degisimi, hesap silme
-  app/api/revalidate    secret korumali on-demand revalidation
-```
 
-## Dogruluk / secret'lar
+`cp frontend/.env.example frontend/.env.local` first. Register at
+`localhost:3000`, build a kit, publish, and the page appears at
+`localhost:3000/<slug>`.
 
-`.env` / `.env.local` repoya girmez (bkz. `.gitignore`); ornekler `*.env.example`.
-Stripe/JWT/analitik salt gibi tum secret'lar yalnizca ortam degiskenlerinde tutulur.
-
-Repodaki calisan varsayilanlarin keskin bir kenari var: bir ortam degiskeni
-uretimde eksik kalirsa hicbir sey patlamaz, uygulama ayaga kalkar ve oturum
-tokenlerini herkesin okuyabilecegi bir sirla imzalar. Bu yuzden **eksik secret
-bir kesinti olmali, sessiz bir dusus degil**: `ProductionSecretsCheck` prod
-profilinde JWT/revalidate secret'i ile analitik salt'ini kontrol eder ve
-herhangi biri hala gelistirme varsayilanindaysa uygulamayi baslatmaz. Kontrol
-bilinen degerlerin listesi degil, bir isarettir — her gelistirme varsayilani
-`local-dev-` onekini tasir, kural da oneki reddeder; sonradan eklenen bir secret
-korumayi yalnizca kurala uyarak devralir.
-
-## Markaya ozel link: anonimligi bozmadan "kim bakti"
-
-Urunun tezi bastan beri **"marka sayfaya baktiginda uretici bunu gorur"** idi,
-ama analitik yalnizca "3 goruntulenme" diyebiliyordu. Sebep tasarimin kendisiydi:
-ziyaretci kimligi gunluk donen anonim bir hash ve **oyle kalmasi gerekiyor.**
-
-Eksik yarim, ziyaretciden degil **ureticiden** geliyor: linki gonderirken zaten
-kime gonderdigini biliyor. Etiketi o yaziyor.
-
-- **Token bir sir degil, bir etiket.** Yayindaki sayfa zaten herkese acik;
-  token'li ya da token'siz ayni sayfa gelir. Token yalnizca goruntulenmenin
-  hangi sutuna yazilacagina karar verir. Erisim kontrolu gibi davranmak, tarayici
-  gecmisine ve referrer basligina dusen bir degere icerik baglamak olurdu.
-- **Sayfa statik kalir.** Token istemci tarafinda URL'den okunur ve dogrudan
-  beacon'a verilir; render edilen HTML'e hic girmez, dolayisiyla edge cache ve
-  `force-static` aynen korunur. Kisisellestirme ile edge cache arasindaki
-  gerginligin cozumu bu.
-- **Tanimadigi token'i reddetmez.** Bilinmeyen, iptal edilmis ya da baska bir
-  kite ait bir token, goruntulenmeyi **atifsiz** birakir — silmez. Bir dipnotu
-  korumak icin gercek ziyareti kaybetmek yanlis takas olurdu. Token her zaman
-  ziyaret edilen kite karsi cozulur, yani baskasinin token'i baskasinin
-  sayilarina yazamaz.
-- **Iptal edilir, silinmez.** Gecmisteki atiflar yerinde kalir: o ziyaretler
-  gercekten o linkten geldi, bunu sonradan yeniden yazmak kaydi kayitsizliktan
-  daha kotu hale getirirdi.
-
-Saklama penceresi burada da gecerli: retention ham satirlari gunluk ozete
-katladigi icin 90 gunden eski atiflar toplam sayilarda yasar ama link kiriliminda
-gorunmez — referrer/cihaz kirilimiyla ayni takas.
-
-## Olcek siniri: bu mimari nereye kadar gider
-
-Tek bir Render instance'i varsayimi kodun icinde uc yerde yasiyor ve **bunlarin
-ucu de bellekte**: Bucket4j rate-limit kovalari, sifre denemesi sayaci, ve dort
-zamanlanmis batch'in `ReentrancyGuard`'lari. Ikinci bir instance acildigi anda
-her biri sessizce yanlis calisir — limitler instance sayisi kadar carpilir,
-batch'ler ust uste calisir. Hicbiri patlamaz, hepsi yanlis sonuc verir; en
-tehlikeli bozulma bicimi bu.
-
-Degismesi gerekenler, sirasiyla:
-
-1. **Rate limit** → Redis destekli Bucket4j (arayuz zaten yerinde, `RateLimiterRegistry` degisir).
-2. **Overlap guard** → ShedLock ya da veritabani kilidi (`ReentrancyGuard` tek birim halinde tutulmasinin sebebi bu).
-3. **`UnlockRateLimiter`** → ayni sekilde paylasilan bir depoya.
-
-Degismesi gerekmeyenler: public sayfa (zaten edge'de, backend'e bagli degil),
-publish/snapshot yolu (transaction ve constraint'lerle korunuyor), outbox
-(satir bazli, birden fazla tuketici guvenli degil — 2. maddeye bagli).
-
-## Bilincli olarak yapilmayan iki sey
-
-**API versiyonlama (`/api/v1/...`) eklenmedi.** Versiyonlama, kontrolunuzde
-olmayan istemcilerin var oldugu anda deger uretir. Burada tek bir istemci var ve
-o da ayni repoda, ayni commit'te dagitiliyor — uclara bir onek eklemek her yolu
-degistirir, hicbir seyi cozmez. Kirilganligin gercekten bulundugu yerde zaten
-bir mekanizma var: `PUBLIC_SCHEMA_VERSION`, public payload'in sekli degistiginde
-Data Cache'i tazeler, cunku **orasi** deploy'lardan sagkalan ve eski sekli
-tutabilen tek yer. Disaridan bir istemci ciktigi gun versiyonlama da cikar.
-
-**Piksel bazli gorsel regresyon eklenmedi.** Baseline goruntuler uretildikleri
-platformun font rasterizasyonunu tasir; yerelde uretilip CI'da (Linux)
-karsilastirilan bir baseline **her zaman** kirmizi doner. Duzgun yapmanin yolu
-baseline'lari CI'da veya sabit bir konteynerde uretmek; yarim yapmanin yolu ise
-herkesin gormezden gelmeyi ogrendigi bir job. Dayanikli olan kisim zaten
-korunuyor: `palette.test.ts` renk token'larini sevk edilen CSS'ten yeniden
-hesapliyor, `security-headers.test.ts` basliklari, `axe` denetimi de
-erisilebilirlik regresyonlarini yakaliyor.
-
-## Veri yasam dongusu
-
-`page_views` append-only ve **hicbir saklama siniri yoktu**: trafikle birlikte
-sonsuza kadar buyuyor, ucretsiz bir Postgres katmaninda, kimsenin bir daha
-bakmayacagi ziyaret satirlarini tutuyordu. Bu hem bir fatura hem de kimsenin
-vermek istemeyecegi bir veri koruma cevabi.
-
-Ama **duz bir DELETE de bedava degildi**: toplam goruntulenme ve tekil ziyaretci
-tum tablo uzerinden sayiliyor, dolayisiyla kirpma ureticinin omur boyu sayilarini
-sessizce geriye yururdu. Bu yuzden once toplanir:
-
-- **`page_view_daily`** — retention job her gunu tek satira katlar, sonra
-  arkasindaki ham satirlari siler. Ikisi **ayni transaction'da**: toplanip
-  silinmezse cift sayilir, silinip toplanmazsa goruntulenmeler kaybolur.
-- **Tekil ziyaretci sayisi yaklasik degil, tam korunur** — ve bu sansin degil
-  parmak izinin ozelligi: `visitor_hash` gunu de icerir, yani gece yarisi doner
-  ve ayni kisi yarin zaten baska bir hash'tir. "Tum zaman tekil ziyaretci" en
-  bastan gunluk tekillerin toplamiydi; tablo tam olarak onu saklar.
-- **Cutoff gece yarisina hizalanir** — hizalanmamis bir cutoff gunun ortasina
-  duser: sayim sabahi kapsar, silme tum gunu alir ve ogleden sonra sessizce
-  kaybolurdu. Hizalama bu durumu ele almak yerine ortadan kaldirir.
-- **Degisen tek sey:** referrer ve cihaz kirilimlari ham satirlardan
-  hesaplandigi icin "tum zaman" degil "saklama penceresi" olur. Bilincli:
-  iki yil onceki bir referrer kimsenin uzerine is yapmadigi bir sayidir ve onu
-  tam tutmak icin her ziyareti sonsuza kadar saklamak yanlis takas. Gunluk seri
-  zaten 30 gunluk, etkilenmez.
-
-Varsayilan pencere 90 gun (`ANALYTICS_RETENTION_DAYS`).
-
-**Migration'lar dolu veritabanina karsi test edilir.** Bunun somut bir sebebi
-var: V17 sirf V16 yuzunden var. V16 `users.theme`'i kucuk harfli bir
-varsayilanla ekleyip mevcut satirlari onunla doldurdu, kolon ise sabitleri
-LIGHT/DARK olan bir enum'a esleniyordu — o migration'dan onceki her hesap
-yuklenemez oldu ve kendi `/api/me` ucunda 500 dondu. **Bos semadan baslayan bir
-test paketi bunu goremezdi**; `MigrationOnPopulatedDatabaseTest` yarisina kadar
-migrate eder, canli bir veritabaninin tutacagi satirlari yazar ve sonra bitirir.
-
-**Yedekleme bu repoda degil, saglayicida.** Neon'un point-in-time restore'u
-veritabani duzeyinde bir ayardir; kod tarafinda karsiligi yok. Isletme
-kontrol listesi: PITR penceresinin acik oldugunu dogrula, bir geri yukleme
-denemesi yap (denenmemis yedek yedek degildir), ve `DATABASE_URL`'in pooled
-endpoint'i gosterdiginden emin ol.
-
-## Eszamanlilik: kontrol-et-sonra-yaz yollari
-
-Uc yerde bir deger, "hali hazirda ne var" okunarak seciliyor: bir sonraki bos
-slug, bir sonraki versiyon numarasi, bir platformun kaynak satiri. Okuma ile
-yazma arasinda baska bir istek o degeri alabilir ve bunu **yalnizca unique
-constraint fark eder.** Fark etmesi gereken de odur — karar uygulamaya tasinsa,
-neredeyse hic olmayan bir seye karsi okuma yolunda satir kilitlemek gerekirdi.
-
-Yanlis olan sey tepkiydi: ihlal 500 olarak disari cikiyordu. Ayni anda ayni
-basligi yazan iki kisi bir kit ve bir sunucu hatasi uretiyordu — oysa zaten var
-olan cakisma mantigi ikincisine bir sonek verecekti. Yayin butonuna cift
-tiklamak da ayni sonucu veriyordu.
-
-- **`ConstraintRetry`** — ihlali yakalar ve isi yeniden calistirir; ikinci okuma
-  commit edilmis satiri gorur ve bir sonraki degeri secer. Her deneme kendi
-  transaction'idir: constraint ihlaline ugramis bir JPA transaction bitmistir.
-- **Deneme sayisi rakip sayisiyla olceklenir** — her turda tam bir kazanan
-  cikar, dolayisiyla N rakip N deneme ister. Sinirli tutulur: yeniden deneme
-  her ihlali cozemez, gercekten dolu bir deger onuncu denemede de doludur ve
-  sonsuz donmek, kullanicinin duymasi gereken bir istegi hic cevap vermeyen bir
-  thread'e cevirir.
-- **Tukendiginde 409, 500 degil** — "o deger alinmis" dogru, "bu sunucu bozuk"
-  degil. Constraint adi ve carpisan deger yanita konmaz; ikisi de cagirana
-  goremeyecegi satirlari anlatir.
-- **Yan kazanc:** `connect` upstream cagrisini artik transaction'in **disinda**
-  yapiyor. Yavas bir YouTube yaniti bes baglantilik havuzdan birini tutuyordu —
-  tam da publish yolunun kacinmak icin kuruldugu sey.
-
-Testler yarisi umut ederek degil bir `CyclicBarrier` ile uretir: iki thread'i
-oylesine baslatmak cogunlukla onlari sirayla kosturur ve test, iddia ettigi
-kosulu hic olusturmadan gecer.
-
-## Isletme: sessiz basarisizliklarin gorunur olmasi
-
-Bu sistemdeki bazi hatalar **bilerek olumcul degil**: edge'e ulasmayan bir
-revalidation, mail saglayicisinin reddettigi bir lead bildirimi, kota bitince
-duran bir istatistik batch'i. Kararlarin hepsi dogru — hicbiri kullanicinin
-istegine ya da verisine mal olmamali — ama "ele alindi" bir sure boyunca
-sessizce "kimse bakmiyor" anlamina geliyordu: outbox satiri `FAILED` isaretleyip
-devam ediyordu, o satirlara bakan kimse yoktu.
-
-- **`OperationalMetrics`** — izlenmeye deger olaylar tek bir sinifta adlandirilir.
-  Bu sinifi okumak, sistemin neyi problem saydigini soyler; call-site'lara
-  serpistirilmis string literal'ler ise bir yazim hatasinda ikinci ve bos bir
-  zaman serisi uretir, duz kalan grafik ise "hic olmuyor"dan ayirt edilemez.
-  Sayaclar: publish, zamanlanmis publish, revalidation basarisizligi, lead
-  bildirimi gonderildi/vazgecildi, **sifre sifirlama maili gonderildi/
-  vazgecildi**, statsync kota ve kaynak hatasi.
-  Sifre sifirlamanin iki sayaci birlikte okunur: `mail_sent` artmiyorsa mail
-  yolu kopuktur, `mail_failed` artiyorsa kuyruk yeniden deneme butcesini
-  tuketmistir. Prod'da mailin neden gitmedigini bulan olcum tam olarak buydu.
-- **En yaniltici durum ozel olarak isaretlenir** — publish commit oldu, pano
-  basarili diyor, ama public sayfa hala onceki snapshot'i servis ediyor olabilir.
-  Artik `ERROR` seviyesinde loglanir ve sayilir.
-- **Request ID** — `RequestIdFilter` her istege bir kimlik verir, log deseninde
-  (`logback-spring.xml`) gorunur ve `X-Request-Id` olarak geri doner. Gelen deger
-  onurlandirilir (servis zinciri tek kimlik paylasir) ama **temizlenir**: bu deger
-  log satirina yazildigi icin sinirsiz, cagiran-kontrolunde bir string log
-  forging demektir. Filtre rate limit'in de onunde calisir, boylece reddedilen
-  429'lar da izlenebilir.
-- **Metrikler herkese acik degil.** `/actuator/health` public (platformun uptime
-  kontrolu icin), `/actuator/prometheus` degil — bir servisin ne kadar
-  kullanildigi ve ne zaman bozuldugu, tanimadigin birine verilecek bilgi degil.
-  Gercek bir dagitimda bunlar ayri bir porta (`management.server.port`) tasinir.
-
-Loglar JSON degil, duz metin. Structured logging'in bedeli onu **ayristiran bir
-sey oldugunda** karsiligini verir; burada henuz yok (Render'in log goruntuleyicisi
-bir arama kutusu). Spring Boot 3.4'ten beri bu tek bir property
-(`logging.structured.format.console`) ve artik o surumun uzerindeyiz —
-dolayisiyla bir log pipeline'i olustugu gun degisiklik tek satir. Bugun acmak,
-kimsenin ayristirmadigi JSON'u Render'in arama kutusunda okunmaz hale getirirdi.
+**Stack:** Java 21 · Spring Boot 3.5 · Flyway · Neon Postgres (H2 locally, same
+migrations) · Next.js 16 App Router · React 19 · TypeScript · Vercel + Render.

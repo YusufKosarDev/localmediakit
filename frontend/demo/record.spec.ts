@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { caption, clearCaption } from "./caption";
 
 /**
  * The README demo, in one take: sign up, build a kit, publish it, and read the
@@ -120,12 +121,12 @@ test("localmediakit demo", async ({ page, request }) => {
   await page.reload();
   await expect(page.getByRole("button", { name: "Yayinla" }).first()).toBeVisible();
   await beat(page, 1200);
-  await page.screenshot({ path: "../docs/dashboard.png" });
 
   // 5. Publish: the moment the draft becomes an immutable snapshot.
+  await caption(page, "Publish — freezes the draft into a snapshot");
   await page.getByRole("button", { name: "Yayinla" }).first().click();
   await expect(page.getByText("Yayinlandi.")).toBeVisible();
-  await beat(page, 1600);
+  await beat(page, 1800);
 
   // 6. Read it as a brand would -- served static from the edge in production.
   const link = page.locator('a[href^="/"]:has-text("/")').first();
@@ -133,24 +134,13 @@ test("localmediakit demo", async ({ page, request }) => {
 
   await page.goto(`/${slug}`);
   await expect(page.getByText("Platformlar", { exact: false })).toBeVisible();
-  await beat(page, 1400);
+  await caption(page, "The link a brand opens — static, served from the edge");
+  await beat(page, 1800);
   await page.mouse.wheel(0, 420);
   await beat(page, 1400);
   await page.mouse.wheel(0, 420);
   await beat(page, 2000);
-
-  // The sections reveal themselves as they scroll into view, so a full-page
-  // screenshot taken from the top catches most of them mid-fade. Walk the whole
-  // page first, then go back up and capture it fully rendered.
-  await page.evaluate(async () => {
-    for (let y = 0; y < document.body.scrollHeight; y += 300) {
-      window.scrollTo(0, y);
-      await new Promise((r) => setTimeout(r, 60));
-    }
-    window.scrollTo(0, 0);
-  });
-  await beat(page, 800);
-  await page.screenshot({ path: "../docs/public-page.png", fullPage: true });
+  await clearCaption(page);
 
   // Keep the run self-contained: the account is a @test.dev one, which the
   // backend purges on startup, but the recording should not depend on that.
@@ -158,7 +148,7 @@ test("localmediakit demo", async ({ page, request }) => {
     await request
       .delete(`${BACKEND}/api/me`, {
         headers: { Authorization: `Bearer ${token}` },
-        data: { password: PASSWORD, confirmation: "HESABIMI SIL" },
+        data: { currentPassword: PASSWORD, confirmation: "HESABIMI SIL" },
       })
       .catch(() => undefined);
   }
