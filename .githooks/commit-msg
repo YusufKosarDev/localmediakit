@@ -1,0 +1,35 @@
+#!/bin/sh
+# Project policy: commits carry no AI attribution.
+#
+# Versioned rather than left in .git/hooks, which travels with one clone and
+# protects nobody else -- including the same person on another machine. Enable
+# once per clone:
+#
+#     git config core.hooksPath .githooks
+#
+# Tools that add attribution do it as trailer lines appended to the message, so
+# dropping those lines is enough; the message a person actually wrote is left
+# alone. Silent by design: this is a formatting rule, not a mistake worth
+# stopping a commit over.
+#
+# Dependabot's own Co-authored-by trailer is deliberately NOT matched. It is a
+# real co-author on a real merge, and rewriting it would be a false claim.
+
+msg_file="$1"
+
+pattern='^(Co-authored-by:[[:space:]]*.*(claude|anthropic|copilot|openai|noreply@anthropic)'
+pattern="$pattern"'|.*Generated with \[?(Claude|Cursor|Copilot)'
+pattern="$pattern"'|.*🤖 Generated with'
+pattern="$pattern"'|Assisted-by:.*'
+pattern="$pattern"')'
+
+grep -viE "$pattern" "$msg_file" > "$msg_file.tmp"
+
+# Collapse the blank lines a removed trailer block leaves at the end, so the
+# message does not gain trailing whitespace every time the hook fires.
+awk 'BEGIN { blank = 0 }
+     /^[[:space:]]*$/ { blank++; next }
+     { while (blank-- > 0) print ""; blank = 0; print }
+    ' "$msg_file.tmp" > "$msg_file"
+
+rm -f "$msg_file.tmp"
