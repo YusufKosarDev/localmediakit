@@ -18,7 +18,7 @@ bilinmiyor ve her güncellemede yeniden gönderilmesi gerekiyor.
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-black)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791)
-![Tests](https://img.shields.io/badge/tests-337%20backend%20%2B%20113%20frontend%20%2B%2016%20E2E-brightgreen)
+![Tests](https://img.shields.io/badge/tests-338%20backend%20%2B%20113%20frontend%20%2B%2016%20E2E-brightgreen)
 ![Mutation](https://img.shields.io/badge/PIT%20mutation-97%25-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -118,7 +118,7 @@ a brand opens it.
 - **Production secrets fail loudly.** The app refuses to boot the prod profile
   while any security-critical value still carries the `local-dev-` marker. This
   has fired in production once, exactly as intended.
-- **Quality gates:** 337 backend tests (including concurrency races driven by
+- **Quality gates:** 338 backend tests (including concurrency races driven by
   `CyclicBarrier` and migrations run against a populated database), 113 frontend
   tests, 16 Playwright end-to-end tests, 13 ArchUnit architecture rules that
   fail the build, and PIT mutation coverage at 97%.
@@ -263,6 +263,15 @@ yalnızca unique constraint tarafından fark edilir — ve fark etmesi gereken d
 odur. Yanlış olan tepkiydi: ihlal `500` olarak dışarı çıkıyordu. `ConstraintRetry`
 ihlali yakalar, işi yeni bir transaction'da yeniden çalıştırır ve tükendiğinde
 `409` döner. Testler yarışı umut ederek değil `CyclicBarrier` ile üretir.
+
+Dördüncüsü rate-limit kovalarını veritabanına taşırken çıktı ve tam da bu
+yüzden yazılmış bir test yakaladı. Yeni bir anahtara aynı anda gelen isteklerden
+biri kovayı yaratıyor; kalanlar "satır var mı" diye sorup **evet** cevabını
+alınca hiç token denemeden reddediliyordu. Ama sorulması gereken soru "satır var
+mı" değil, "token var mı" — ve bunlar yalnızca kova boşken aynı cevabı verir.
+Sonucu şuydu: trafiği aniden başlayan yeni bir ziyaretçinin ilk birkaç isteği
+sebepsiz throttle'lanıyordu, hiçbir log'a düşmeden. 8 istek / 4 kapasite ile
+koşan yarış testi 4 yerine 3 saydı.
 
 **Rezerve slug listesi tahminle değil dizin okunarak korunur.** Yayınlanmış bir
 kit `/<slug>` adresinde yaşıyor, yani frontend'in kendi rotalarıyla aynı URL
@@ -491,7 +500,7 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 | Komut | Ne yapar |
 | --- | --- |
 | `./mvnw spring-boot:run` | Uygulamayı H2 ile çalıştırır |
-| `./mvnw test` | 337 test (Docker gerekmez) |
+| `./mvnw test` | 338 test (Docker gerekmez) |
 | `./mvnw verify` | Test + paketleme |
 | `./mvnw test -Dgroups=postgres -Dsurefire.excluded.groups=` | Gerçek PostgreSQL'e karşı Testcontainers testleri |
 | `./mvnw -Pmutation test-compile org.pitest:pitest-maven:mutationCoverage` | PIT mutasyon analizi |
@@ -513,7 +522,7 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 
 | Katman | Kapsam |
 | --- | --- |
-| **Backend** | **337 test** — slug, snapshot/publish, engagement, analitik ve retention, lead ingestion/honeypot, şifre sıfırlama outbox'ı, önizleme tokeni, rate limit, prod secret kontrolü, eşzamanlı yazma yarışları (`CyclicBarrier`), **dolu veritabanına karşı migration**, N+1 sorgu sayısı |
+| **Backend** | **338 test** — slug, snapshot/publish, engagement, analitik ve retention, lead ingestion/honeypot, şifre sıfırlama outbox'ı, önizleme tokeni, rate limit, prod secret kontrolü, eşzamanlı yazma yarışları (`CyclicBarrier`), **dolu veritabanına karşı migration**, N+1 sorgu sayısı |
 | **Frontend** | **113 test** (Vitest + Testing Library) — public sayfa snapshot render'ı, şifre gate, auth hata eşlemesi, JSON-LD kaçışı, palet kontrastı, service worker, güvenlik başlıkları |
 | **Uçtan uca** | **16 Playwright testi** — iki sunucu da gerçekten ayaktayken; kayıt→kit→yayın akışı, pano, paylaşım linkleri, `axe` ile erişilebilirlik denetimi ve **piksel karşılaştırması** |
 | **Görsel** | Public sayfanın 3 anlık görüntüsü (açık/koyu tema, mobil). Baseline'lar CI ile **aynı Playwright container'ında** üretiliyor — font rasterizasyonu aynı makineden geldiği için normal sonuç sıfır piksel fark |

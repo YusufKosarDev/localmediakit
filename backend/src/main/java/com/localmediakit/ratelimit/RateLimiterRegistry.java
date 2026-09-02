@@ -98,7 +98,18 @@ public class RateLimiterRegistry implements TokenBuckets {
         // asking costs nothing next to creating a row on every throttled
         // request and rolling it back.
         if (exists(key)) {
-            return false;
+            // The row is there now. That is not the same as "there is no token
+            // left": it may have appeared between the attempt above and this
+            // question, put there by another request for the same new key.
+            // Answering false here would refuse a request against a bucket
+            // that had just been filled -- which is what a burst of traffic
+            // from one new client looks like, so the first few requests from
+            // every new IP were being throttled for no reason.
+            //
+            // Whether a token is available is spend()'s question, and it is
+            // asked again rather than inferred. The cost is one more statement
+            // on a request that is about to be rejected anyway.
+            return spend(key, capacityPerMinute, now);
         }
         return createAndSpend(key, capacityPerMinute, now);
     }
