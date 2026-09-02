@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { registerAccount, createKit, addStat, publish } from "./support";
 
 /**
@@ -50,6 +50,21 @@ test.describe("visual", () => {
     "visual baselines are generated on the CI runner; see .github/workflows/e2e.yml"
   );
 
+
+  /**
+   * The one thing on this page that is not the same tomorrow.
+   *
+   * <p>The footer renders the publish date, so an unmasked baseline would go
+   * red at midnight and stay red, for a reason that has nothing to do with how
+   * the page looks. Masking is preferable to freezing the clock: the date is
+   * genuinely dynamic, the assertion is about layout, and painting over the one
+   * region that changes keeps every other pixel meaningful.
+   *
+   * <p>The footer's box is still compared -- its position, size and border are
+   * part of the layout. Only the text inside it is covered.
+   */
+  const masked = (page: Page) => ({ mask: [page.locator(".kit-root footer")] });
+
   /**
    * The kit every shot is taken of.
    *
@@ -85,7 +100,7 @@ test.describe("visual", () => {
     // taken mid-flight can catch a half-painted frame.
     await page.waitForLoadState("networkidle");
 
-    await expect(page).toHaveScreenshot("kit-light.png", { fullPage: true });
+    await expect(page).toHaveScreenshot("kit-light.png", { fullPage: true, ...masked(page) });
   });
 
   test("the dark theme is a theme, not an inversion", async ({ page, request }) => {
@@ -99,7 +114,7 @@ test.describe("visual", () => {
       document.querySelector("[data-theme]")?.setAttribute("data-theme", "dark");
     });
 
-    await expect(page).toHaveScreenshot("kit-dark.png", { fullPage: true });
+    await expect(page).toHaveScreenshot("kit-dark.png", { fullPage: true, ...masked(page) });
   });
 
   test("the page holds together on a phone", async ({ page, request }) => {
@@ -108,6 +123,6 @@ test.describe("visual", () => {
     await page.goto(`/${kit.slug}`);
     await page.waitForLoadState("networkidle");
 
-    await expect(page).toHaveScreenshot("kit-mobile.png", { fullPage: true });
+    await expect(page).toHaveScreenshot("kit-mobile.png", { fullPage: true, ...masked(page) });
   });
 });
