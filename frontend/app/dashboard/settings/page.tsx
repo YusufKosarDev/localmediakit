@@ -82,12 +82,16 @@ export default function SettingsPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
+      // Hard loads at every session boundary on this page: there is no session
+      // to carry, so nothing that belonged to one should survive the redirect.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/login";
       return;
     }
     fetch(`${BACKEND}/api/me`, { headers: authHeaders() })
       .then(async (res) => {
         if (!res.ok) {
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.href = "/login";
           return;
         }
@@ -237,6 +241,9 @@ export default function SettingsPage() {
         return;
       }
       localStorage.removeItem("token");
+      // The account no longer exists. Tearing the document down is the only
+      // way to be sure nothing it loaded is still on screen.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/";
     } catch {
       setDelErr(t("unreachable"));

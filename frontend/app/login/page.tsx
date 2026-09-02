@@ -41,6 +41,9 @@ export default function LoginPage() {
       }
       const data = await res.json();
       localStorage.setItem("token", data.token);
+      // A session just began. The dashboard should start from a clean document
+      // rather than inherit whatever this signed-out page had in memory.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/dashboard";
     } catch {
       setError(t("loginUnreachable"));

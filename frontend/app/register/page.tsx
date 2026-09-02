@@ -47,6 +47,9 @@ export default function RegisterPage() {
       }
       const data = await res.json();
       localStorage.setItem("token", data.token);
+      // Same reason as the sign-in page: a session boundary is a document
+      // boundary, so the dashboard starts fresh rather than on this tree.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/dashboard";
     } catch {
       setError(t("loginUnreachable"));

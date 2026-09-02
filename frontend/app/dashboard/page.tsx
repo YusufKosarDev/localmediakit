@@ -185,7 +185,11 @@ export default function DashboardPage() {
       const data = await res.json();
       const url = `/preview/${data.token}`;
       if (win) win.location.href = url;
-      else window.location.href = url; // blocker still won: navigate in place
+      // The blocker still won, so navigate in place. A hard load rather than
+      // router.push(): the preview route is signed, per-request and no-store,
+      // and has no business inheriting this page's client state.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      else window.location.href = url;
     } else {
       win?.close();
       feedback.fail(await errorMessage(res, t("failedPreview")));
@@ -204,6 +208,12 @@ export default function DashboardPage() {
 
   function logout() {
     localStorage.removeItem("token");
+    // A document load, deliberately, and the same reasoning applies at every
+    // other session boundary in this app. The token is gone; router.push()
+    // would keep this tree mounted — along with every kit, lead and analytics
+    // row already sitting in its state — after the session that was allowed to
+    // read them ended. Discarding the whole document is the point.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/login";
   }
 
