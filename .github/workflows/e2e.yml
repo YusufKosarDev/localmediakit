@@ -15,7 +15,26 @@ concurrency:
 jobs:
   e2e:
     name: Playwright (local stack)
-    runs-on: ubuntu-latest
+    # Pinned, not "latest", and the visual tests are the reason.
+    #
+    # A screenshot baseline carries the font rasterisation of the machine that
+    # made it. That is the objection that kept pixel testing out of this
+    # project, and it is correct about baselines made on a laptop: they differ
+    # on every glyph edge from the moment they are committed. It is answered by
+    # generating them where they are compared -- here -- not by giving up.
+    #
+    # "latest" would then reintroduce it on GitHub's schedule instead of on
+    # anyone's decision: the day the label moves to a new image, a font package
+    # changes underneath the baselines and every visual test goes red for a
+    # reason that has nothing to do with this repository. Pinning makes that an
+    # edit somebody makes on purpose, with the baselines regenerated in the same
+    # commit.
+    #
+    # Playwright's own container image would be stricter still and is the usual
+    # advice. It is not used here because this job also builds and runs a Spring
+    # backend, and putting a JDK into that image is a larger change than the
+    # remaining risk justifies.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
@@ -69,4 +88,18 @@ jobs:
         with:
           name: playwright-report
           path: frontend/playwright-report
+          retention-days: 14
+
+      # A visual test with no baseline writes one and fails, which is Playwright
+      # telling you it had nothing to compare against. That written file is the
+      # baseline, produced on the machine that will do the comparing, so it is
+      # collected here to be committed rather than regenerated on a laptop --
+      # which is the whole reason these tests were avoided before.
+      - name: Publish any snapshots this run had to create
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-baselines
+          path: frontend/e2e/**/*-snapshots/**
+          if-no-files-found: ignore
           retention-days: 14

@@ -43,7 +43,28 @@ export default defineConfig({
   // These drive a browser through multi-step flows including a publish and an
   // edge revalidation; the component suite's defaults are far too tight.
   timeout: 60_000,
-  expect: { timeout: 15_000 },
+  expect: {
+    timeout: 15_000,
+    toHaveScreenshot: {
+      /**
+       * Why there is a tolerance at all, and why it is this small.
+       *
+       * <p>Baselines are produced in the same container CI compares them in
+       * (see e2e.yml), so the font rasterisation matches exactly and the
+       * honest answer for most runs is a zero-pixel diff. The allowance covers
+       * what remains genuinely non-deterministic in a real browser —
+       * sub-pixel antialiasing along a handful of glyph and border edges — and
+       * is deliberately far too small to absorb a layout change. A shifted
+       * element, a collapsed section or a wrong colour is thousands of pixels,
+       * not hundreds.
+       *
+       * <p>maxDiffPixelRatio rather than a flat count, so the threshold means
+       * the same thing on a phone-width shot as on a desktop one.
+       */
+      maxDiffPixelRatio: 0.002,
+      threshold: 0.2,
+    },
+  },
 
   // Every test creates its own account, so parallel workers cannot collide.
   fullyParallel: true,

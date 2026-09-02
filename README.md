@@ -18,7 +18,7 @@ bilinmiyor ve her güncellemede yeniden gönderilmesi gerekiyor.
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-black)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791)
-![Tests](https://img.shields.io/badge/tests-320%20backend%20%2B%20105%20frontend%20%2B%2013%20E2E-brightgreen)
+![Tests](https://img.shields.io/badge/tests-337%20backend%20%2B%20113%20frontend%20%2B%2016%20E2E-brightgreen)
 ![Mutation](https://img.shields.io/badge/PIT%20mutation-97%25-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -111,9 +111,9 @@ a brand opens it.
 - **Production secrets fail loudly.** The app refuses to boot the prod profile
   while any security-critical value still carries the `local-dev-` marker. This
   has fired in production once, exactly as intended.
-- **Quality gates:** 320 backend tests (including concurrency races driven by
-  `CyclicBarrier` and migrations run against a populated database), 105 frontend
-  tests, 13 Playwright end-to-end tests, 13 ArchUnit architecture rules that
+- **Quality gates:** 337 backend tests (including concurrency races driven by
+  `CyclicBarrier` and migrations run against a populated database), 113 frontend
+  tests, 16 Playwright end-to-end tests, 13 ArchUnit architecture rules that
   fail the build, and PIT mutation coverage at 97%.
 
 **Stack:** Java 21 · Spring Boot 3.5 · Spring Security/JWT · Flyway · Neon
@@ -143,11 +143,11 @@ yok; alt yazılar kaydın kendisine gömülüdür.
 ### Hesap & Kimlik
 
 - E-posta + şifre ile kayıt/giriş, **JWT** tabanlı durumsuz oturum
-- Şifre değiştirme ve e-posta değiştirme (ikisi de mevcut şifreyle onaylanır)
+- Şifre değiştirme; **e-posta değiştirme** mevcut şifreyle *ve* yeni adrese gönderilen tek kullanımlık linkle onaylanır — link açılana kadar hesap taşınmaz
 - **Şifremi unuttum** — tek kullanımlık, 30 dakika ömürlü sıfırlama linki
 - **Hesap verisi dışa aktarma (JSON)** — profil, kitler, lead'ler, analitik özet
 - Hesap silme — yayındaki sayfaları edge'den de düşürür
-- Profil ayarları: ad, avatar, pano teması, arayüz dili
+- Profil ayarları: ad, **avatar yükleme** (Vercel Blob; yapılandırılmamışsa URL alanı kalır), pano teması, arayüz dili
 
 ### Medya Kiti
 
@@ -427,7 +427,7 @@ dokunmuyor.
 | --- | --- |
 | Backend | Java 21, Spring Boot 3.5, Spring Web, Spring Security (JWT), Spring Data JPA |
 | Veritabanı | Neon PostgreSQL (prod), H2 PostgreSQL uyumluluk modu (yerel) — **aynı migration'lar** |
-| Migration | Flyway (28 migration) |
+| Migration | Flyway (32 migration) |
 | Rate limit | Bucket4j + Caffeine |
 | Dokümantasyon | springdoc / OpenAPI 3 |
 | Mail | Düz SMTP (vendor SDK'sı yok — sağlayıcı değişimi env işidir) |
@@ -484,7 +484,7 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 | Komut | Ne yapar |
 | --- | --- |
 | `./mvnw spring-boot:run` | Uygulamayı H2 ile çalıştırır |
-| `./mvnw test` | 320 test (Docker gerekmez) |
+| `./mvnw test` | 337 test (Docker gerekmez) |
 | `./mvnw verify` | Test + paketleme |
 | `./mvnw test -Dgroups=postgres -Dsurefire.excluded.groups=` | Gerçek PostgreSQL'e karşı Testcontainers testleri |
 | `./mvnw -Pmutation test-compile org.pitest:pitest-maven:mutationCoverage` | PIT mutasyon analizi |
@@ -495,8 +495,8 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 | --- | --- |
 | `pnpm dev` | Geliştirme sunucusu |
 | `pnpm build` / `pnpm start` | Üretim derlemesi / sunucusu |
-| `pnpm test` | 105 Vitest testi |
-| `pnpm test:e2e` | 13 Playwright testi (iki sunucuyu kendisi ayağa kaldırır) |
+| `pnpm test` | 113 Vitest testi |
+| `pnpm test:e2e` | 16 Playwright testi (iki sunucuyu kendisi ayağa kaldırır) |
 | `pnpm lint` / `pnpm typecheck` | ESLint / TypeScript kontrolü |
 | `pnpm demo` | README kayıtlarını yeniden üretir (kayıt + GIF dönüşümü) |
 
@@ -506,9 +506,10 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 
 | Katman | Kapsam |
 | --- | --- |
-| **Backend** | **320 test** — slug, snapshot/publish, engagement, analitik ve retention, lead ingestion/honeypot, şifre sıfırlama outbox'ı, önizleme tokeni, rate limit, prod secret kontrolü, eşzamanlı yazma yarışları (`CyclicBarrier`), **dolu veritabanına karşı migration**, N+1 sorgu sayısı |
-| **Frontend** | **105 test** (Vitest + Testing Library) — public sayfa snapshot render'ı, şifre gate, auth hata eşlemesi, JSON-LD kaçışı, palet kontrastı, service worker, güvenlik başlıkları |
-| **Uçtan uca** | **13 Playwright testi** — iki sunucu da gerçekten ayaktayken; kayıt→kit→yayın akışı, pano, paylaşım linkleri, `axe` ile erişilebilirlik denetimi |
+| **Backend** | **337 test** — slug, snapshot/publish, engagement, analitik ve retention, lead ingestion/honeypot, şifre sıfırlama outbox'ı, önizleme tokeni, rate limit, prod secret kontrolü, eşzamanlı yazma yarışları (`CyclicBarrier`), **dolu veritabanına karşı migration**, N+1 sorgu sayısı |
+| **Frontend** | **113 test** (Vitest + Testing Library) — public sayfa snapshot render'ı, şifre gate, auth hata eşlemesi, JSON-LD kaçışı, palet kontrastı, service worker, güvenlik başlıkları |
+| **Uçtan uca** | **16 Playwright testi** — iki sunucu da gerçekten ayaktayken; kayıt→kit→yayın akışı, pano, paylaşım linkleri, `axe` ile erişilebilirlik denetimi ve **piksel karşılaştırması** |
+| **Görsel** | Public sayfanın 3 anlık görüntüsü (açık/koyu tema, mobil). Baseline'lar CI ile **aynı Playwright container'ında** üretiliyor — font rasterizasyonu aynı makineden geldiği için normal sonuç sıfır piksel fark |
 | **Mimari** | **13 ArchUnit kuralı** build'i kırar — field injection yok, controller repository'ye dokunmaz, entity web katmanına bağımlı olmaz, plan sabitleri paketinden çıkmaz, **zamanlanmış her iş kilitli olmak zorunda** |
 | **Mutasyon** | Kritik paketlerde PIT: **144 mutasyonun %97'si** öldürülüyor |
 
@@ -517,7 +518,7 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 | Workflow | Tetikleyici | İçerik |
 | --- | --- | --- |
 | `ci.yml` | Her push/PR | Backend (H2) · **Backend gerçek PostgreSQL'e karşı** (Testcontainers) · Frontend (typecheck + lint + test + build) |
-| `e2e.yml` | Her push/PR | Playwright, iki sunucu birden ayakta |
+| `e2e.yml` | Her push/PR | Playwright, iki sunucu birden ayakta, **sabitlenmiş container** içinde (görsel baseline'lar için) |
 | `security.yml` | Her push/PR + haftalık | Trivy (HIGH/CRITICAL'da kırılır) + CodeQL (`security-extended`, java-kotlin & javascript-typescript) |
 | `mutation.yml` | Haftalık + elle | PIT mutasyon analizi |
 | `keepalive.yml` | 10 dakikada bir | Demo backend'ini ısıtır. Kalite kapısı değildir, hiçbir zaman kırmızı dönmez ve rozeti yoktur |
@@ -540,7 +541,7 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 
 ```
 backend/                     Spring Boot API
-  auth, user, recovery       JWT kayıt/giriş, hesap ayarları, şifre sıfırlama outbox'ı
+  auth, user, recovery       JWT kayıt/giriş, hesap ayarları, e-posta doğrulama ve şifre sıfırlama outbox'ları
   mediakit                   kit CRUD, slug, publish/snapshot/versiyon, zamanlanmış yayın
   media                      öne çıkan içerikler
   stats, stats/sync          zaman serisi, engagement (Strategy), YouTube senkron batch'i
@@ -558,7 +559,9 @@ frontend/                    Next.js App Router
   app/dashboard              kit editörü + 9 panel (istatistik, analitik, versiyon, lead, ...)
   app/dashboard/settings     profil, şifre/e-posta değişimi, dışa aktarma, hesap silme
   app/forgot, app/reset      şifre sıfırlama akışı
+  app/confirm-email          yeni e-posta adresini doğrulama linki
   app/api/revalidate         secret korumalı on-demand revalidation
+  app/api/avatar             Vercel Blob'a avatar yükleme (oturumu backend'e doğrulatır)
   demo/                      README kayıtlarını üreten Playwright senaryoları
   tests/, e2e/               Vitest ve Playwright paketleri
 
@@ -604,6 +607,7 @@ docs/media/                  demo.gif/webm, snapshot.gif/webm
 | `BACKEND_URL` | Sunucu tarafı fetch'lerin hedefi |
 | `NEXT_PUBLIC_BACKEND_URL` | Tarayıcının çağırdığı origin (beacon, unlock, pano) |
 | `REVALIDATE_SECRET` | Backend'deki değerle aynı olmalı |
+| `BLOB_READ_WRITE_TOKEN` | ➖ Avatar yüklemesi için Vercel Blob token'ı. Boşsa yükleme ucu `503` döner ve arayüz yükleme düğmesini göstermez; avatar URL alanı çalışmaya devam eder |
 
 > `.env` ve `.env.local` repoya girmez (`.gitignore`); yalnızca `*.env.example`
 > dosyaları versiyonlanır ve içlerinde gerçek değer bulunmaz.
@@ -618,8 +622,5 @@ Bunlar bilinmeyen eksikler değil, ölçülmüş ve kayda geçirilmiş sınırla
 | --- | --- |
 | **Oturum token'ı `localStorage`'da** | Bu bir gözden kaçma değil, alınmış bir takas — ve maliyeti şu: bu origin'de çalışan bir XSS token'ı okuyabilir, `httpOnly` bir çerez okuyamazdı. Çereze geçilmemesinin sebebi API'nin durumsuz ve çerezsiz olması: çerez taşınsaydı CSRF geri gelirdi (şu an tam olarak çerez olmadığı için kapalı) ve pano ile API farklı origin'lerde olduğu için `SameSite` gevşetilmek zorunda kalırdı. Riski daraltan şey token'ın nerede durduğu değil, XSS'in ne kadar zor olduğu: `object-src 'none'`, `frame-ancestors 'none'`, React'in otomatik kaçışı ve JSON-LD'nin ayrı kaçış katmanı. Doğru çözüm çerez değil, ilk-taraf bir proxy'nin arkasında aynı origin'de servis etmek — o gün geldiğinde `httpOnly` bedavaya geliyor. |
 | **Mail teslimat kalitesi** | Gönderen bir `gmail.com` adresi ve mail Brevo rölesinden çıkıyor, dolayısıyla DMARC hizalaması tutmuyor ve mailler spam'e düşebilir. Uygulama `*.vercel.app` üzerinde olduğu için SPF/DKIM kaydı eklenemiyor. Çözümü özel bir domain. |
-| **Avatar yükleme yok** | Avatar bir URL'dir. Ücretsiz katman diski her deploy'da silindiği için nesne deposu ya ücretli bir servis ya da sessizce veri kaybeden bir çözüm olurdu. |
 | **`<html lang>` kök layout'ta sabit `tr`** | Ama içerik doğru etiketleniyor, bu yüzden artık bir erişilebilirlik hatası değil: yayın dili kitin kendi sarmalayıcısında (`KitCard`, `PasswordGate`) `lang` olarak duruyor, panoda ve giriş yüzeylerinde `document.documentElement.lang` seçimle birlikte güncelleniyor. Ata elementteki `lang` geçerli HTML'dir ve ekran okuyucu en yakın olanı okur. Kalan tek pürüz kozmetik: App Router `<html>`'i yalnız kök layout'ta üretir, per-route yapmak ya çoklu kök layout ya `headers()` ister — ikincisi public sayfanın statikliğini bitirir, ki bu projenin tamamı onun üzerine kurulu. Gerekçe `KitCard.tsx`'te yazılı. |
 | **API versiyonlama yok** | Tek istemci var, o da bu repoda ve aynı commit'ten dağıtılıyor. Kırılgan olan kısım — cache'lenen public payload'ın şekli — `PUBLIC_SCHEMA_VERSION` ile ele alınıyor. Dışarıdan bir istemci çıktığı gün versiyonlama da çıkar. |
-| **E-posta değişimi doğrulanmıyor** | Değişim mevcut şifreyle onaylanır; bu, açık kalmış bir oturumun hesabı sessizce taşımasını engelleyen asıl kontrol. Ancak adres yanlış yazılırsa yakalanmıyor. Mail altyapısı artık mevcut, dolayısıyla bu engellenmiş değil, **yapılmamış** bir iş. |
-| **Piksel bazlı görsel regresyon yok** | Baseline görüntüler üretildikleri platformun font rasterizasyonunu taşır; yerelde üretilip CI'da karşılaştırılan bir baseline her zaman kırmızı döner. Dayanıklı olan kısım korunuyor: palet kontrastı, güvenlik başlıkları ve `axe` denetimi testlerde. |
