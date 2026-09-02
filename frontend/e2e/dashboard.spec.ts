@@ -56,9 +56,9 @@ test.describe("dashboard", () => {
     await signIn(page, account);
 
     await page.goto("/dashboard/settings");
-    await expect(page.getByRole("heading", { name: "Hesap ayarlari" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Hesap ayarları" })).toBeVisible();
 
-    await page.getByLabel("Arayuz dili").selectOption("en");
+    await page.getByLabel("Arayüz dili").selectOption("en");
     await page.getByRole("button", { name: "Save language" }).click();
     await expect(page.getByText("Profile updated.")).toBeVisible();
 

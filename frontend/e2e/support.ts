@@ -26,7 +26,7 @@ export type Account = { email: string; token: string };
 export async function registerAccount(
   request: APIRequestContext,
   prefix: string,
-  displayName = "E2E Uretici"
+  displayName = "E2E Üretici"
 ): Promise<Account> {
   const email = uniqueEmail(prefix);
   const response = await request.post(`${BACKEND}/api/auth/register`, {

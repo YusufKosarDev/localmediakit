@@ -85,7 +85,7 @@ jobs:
       # quietly compiles nothing produces an empty database and a green tick.
       - name: Build the backend
         if: matrix.language == 'java-kotlin'
-        run: mvn -B --no-transfer-progress -f backend/pom.xml -DskipTests compile
+        run: ./backend/mvnw -B --no-transfer-progress -f backend/pom.xml -DskipTests compile
 
       - name: Analyse
         uses: github/codeql-action/analyze@v4

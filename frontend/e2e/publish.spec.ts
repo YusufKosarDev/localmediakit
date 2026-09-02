@@ -22,7 +22,7 @@ test.describe("publishing", () => {
     await page.getByRole("button", { name: "Oluştur", exact: true }).click();
 
     // The kit appears in the list, as a draft.
-    const card = page.locator("text=Gezgin Kanali").first();
+    const card = page.locator("text=Gezgin Kanalı").first();
     await expect(card).toBeVisible();
     await expect(page.getByText("DRAFT").first()).toBeVisible();
 
@@ -51,7 +51,7 @@ test.describe("publishing", () => {
     const link = page.locator('a[href^="/"]:has-text("/")').first();
     const slug = (await link.getAttribute("href"))!.replace("/", "");
 
-    await expectPublicPageToShow(page, slug, "Gezgin Kanali");
+    await expectPublicPageToShow(page, slug, "Gezgin Kanalı");
     await expect(page.getByText("Platformlar", { exact: false })).toBeVisible();
   });
 

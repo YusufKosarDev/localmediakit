@@ -30,7 +30,7 @@ jobs:
         # Tests run against in-memory H2 (no Docker/Testcontainers, no secrets),
         # so the suite is self-contained on a clean runner. The Postgres-tagged
         # tests are excluded here and run in their own job below.
-        run: mvn -B --no-transfer-progress verify
+        run: ./mvnw -B --no-transfer-progress verify
 
   postgres:
     name: Backend against real PostgreSQL
@@ -61,7 +61,7 @@ jobs:
       # to un-exclude it. Without the second flag this job runs nothing and
       # reports success, which is how a suite quietly stops testing anything.
       - name: Run the Postgres-tagged tests
-        run: mvn -B --no-transfer-progress test -Dgroups=postgres -Dsurefire.excluded.groups=
+        run: ./mvnw -B --no-transfer-progress test -Dgroups=postgres -Dsurefire.excluded.groups=
 
   frontend:
     name: Frontend (Next.js)

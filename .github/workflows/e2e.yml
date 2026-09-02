@@ -57,7 +57,7 @@ jobs:
         run: pnpm run build
 
       - name: Package backend
-        run: mvn -B -q --no-transfer-progress -f backend/pom.xml -DskipTests package
+        run: ./backend/mvnw -B -q --no-transfer-progress -f backend/pom.xml -DskipTests package
 
       - name: Run end-to-end tests
         working-directory: frontend

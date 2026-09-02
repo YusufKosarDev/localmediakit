@@ -28,6 +28,16 @@ const FRONTEND_URL = process.env.E2E_FRONTEND_URL ?? "http://localhost:3000";
 /** Matches the backend's own default, so nothing has to be configured. */
 const REVALIDATE_SECRET = "local-dev-secret";
 
+/**
+ * The Maven wrapper, so this suite needs a JDK and nothing else on PATH -- and
+ * builds the backend with the version the repository pins rather than whatever
+ * Maven the machine happens to have. Playwright runs `command` through the
+ * platform shell, and cmd.exe will not execute the extensionless POSIX script,
+ * so Windows gets the .cmd sibling.
+ */
+export const MVNW =
+  process.platform === "win32" ? "..\\backend\\mvnw.cmd" : "../backend/mvnw";
+
 export default defineConfig({
   testDir: "./e2e",
   // These drive a browser through multi-step flows including a publish and an
@@ -57,7 +67,7 @@ export default defineConfig({
   // first test runs, so a slow cold start is a wait rather than a failure.
   webServer: [
     {
-      command: "mvn -B -q --no-transfer-progress -f ../backend/pom.xml spring-boot:run",
+      command: `${MVNW} -B -q --no-transfer-progress -f ../backend/pom.xml spring-boot:run`,
       url: `${BACKEND_URL}/actuator/health`,
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,

@@ -430,6 +430,7 @@ sırasıyla: Redis destekli Bucket4j, ShedLock, paylaşılan unlock sayacı.
 | Araç | Sürüm |
 | --- | --- |
 | JDK | 21 |
+| Maven | Gerekmez — `./mvnw` sürümü kendisi indirir (3.9.16) |
 | Node.js | 22 |
 | pnpm | `corepack` ile sağlanır (`packageManager` alanı) |
 | Docker | Yalnızca `postgres` etiketli testler için (opsiyonel) |
@@ -442,7 +443,7 @@ cd localmediakit
 
 # 1) Backend — H2 in-memory, sıfır kurulum
 cd backend
-mvn spring-boot:run                  # http://localhost:8080
+./mvnw spring-boot:run               # http://localhost:8080  (Windows: mvnw.cmd)
 
 # 2) Frontend
 cd ../frontend
@@ -465,11 +466,11 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 
 | Komut | Ne yapar |
 | --- | --- |
-| `mvn spring-boot:run` | Uygulamayı H2 ile çalıştırır |
-| `mvn test` | 330 test (Docker gerekmez) |
-| `mvn verify` | Test + paketleme |
-| `mvn test -Dgroups=postgres -Dsurefire.excluded.groups=` | Gerçek PostgreSQL'e karşı Testcontainers testleri |
-| `mvn -Pmutation test-compile org.pitest:pitest-maven:mutationCoverage` | PIT mutasyon analizi |
+| `./mvnw spring-boot:run` | Uygulamayı H2 ile çalıştırır |
+| `./mvnw test` | 330 test (Docker gerekmez) |
+| `./mvnw verify` | Test + paketleme |
+| `./mvnw test -Dgroups=postgres -Dsurefire.excluded.groups=` | Gerçek PostgreSQL'e karşı Testcontainers testleri |
+| `./mvnw -Pmutation test-compile org.pitest:pitest-maven:mutationCoverage` | PIT mutasyon analizi |
 
 ### Frontend
 

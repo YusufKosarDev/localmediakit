@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { MVNW } from "./playwright.config";
 
 /**
  * Records the README demo. Separate from playwright.config.ts on purpose: this
@@ -30,7 +31,7 @@ export default defineConfig({
 
   webServer: [
     {
-      command: "mvn -B -q --no-transfer-progress -f ../backend/pom.xml spring-boot:run",
+      command: `${MVNW} -B -q --no-transfer-progress -f ../backend/pom.xml spring-boot:run`,
       url: `${BACKEND_URL}/actuator/health`,
       reuseExistingServer: true,
       timeout: 180_000,

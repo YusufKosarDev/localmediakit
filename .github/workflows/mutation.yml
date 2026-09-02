@@ -38,7 +38,7 @@ jobs:
       # Everything else is mostly Spring wiring, where a mutation score says
       # more about the framework than about our tests.
       - name: Run mutation coverage
-        run: mvn -B --no-transfer-progress -Pmutation test-compile org.pitest:pitest-maven:mutationCoverage
+        run: ./mvnw -B --no-transfer-progress -Pmutation test-compile org.pitest:pitest-maven:mutationCoverage
 
       - name: Publish report
         if: always()

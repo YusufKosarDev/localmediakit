@@ -60,7 +60,7 @@ test.describe("accessibility", () => {
     // The first thing anyone sees, and entirely form controls -- the shape most
     // prone to missing labels.
     await page.goto("/login");
-    await expect(page.getByRole("button", { name: /giris|sign in/i }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /giriş|sign in/i }).first()).toBeVisible();
 
     const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
 
