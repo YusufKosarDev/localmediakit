@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 /**
  * Periodically refreshes connected stat sources (same scheduling discipline as
@@ -26,6 +27,7 @@ public class StatsSyncJob {
     @Scheduled(
             fixedDelayString = "${app.statsync.job-interval-ms:3600000}",
             initialDelayString = "${app.statsync.job-initial-delay-ms:45000}")
+    @SchedulerLock(name = "statsSync", lockAtMostFor = "PT15M", lockAtLeastFor = "PT1M")
     public void run() {
         int attempted = service.runSyncBatch();
         if (attempted > 0) {

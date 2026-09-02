@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 /**
  * Periodically drives domain verification. fixedDelay (not fixedRate) means the
@@ -27,6 +28,7 @@ public class DomainVerificationJob {
     @Scheduled(
             fixedDelayString = "${app.domains.job-interval-ms:60000}",
             initialDelayString = "${app.domains.job-initial-delay-ms:30000}")
+    @SchedulerLock(name = "domainVerification", lockAtMostFor = "PT5M", lockAtLeastFor = "PT20S")
     public void run() {
         int processed = service.runVerificationBatch();
         if (processed > 0) {

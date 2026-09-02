@@ -17,7 +17,7 @@ import java.io.IOException;
  */
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private final RateLimiterRegistry registry;
+    private final TokenBuckets registry;
     private final boolean enabled;
     private final long loginCapacity;
     private final long registerCapacity;
@@ -26,7 +26,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final long contactCapacity;
     private final long accountCapacity;
 
-    public RateLimitFilter(RateLimiterRegistry registry, boolean enabled,
+    public RateLimitFilter(TokenBuckets registry, boolean enabled,
                            long loginCapacity, long registerCapacity,
                            long trackCapacity, long unlockCapacity,
                            long contactCapacity, long accountCapacity) {

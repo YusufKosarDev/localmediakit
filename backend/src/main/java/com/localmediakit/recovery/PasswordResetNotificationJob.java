@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 /**
  * Drains the password-reset outbox on the same scheduling discipline as the
@@ -30,6 +31,7 @@ public class PasswordResetNotificationJob {
     @Scheduled(
             fixedDelayString = "${app.password-reset.job-interval-ms:30000}",
             initialDelayString = "${app.password-reset.job-initial-delay-ms:15000}")
+    @SchedulerLock(name = "passwordResetNotifications", lockAtMostFor = "PT5M", lockAtLeastFor = "PT10S")
     public void run() {
         int attempted = service.runDispatchBatch();
         if (attempted > 0) {

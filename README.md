@@ -113,7 +113,7 @@ a brand opens it.
   has fired in production once, exactly as intended.
 - **Quality gates:** 320 backend tests (including concurrency races driven by
   `CyclicBarrier` and migrations run against a populated database), 105 frontend
-  tests, 13 Playwright end-to-end tests, 12 ArchUnit architecture rules that
+  tests, 13 Playwright end-to-end tests, 13 ArchUnit architecture rules that
   fail the build, and PIT mutation coverage at 97%.
 
 **Stack:** Java 21 · Spring Boot 3.5 · Spring Security/JWT · Flyway · Neon
@@ -396,12 +396,28 @@ değişmediği gösterilir, yayınlanır ve ancak o zaman değişir.
 
 ### Ölçek sınırı
 
-Bu mimarinin nereye kadar gittiği de yazılı: rate-limit kovaları, şifre denemesi
-sayacı ve zamanlanmış işlerin overlap guard'ları **bellekte**. İkinci bir
-instance açıldığında hiçbiri patlamaz, hepsi sessizce yanlış çalışır — limitler
-instance sayısı kadar çarpılır, batch'ler üst üste koşar. Değişmesi gerekenler
-sırasıyla: Redis destekli Bucket4j, ShedLock, paylaşılan unlock sayacı.
-**Değişmesi gerekmeyen:** public sayfa, çünkü zaten edge'de.
+Bir zamanlar burada şu yazıyordu: rate-limit kovaları, şifre denemesi sayacı ve
+zamanlanmış işlerin overlap guard'ları bellekte, dolayısıyla ikinci bir instance
+hiçbirini patlatmaz — hepsini **sessizce** yanlış çalıştırır. Tehlikeli olan
+kısım da buydu: limit `10` yazarken deployment `10 × instance` izin verir, log'a
+hiçbir şey düşmez.
+
+Üçü de artık paylaşılan durumda ve dayanağı **zaten paylaşılan tek şey**:
+veritabanı. Redis yok, ayakta tutulacak ikinci bir servis yok, düşebilecek yeni
+bir bağımlılık yok — veritabanı erişilemezse bu işlerin yapacak işi de yok.
+
+| Ne | Nasıl |
+| --- | --- |
+| Zamanlanmış işler | ShedLock (JDBC), iş başına kilit adı; lease süresi dolduğu için çöken bir instance işi kilitli bırakmaz |
+| Rate-limit kovaları | Kova bir satır; refill, token harcayan `UPDATE`'in içinde hesaplanır, satır kilidi eşzamanlı istekleri sıraya sokar |
+| Şifre denemesi sayacı | Başarısız denemeler satır olarak; kayan pencere korunur, doğru şifre bütçeyi siler |
+
+**Bedeli açıkça:** throttle'lanan her uç artık bir veritabanı gidiş-dönüşü
+yapıyor. En çok görünen yer beacon — ama o istek zaten bir `page_view` satırı
+yazacaktı, yani hiçbir zaman bedava değildi.
+
+**Değişmeyen:** public sayfa, çünkü zaten edge'de ve bunların hiçbirine
+dokunmuyor.
 
 ---
 
@@ -493,7 +509,7 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 | **Backend** | **320 test** — slug, snapshot/publish, engagement, analitik ve retention, lead ingestion/honeypot, şifre sıfırlama outbox'ı, önizleme tokeni, rate limit, prod secret kontrolü, eşzamanlı yazma yarışları (`CyclicBarrier`), **dolu veritabanına karşı migration**, N+1 sorgu sayısı |
 | **Frontend** | **105 test** (Vitest + Testing Library) — public sayfa snapshot render'ı, şifre gate, auth hata eşlemesi, JSON-LD kaçışı, palet kontrastı, service worker, güvenlik başlıkları |
 | **Uçtan uca** | **13 Playwright testi** — iki sunucu da gerçekten ayaktayken; kayıt→kit→yayın akışı, pano, paylaşım linkleri, `axe` ile erişilebilirlik denetimi |
-| **Mimari** | **12 ArchUnit kuralı** build'i kırar — field injection yok, controller repository'ye dokunmaz, entity web katmanına bağımlı olmaz, plan sabitleri paketinden çıkmaz |
+| **Mimari** | **13 ArchUnit kuralı** build'i kırar — field injection yok, controller repository'ye dokunmaz, entity web katmanına bağımlı olmaz, plan sabitleri paketinden çıkmaz, **zamanlanmış her iş kilitli olmak zorunda** |
 | **Mutasyon** | Kritik paketlerde PIT: **144 mutasyonun %97'si** öldürülüyor |
 
 ### CI Workflow'ları
@@ -602,7 +618,6 @@ Bunlar bilinmeyen eksikler değil, ölçülmüş ve kayda geçirilmiş sınırla
 | --- | --- |
 | **Oturum token'ı `localStorage`'da** | Bu bir gözden kaçma değil, alınmış bir takas — ve maliyeti şu: bu origin'de çalışan bir XSS token'ı okuyabilir, `httpOnly` bir çerez okuyamazdı. Çereze geçilmemesinin sebebi API'nin durumsuz ve çerezsiz olması: çerez taşınsaydı CSRF geri gelirdi (şu an tam olarak çerez olmadığı için kapalı) ve pano ile API farklı origin'lerde olduğu için `SameSite` gevşetilmek zorunda kalırdı. Riski daraltan şey token'ın nerede durduğu değil, XSS'in ne kadar zor olduğu: `object-src 'none'`, `frame-ancestors 'none'`, React'in otomatik kaçışı ve JSON-LD'nin ayrı kaçış katmanı. Doğru çözüm çerez değil, ilk-taraf bir proxy'nin arkasında aynı origin'de servis etmek — o gün geldiğinde `httpOnly` bedavaya geliyor. |
 | **Mail teslimat kalitesi** | Gönderen bir `gmail.com` adresi ve mail Brevo rölesinden çıkıyor, dolayısıyla DMARC hizalaması tutmuyor ve mailler spam'e düşebilir. Uygulama `*.vercel.app` üzerinde olduğu için SPF/DKIM kaydı eklenemiyor. Çözümü özel bir domain. |
-| **Tek instance varsayımı** | Rate-limit kovaları, şifre denemesi sayacı ve zamanlanmış işlerin overlap guard'ları bellekte. İkinci bir instance çökmez; limitleri sessizce çarpar ve batch'leri üst üste koşturur — daha tehlikeli bozulma biçimi budur. |
 | **Avatar yükleme yok** | Avatar bir URL'dir. Ücretsiz katman diski her deploy'da silindiği için nesne deposu ya ücretli bir servis ya da sessizce veri kaybeden bir çözüm olurdu. |
 | **`<html lang>` kök layout'ta sabit `tr`** | Ama içerik doğru etiketleniyor, bu yüzden artık bir erişilebilirlik hatası değil: yayın dili kitin kendi sarmalayıcısında (`KitCard`, `PasswordGate`) `lang` olarak duruyor, panoda ve giriş yüzeylerinde `document.documentElement.lang` seçimle birlikte güncelleniyor. Ata elementteki `lang` geçerli HTML'dir ve ekran okuyucu en yakın olanı okur. Kalan tek pürüz kozmetik: App Router `<html>`'i yalnız kök layout'ta üretir, per-route yapmak ya çoklu kök layout ya `headers()` ister — ikincisi public sayfanın statikliğini bitirir, ki bu projenin tamamı onun üzerine kurulu. Gerekçe `KitCard.tsx`'te yazılı. |
 | **API versiyonlama yok** | Tek istemci var, o da bu repoda ve aynı commit'ten dağıtılıyor. Kırılgan olan kısım — cache'lenen public payload'ın şekli — `PUBLIC_SCHEMA_VERSION` ile ele alınıyor. Dışarıdan bir istemci çıktığı gün versiyonlama da çıkar. |

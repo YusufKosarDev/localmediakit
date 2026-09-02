@@ -5,11 +5,20 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Prevents a scheduled task from running while a previous run is still in
- * progress. On this deployment (single Render instance) this in-JVM guard is
- * sufficient; a multi-instance deployment would swap it for a DB lock such as
- * ShedLock. Kept as its own unit so the overlap behaviour is testable in
- * isolation.
+ * Prevents a batch from being re-entered while a previous run is still in
+ * progress, within this JVM.
+ *
+ * <p>The other half of that guarantee is {@code @SchedulerLock} on the job
+ * classes, which holds a row in the database and is what stops a second
+ * instance running the same batch on the same tick. The two are not
+ * alternatives and the earlier version of this comment was wrong to present
+ * them that way: they answer different questions at different layers.
+ *
+ * <p>ShedLock guards the schedule. This guards the method. Every batch here is
+ * also callable directly — by a test, and by the manual-sync endpoint — and
+ * those callers never pass through the scheduler, so removing this would leave
+ * the service re-entrant on exactly the paths that do not hold the lock. It is
+ * also free: an AtomicBoolean answers before a database round-trip is made.
  */
 @Component
 public class ReentrancyGuard {

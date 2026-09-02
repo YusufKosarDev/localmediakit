@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 /**
  * Ticks often, because the interval is the worst-case lateness a creator sees:
@@ -24,6 +25,7 @@ public class ScheduledPublishJob {
     @Scheduled(
             fixedDelayString = "${app.scheduled-publish.job-interval-ms:60000}",
             initialDelayString = "${app.scheduled-publish.job-initial-delay-ms:30000}")
+    @SchedulerLock(name = "scheduledPublish", lockAtMostFor = "PT5M", lockAtLeastFor = "PT20S")
     public void run() {
         int published = service.runDueBatch();
         if (published > 0) {

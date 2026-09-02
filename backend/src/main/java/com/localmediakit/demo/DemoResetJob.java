@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 /**
  * Hourly demo reset so a reviewer always lands on clean, populated data even
@@ -29,6 +30,7 @@ public class DemoResetJob {
     /** Every hour on the hour (UTC) — keeps the shared demo clean and shrinks
      *  the window any misuse of the public demo account could stay live. */
     @Scheduled(cron = "${app.demo.reset-cron:0 0 * * * *}", zone = "UTC")
+    @SchedulerLock(name = "demoReset", lockAtMostFor = "PT5M", lockAtLeastFor = "PT1M")
     public void periodicReset() {
         try {
             demoDataService.resetDemo();

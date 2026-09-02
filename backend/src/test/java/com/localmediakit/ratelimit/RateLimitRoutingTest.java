@@ -6,6 +6,9 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -22,9 +25,29 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class RateLimitRoutingTest {
 
+    /**
+     * Counting, without a database.
+     *
+     * <p>The real buckets live in a table now, and this test is not about them:
+     * it asks which rule a method and path fall under, which is a pure function
+     * and the part that fails silently when it breaks -- an endpoint that stops
+     * matching a rule is simply unthrottled, with nothing to see. Giving it a
+     * map keeps the answer to that question independent of where buckets are
+     * kept, which is the second time that has changed.
+     */
+    private static final class CountingBuckets implements TokenBuckets {
+        private final Map<String, Long> spent = new HashMap<>();
+
+        @Override
+        public boolean tryConsume(String key, long capacityPerMinute) {
+            long used = spent.merge(key, 1L, Long::sum);
+            return used <= capacityPerMinute;
+        }
+    }
+
     /** Capacity 1 makes "was this throttled at all" observable in one repeat. */
     private RateLimitFilter filter() {
-        return new RateLimitFilter(new RateLimiterRegistry(), true, 1, 1, 1, 1, 1, 1);
+        return new RateLimitFilter(new CountingBuckets(), true, 1, 1, 1, 1, 1, 1);
     }
 
     private int statusAfterTwoRequests(String method, String path, String clientIp) throws Exception {
@@ -163,7 +186,7 @@ class RateLimitRoutingTest {
     /** Disabled means disabled: nothing is throttled, whatever the path. */
     @Test
     void theKillSwitchTurnsEveryRuleOff() throws Exception {
-        RateLimitFilter disabled = new RateLimitFilter(new RateLimiterRegistry(), false, 1, 1, 1, 1, 1, 1);
+        RateLimitFilter disabled = new RateLimitFilter(new CountingBuckets(), false, 1, 1, 1, 1, 1, 1);
         MockHttpServletResponse response = new MockHttpServletResponse();
         for (int i = 0; i < 5; i++) {
             MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 /**
  * Runs the analytics rollup on the same discipline as the other batches:
@@ -28,6 +29,7 @@ public class AnalyticsRetentionJob {
     @Scheduled(
             fixedDelayString = "${app.analytics.retention-job-interval-ms:21600000}",
             initialDelayString = "${app.analytics.retention-job-initial-delay-ms:120000}")
+    @SchedulerLock(name = "analyticsRetention", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void run() {
         int folded = service.runRetentionBatch();
         if (folded > 0) {

@@ -30,6 +30,8 @@
         <!-- One property for all three jjwt artifacts: they must move together,
              and separate versions arrive as three separate update proposals. -->
         <jjwt.version>0.13.0</jjwt.version>
+        <!-- Both ShedLock artifacts move together, same reasoning as jjwt. -->
+        <shedlock.version>6.6.0</shedlock.version>
         <!--
             Ahead of what the Boot BOM pins. The driver the BOM brings carries
             three fixed advisories, one of them in channel-binding
@@ -115,18 +117,31 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Token-bucket rate limiting (auth, beacon, unlock). -->
+        <!--
+            Cross-instance locking for the scheduled jobs. The JDBC provider
+            speaks plain SQL against whatever DataSource is configured, so the
+            lock behaves the same on the local H2 as on Neon. A Postgres-only
+            mechanism would have made these jobs untestable without Docker, and
+            this suite's whole shape depends on not needing it.
+        -->
         <dependency>
-            <groupId>com.bucket4j</groupId>
-            <artifactId>bucket4j_jdk17-core</artifactId>
-            <version>8.19.0</version>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>${shedlock.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-jdbc-template</artifactId>
+            <version>${shedlock.version}</version>
         </dependency>
 
-        <!-- Bounded, self-evicting caches for the rate-limit buckets. -->
-        <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
-        </dependency>
+        <!--
+            Bucket4j and Caffeine both went with the move to database-backed
+            throttling. They were the right libraries for per-JVM buckets and
+            there are no per-JVM buckets left: the token bucket is now a row
+            and its refill is arithmetic inside one UPDATE, which is a smaller
+            thing than either dependency was carrying.
+        -->
 
         <!-- OpenAPI / Swagger UI. -->
         <dependency>

@@ -107,12 +107,21 @@ class ArchitectureTest {
      * <p>MediaKitAccess is the deliberate exception: it is the shared ownership
      * guard itself, and exists precisely so services do not each re-implement
      * the owner-scoped lookup.
+     *
+     * <p>UnlockRateLimiter is the other one, and it is worth saying why it is
+     * not a hole in the rule. What this rule protects is owner-scoped access:
+     * rows that belong to a user must be reached through a service that knows
+     * whose they are. The unlock counter has no owner to scope by -- it counts
+     * wrong passwords against a slug and an IP, keeps them for fifteen minutes
+     * and deletes them -- and it is the only class that touches that table.
+     * Wrapping it in a second class named ...Service to satisfy the spelling
+     * would add indirection and nothing else.
      */
     @ArchTest
     static final ArchRule repositoriesAreUsedByServicesOnly = classes()
             .that().haveSimpleNameEndingWith("Repository")
             .should().onlyHaveDependentClassesThat(
-                    new DescribedPredicate<>("are services, other repositories, or the access guard") {
+                    new DescribedPredicate<>("are services, other repositories, or a named owner of an ownerless table") {
                         @Override
                         public boolean test(JavaClass origin) {
                             String name = origin.getSimpleName();
@@ -120,7 +129,10 @@ class ArchitectureTest {
                                     || name.endsWith("Repository")
                                     || name.equals("MediaKitAccess")
                                     // Startup/scheduled data maintenance, not a request path.
-                                    || name.equals("DemoDataInitializer");
+                                    || name.equals("DemoDataInitializer")
+                                    // Owns one ownerless table: the unlock
+                                    // failure counter. See the note above.
+                                    || name.equals("UnlockRateLimiter");
                         }
                     })
             .because("repository access is what services exist to own");
@@ -213,6 +225,49 @@ class ArchitectureTest {
     /* ------------------------------------------------------------------ */
     /* 7-8. Spring usage that fails silently when it is wrong             */
     /* ------------------------------------------------------------------ */
+
+    /**
+     * Every scheduled method holds a lock while it runs.
+     *
+     * <p>The jobs in this application read rows, act on the world and write the
+     * result back. Two instances running one on the same tick does not fail —
+     * it mails a brand notification twice, folds an analytics day twice,
+     * publishes a scheduled kit twice. Nothing is logged, because from each
+     * instance's side nothing went wrong.
+     *
+     * <p>The way that guarantee gets lost is not a bad lock. It is the eighth
+     * job being added by someone who did not know locking was a thing here, and
+     * there is nothing about writing {@code @Scheduled} that would tell them.
+     * So the rule is stated where it cannot be missed rather than left to
+     * review, and it reads the compiled classes rather than the beans a test
+     * context happens to have — DemoResetJob is conditional on a property that
+     * is off in tests, and a check driven by the context would silently stop
+     * covering it.
+     */
+    @ArchTest
+    static final ArchRule scheduledMethodsAreLocked = methods()
+            .that().areAnnotatedWith(org.springframework.scheduling.annotation.Scheduled.class)
+            .should(beLockedUnderAName())
+            .because("on a second instance an unlocked scheduled job does its work twice, silently");
+
+    private static ArchCondition<com.tngtech.archunit.core.domain.JavaMethod> beLockedUnderAName() {
+        return new ArchCondition<>("be annotated with @SchedulerLock under a non-blank name") {
+            @Override
+            public void check(com.tngtech.archunit.core.domain.JavaMethod method, ConditionEvents events) {
+                var lock = method.tryGetAnnotationOfType(
+                        net.javacrumbs.shedlock.spring.annotation.SchedulerLock.class);
+                if (lock.isEmpty()) {
+                    events.add(SimpleConditionEvent.violated(method,
+                            method.getFullName() + " is @Scheduled but not @SchedulerLock"));
+                    return;
+                }
+                if (lock.get().name().isBlank()) {
+                    events.add(SimpleConditionEvent.violated(method,
+                            method.getFullName() + " locks under a blank name, which locks nothing"));
+                }
+            }
+        };
+    }
 
     @ArchTest
     static final ArchRule noFieldInjection = noFields()
