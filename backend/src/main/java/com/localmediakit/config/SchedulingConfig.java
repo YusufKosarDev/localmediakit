@@ -1,52 +1,38 @@
 package com.localmediakit.config;
 
-import net.javacrumbs.shedlock.core.LockProvider;
-import net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateLockProvider;
 import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import javax.sql.DataSource;
-
 /**
- * Scheduling, and the lock that makes a second instance safe.
+ * Turns the scheduler on, and the lock that goes with it.
  *
  * <p>Every scheduled job in this application reads rows, does something to the
  * world, and writes the result back. Two instances running the same job on the
  * same tick is not a crash — it is the outbox mailing a brand notification
  * twice, the retention job folding the same day twice, a scheduled kit
  * publishing twice. Nothing fails; the work is simply done more than once, and
- * the only evidence is in somebody else's inbox. That is the failure mode worth
- * paying to remove.
+ * the only evidence is in somebody else's inbox. {@code @SchedulerLock} on each
+ * job is what stops that, backed by {@link LockProviderConfig}.
  *
- * <p>The lock lives in the database because the database is the only thing the
- * instances already share. No Redis, no second service to keep alive, and no
- * new thing that can be down — if the database is unreachable the jobs have
- * nothing to do anyway.
+ * <p><b>Off during tests</b>, via {@code app.scheduling.enabled=false} in the
+ * test resources. Not for speed: the tests and the scheduler contend for the
+ * same rows. Spring caches one application context per configuration and the
+ * datasource is one named in-memory database with {@code DB_CLOSE_DELAY=-1},
+ * so <em>every</em> cached context in the JVM shares <em>one</em> database —
+ * and a job ticking in a context left over from an earlier test class will
+ * happily drain an outbox the class currently running is asserting on. That
+ * failure is invisible when a class is run alone and appears in the full suite,
+ * which is the least useful way for a test to break.
  *
- * <p>{@code defaultLockAtMostFor} is the backstop for the case the guard exists
- * for: an instance that takes the lock and then dies without releasing it. The
- * lease expires on its own, so a crash costs one interval of lateness rather
- * than a job that never runs again. Each job overrides it with a value sized to
- * its own work.
+ * <p>Nothing is lost by turning it off. No test asks whether Spring can call a
+ * method on a timer; they call the batches directly, which is also the only way
+ * to assert on what a batch did.
  */
 @Configuration
 @EnableScheduling
 @EnableSchedulerLock(defaultLockAtMostFor = "PT10M")
+@ConditionalOnProperty(name = "app.scheduling.enabled", havingValue = "true", matchIfMissing = true)
 public class SchedulingConfig {
-
-    @Bean
-    public LockProvider lockProvider(DataSource dataSource) {
-        return new JdbcTemplateLockProvider(
-                JdbcTemplateLockProvider.Configuration.builder()
-                        .withJdbcTemplate(new JdbcTemplate(dataSource))
-                        // Database time, not application time. Two instances
-                        // agreeing on when a lease expires matters more than
-                        // either of them being right about the wall clock, and
-                        // they cannot both be trusted to have the same one.
-                        .usingDbTime()
-                        .build());
-    }
 }
