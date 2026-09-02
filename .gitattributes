@@ -1,0 +1,27 @@
+# Line endings are a property of the file's job, not of whoever cloned it.
+#
+# Most of this repository can be normalised the usual way: stored with LF,
+# checked out however the developer's platform prefers. The exceptions below
+# are files whose interpreter reads the line ending.
+
+* text=auto
+
+# The Maven wrapper script runs under /bin/sh on the CI runners and in the
+# Docker build. A CRLF checked into it makes the shebang read as
+# "/bin/sh\r", and the error is "bad interpreter: no such file or directory"
+# on a file that plainly exists -- which is a confusing morning. Its Windows
+# sibling is the mirror image: cmd.exe needs the CRLF.
+mvnw text eol=lf
+mvnw.cmd text eol=crlf
+*.sh text eol=lf
+
+# Versioned git hooks are shell scripts too, and run on whatever machine
+# enabled them.
+.githooks/* text eol=lf
+
+# Recordings and images are binary; touching them at all corrupts them.
+*.gif binary
+*.webm binary
+*.png binary
+*.jpg binary
+*.ico binary
