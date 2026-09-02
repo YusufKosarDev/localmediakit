@@ -58,16 +58,26 @@ for (const clip of CLIPS) {
 
   // Step down until it fits. Losing frames costs less than a demo that renders
   // as a broken image because it went over the limit.
+  //
+  // The budget is 1.8 MB, not GitHub's ~10 MB ceiling. Fitting is the wrong
+  // target for the first thing on the page: these two GIFs sit above the fold
+  // and both load before a reader has decided to stay, so what matters is how
+  // long they take on a connection that is not this one. At 10 MB the answer
+  // is "long enough to scroll past". The webm beside each is there for anyone
+  // who wants the sharp version.
   const attempts = [
-    { fps: 12, width: 960 },
     { fps: 10, width: 900 },
     { fps: 10, width: 800 },
-    { fps: 8, width: 720 },
+    { fps: 8, width: 760 },
+    { fps: 8, width: 680 },
+    { fps: 6, width: 640 },
   ];
   for (const [i, { fps, width }] of attempts.entries()) {
     execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", webm, "-vf", FILTER(fps, width), gif]);
     const size = megabytes(gif);
-    if (size <= 9.5 || i === attempts.length - 1) {
+    // The last rung ships whatever it produced: a slightly heavy GIF beats no
+    // GIF, and the caption is burned into the frames either way.
+    if (size <= 1.8 || i === attempts.length - 1) {
       console.log(`${clip.name}.gif  ${size.toFixed(1)} MB  (${fps}fps ${width}px)`);
       break;
     }
