@@ -20,6 +20,7 @@ bilinmiyor ve her güncellemede yeniden gönderilmesi gerekiyor.
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791)
 ![Tests](https://img.shields.io/badge/tests-330%20backend%20%2B%20105%20frontend%20%2B%2013%20E2E-brightgreen)
 ![Mutation](https://img.shields.io/badge/PIT%20mutation-97%25-brightgreen)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 ---
 
