@@ -19,3 +19,6 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /blob-report/
+
+# Project link and the OIDC token the CLI refreshes into it.
+.vercel
