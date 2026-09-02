@@ -322,6 +322,21 @@
                                 <param>com.localmediakit.domain.ReentrancyGuardTest</param>
                                 <param>com.localmediakit.domain.DomainVerificationLogicTest</param>
                                 <param>com.localmediakit.ratelimit.RateLimitRoutingTest</param>
+                                <!--
+                                    The one Spring test in this list, and it is
+                                    here because the routing test above stopped
+                                    covering RateLimiterRegistry: the buckets
+                                    moved into the database, so the filter's
+                                    unit test now drives an in-memory double and
+                                    the registry itself is only exercised
+                                    end-to-end. Leaving it out would have been
+                                    the cheaper read, since the class would
+                                    simply stop being measured. But a surviving
+                                    mutant in the brute-force throttle is a real
+                                    hole, which is the whole criterion for being
+                                    on this list.
+                                -->
+                                <param>com.localmediakit.ratelimit.SharedRateLimitTest</param>
                                 <param>com.localmediakit.mediakit.MediaKitSnapshotTest</param>
                                 <param>com.localmediakit.mediakit.KitAppearanceTest</param>
                                 <param>com.localmediakit.analytics.UserAgentsTest</param>

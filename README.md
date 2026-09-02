@@ -108,6 +108,13 @@ a brand opens it.
 - **Accessibility enforced by CI.** Accent colours are a curated list whose
   contrast ratios are recomputed from the shipped CSS in a test, so an
   inaccessible colour fails the build.
+- **A second instance would be safe, not quietly wrong.** The scheduled jobs,
+  the failed-unlock counter and the rate-limit buckets were per-JVM, which on
+  two instances means duplicated mail, five wrong passwords *per instance*, and
+  a login limit of ten a minute silently permitting `10 × N`. All three now
+  share the database — ShedLock for the jobs, a row per bucket with the refill
+  computed inside the UPDATE that spends from it. No Redis, no second service
+  to keep alive.
 - **Production secrets fail loudly.** The app refuses to boot the prod profile
   while any security-critical value still carries the `local-dev-` marker. This
   has fired in production once, exactly as intended.

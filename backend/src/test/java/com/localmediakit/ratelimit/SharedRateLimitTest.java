@@ -1,5 +1,6 @@
 package com.localmediakit.ratelimit;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,6 +31,19 @@ class SharedRateLimitTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    /**
+     * A bucket is durable state keyed by a string, and these tests use fixed
+     * strings so the assertions read as the scenario they describe. That makes
+     * the class repeatable only if it starts from an empty table: run twice in
+     * one database — which is exactly what PIT does, once for coverage and then
+     * once per mutation — the second run inherits the first run's exhausted
+     * buckets and fails on the first token it asks for.
+     */
+    @BeforeEach
+    void emptyTheBuckets() {
+        jdbcTemplate.update("DELETE FROM rate_limit_buckets");
+    }
 
     /** A separate instance of the registry, on the same database. */
     private RateLimiterRegistry anotherInstance() {
