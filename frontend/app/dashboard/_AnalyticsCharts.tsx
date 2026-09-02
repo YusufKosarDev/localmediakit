@@ -62,8 +62,8 @@ export function ViewsTrend({ data }: { data: Daily[] }) {
         <CartesianGrid stroke={GRID} strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="day" tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={24} />
         <YAxis tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} width={36} allowDecimals={false} />
-        <Tooltip content={<TooltipBox suffix=" goruntulenme" />} cursor={{ stroke: BRAND, strokeOpacity: 0.3 }} />
-        <Area type="monotone" dataKey="views" name="Goruntulenme" stroke={BRAND} strokeWidth={2}
+        <Tooltip content={<TooltipBox suffix=" görüntülenme" />} cursor={{ stroke: BRAND, strokeOpacity: 0.3 }} />
+        <Area type="monotone" dataKey="views" name="Görüntülenme" stroke={BRAND} strokeWidth={2}
           fill="url(#viewsFill)" dot={false} activeDot={{ r: 4 }} />
       </AreaChart>
     </ResponsiveContainer>

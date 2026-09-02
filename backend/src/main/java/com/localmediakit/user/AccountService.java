@@ -107,7 +107,7 @@ public class AccountService {
 
         String newEmail = normalizeEmail(request.newEmail());
         if (!newEmail.equals(user.getEmail()) && userRepository.existsByEmail(newEmail)) {
-            throw new EmailAlreadyUsedException("Bu e-posta baska bir hesapta kayitli.");
+            throw new EmailAlreadyUsedException("Bu e-posta başka bir hesapta kayıtlı.");
         }
         user.changeEmail(newEmail);
         return jwtService.generateToken(newEmail);

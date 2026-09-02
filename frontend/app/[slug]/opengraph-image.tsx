@@ -125,7 +125,7 @@ export default async function OgImage({
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                 <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>{compact.format(p.followers)}</div>
-                <div style={{ display: "flex", fontSize: 24, color: t.muted }}>{kit?.language === "en" ? "followers" : "takipci"}</div>
+                <div style={{ display: "flex", fontSize: 24, color: t.muted }}>{kit?.language === "en" ? "followers" : "takipçi"}</div>
               </div>
             </div>
           ))}
