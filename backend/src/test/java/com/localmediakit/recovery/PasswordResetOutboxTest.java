@@ -191,10 +191,27 @@ class PasswordResetOutboxTest {
         String secondAttempt = tokenFromLastMail();
 
         assertThat(secondAttempt).isNotEqualTo(firstAttempt);
-        // The retry's link is the live one, and the dead attempt's is dead.
+
+        // The first attempt's link is dead, and this is what actually proves the
+        // rotation: the row now hashes a different secret, so the old one no
+        // longer resolves. Asserted before the confirm below, because redeeming
+        // a token invalidates the account's others -- afterwards the old link
+        // would be dead either way and the check would prove nothing.
+        confirm(firstAttempt, "baskasifre000").andExpect(status().isBadRequest());
+
+        // The retry's link is the live one.
         confirm(secondAttempt, "yenisifre999").andExpect(status().isNoContent());
+
+        // And its lifetime was recomputed rather than carried over.
+        //
+        // Not isAfter(). Both rotations can complete inside a single tick of the
+        // system clock -- on Windows they routinely do -- and then the two
+        // expiries are the same Instant, which made this assertion fail for a
+        // reason that had nothing to do with the behaviour under test. Where the
+        // clock cannot separate the two events, no assertion on the expiry can
+        // either; the dead-link check above is what carries the proof.
         assertThat(tokens.findById(row.getTokenId()).orElseThrow().getExpiresAt())
-                .isAfter(expiryBefore);
+                .isAfterOrEqualTo(expiryBefore);
     }
 
     @Test
