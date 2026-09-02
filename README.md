@@ -307,7 +307,7 @@ bozulmaz — analitik kaybı kabul edilir, sayfanın açılmaması kabul edilmez
 
 | Önlem | Uygulama |
 | --- | --- |
-| Kimlik doğrulama | JWT (HS256), `STATELESS` oturum, CSRF kapalı (çerez yok) |
+| Kimlik doğrulama | JWT (HMAC-SHA; algoritma anahtar uzunluğundan türer — üretimde **HS512**), `STATELESS` oturum, CSRF kapalı (çerez yok) |
 | Şifre saklama | BCrypt |
 | Yetkilendirme | Özne yalnızca JWT principal'ından; `/api/users/{id}` yok |
 | Sahiplik | Kit uçlarında `findByIdAndUserId` sorguları |
@@ -571,7 +571,7 @@ docs/media/                  demo.gif/webm, snapshot.gif/webm
 | --- | --- | --- |
 | `SPRING_PROFILES_ACTIVE` | ✅ | `prod` |
 | `DATABASE_URL` / `DB_USERNAME` / `DB_PASSWORD` | ✅ | Neon bağlantısı |
-| `JWT_SECRET` | ✅ | HS256, ≥32 bayt. Eksikse uygulama **başlamaz** |
+| `JWT_SECRET` | ✅ | HMAC anahtarı, **≥32 bayt**. `Keys.hmacShaKeyFor` algoritmayı uzunluğa göre seçer: ≥32 bayt HS256, ≥48 HS384, ≥64 HS512 — üretimdeki değer 64 baytın üzerinde olduğu için token'lar HS512 imzalı. Eksikse uygulama **başlamaz** |
 | `REVALIDATE_SECRET` | ✅ | Frontend'deki değerle aynı olmalı. Eksikse **başlamaz** |
 | `REVALIDATE_URL` | ✅ | `https://<app>.vercel.app/api/revalidate` |
 | `ANALYTICS_SALT` | ✅ | Ziyaretçi hash'ini tuzlar. Eksikse **başlamaz** |
