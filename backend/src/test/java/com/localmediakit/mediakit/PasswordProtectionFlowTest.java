@@ -84,9 +84,7 @@ class PasswordProtectionFlowTest {
     void settingPasswordIsAProFeature() throws Exception {
         String token = register("pw-free@example.com");
         // Accounts now default to PRO; drop to FREE to exercise the gate.
-        mockMvc.perform(post("/api/billing/demo-downgrade")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        setPlan("pw-free@example.com", Plan.FREE);
         long kitId = createKit(token, "Free Gizli");
         mockMvc.perform(put("/api/mediakits/" + kitId + "/password")
                         .header("Authorization", "Bearer " + token)
@@ -185,5 +183,20 @@ class PasswordProtectionFlowTest {
         mockMvc.perform(unlock("acik-kit", "whatever", "10.0.0.5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isProtected").value(false));
+    }
+
+    /**
+     * Puts an account on a plan.
+     *
+     * <p>Accounts default to PRO, so the FREE-tier assertions opt down here.
+     * Written straight to the repository: the endpoint that used to do this
+     * belonged to the Stripe integration and went with it, and a production
+     * route whose only caller is a test was never the honest way to arrange
+     * a fixture.
+     */
+    private void setPlan(String email, Plan plan) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        user.changePlan(plan);
+        userRepository.save(user);
     }
 }

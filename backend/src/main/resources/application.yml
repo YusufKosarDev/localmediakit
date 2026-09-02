@@ -179,9 +179,3 @@ app:
     sync-interval-ms: ${STATSYNC_INTERVAL_MS:86400000}
     manual-cooldown-ms: ${STATSYNC_MANUAL_COOLDOWN_MS:60000}
     http-timeout-ms: ${STATSYNC_HTTP_TIMEOUT_MS:5000}
-  stripe:
-    # TEST MODE keys only; real values live in the host's env, never in the repo.
-    # With the dummy default, checkout answers 503 (billing not configured).
-    secret-key: ${STRIPE_SECRET_KEY:sk_test_dummy}
-    webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_test_dummy}
-    price-id: ${STRIPE_PRICE_ID:price_dummy}

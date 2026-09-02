@@ -19,7 +19,7 @@ public class OpenApiConfig {
                         Live media kit platform for content creators. Public pages are
                         edge-cached and served from immutable publish snapshots; the backend
                         handles auth, kit editing, stats/engagement, analytics ingestion,
-                        billing (Stripe test mode) and custom-domain DNS verification.
+                        and custom-domain DNS verification.
                         Education / portfolio project.""")
                 .license(new License().name("Education / portfolio")));
     }

@@ -13,13 +13,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.localmediakit.user.Plan;
+import com.localmediakit.user.User;
+import com.localmediakit.user.UserRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class PreviewFlowTest {
 
-    @Autowired
+    @Autowired    
     private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -140,9 +146,7 @@ class PreviewFlowTest {
     void previewOfAPasswordProtectedKitSkipsTheGate() throws Exception {
         String token = register("prev-protected@example.com");
         // Password protection is PRO: use the demo upgrade (Stripe unconfigured in tests).
-        mockMvc.perform(post("/api/billing/demo-upgrade")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        setPlan("prev-protected@example.com", Plan.PRO);
         long kitId = createKit(token, "{\"title\":\"Gizli Kit\",\"headline\":\"Sifreli icerik\"}");
         mockMvc.perform(put("/api/mediakits/" + kitId + "/password")
                         .header("Authorization", "Bearer " + token)
@@ -170,5 +174,20 @@ class PreviewFlowTest {
 
         mockMvc.perform(get("/api/public/preview/" + preview))
                 .andExpect(status().isNotFound());
+    }
+
+    /**
+     * Puts an account on a plan.
+     *
+     * <p>Accounts default to PRO, so the FREE-tier assertions opt down here.
+     * Written straight to the repository: the endpoint that used to do this
+     * belonged to the Stripe integration and went with it, and a production
+     * route whose only caller is a test was never the honest way to arrange
+     * a fixture.
+     */
+    private void setPlan(String email, Plan plan) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        user.changePlan(plan);
+        userRepository.save(user);
     }
 }

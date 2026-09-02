@@ -18,7 +18,7 @@ bilinmiyor ve her güncellemede yeniden gönderilmesi gerekiyor.
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-black)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791)
-![Tests](https://img.shields.io/badge/tests-330%20backend%20%2B%20105%20frontend%20%2B%2013%20E2E-brightgreen)
+![Tests](https://img.shields.io/badge/tests-320%20backend%20%2B%20105%20frontend%20%2B%2013%20E2E-brightgreen)
 ![Mutation](https://img.shields.io/badge/PIT%20mutation-97%25-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -111,7 +111,7 @@ a brand opens it.
 - **Production secrets fail loudly.** The app refuses to boot the prod profile
   while any security-critical value still carries the `local-dev-` marker. This
   has fired in production once, exactly as intended.
-- **Quality gates:** 330 backend tests (including concurrency races driven by
+- **Quality gates:** 320 backend tests (including concurrency races driven by
   `CyclicBarrier` and migrations run against a populated database), 105 frontend
   tests, 13 Playwright end-to-end tests, 12 ArchUnit architecture rules that
   fail the build, and PIT mutation coverage at 97%.
@@ -192,7 +192,7 @@ yok; alt yazılar kaydın kendisine gömülüdür.
 - **Onboarding** — karşılama turu + veriden türetilen kontrol listesi
 - **PWA** — pano ana ekrana eklenip uygulama gibi açılabilir
 - **Custom domain** — DNS doğrulama iskeleti ("yakında" olarak işaretli)
-- Stripe abonelik entegrasyonu kodda bütünüyle duruyor ama **devre dışı**; ürün ücretsiz, herkes PRO
+- Ürün tamamen ücretsiz: her hesap PRO olarak açılır, ödeme entegrasyonu yok
 
 ---
 
@@ -411,7 +411,7 @@ sırasıyla: Redis destekli Bucket4j, ShedLock, paylaşılan unlock sayacı.
 | --- | --- |
 | Backend | Java 21, Spring Boot 3.5, Spring Web, Spring Security (JWT), Spring Data JPA |
 | Veritabanı | Neon PostgreSQL (prod), H2 PostgreSQL uyumluluk modu (yerel) — **aynı migration'lar** |
-| Migration | Flyway (27 migration) |
+| Migration | Flyway (28 migration) |
 | Rate limit | Bucket4j + Caffeine |
 | Dokümantasyon | springdoc / OpenAPI 3 |
 | Mail | Düz SMTP (vendor SDK'sı yok — sağlayıcı değişimi env işidir) |
@@ -468,7 +468,7 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 | Komut | Ne yapar |
 | --- | --- |
 | `./mvnw spring-boot:run` | Uygulamayı H2 ile çalıştırır |
-| `./mvnw test` | 330 test (Docker gerekmez) |
+| `./mvnw test` | 320 test (Docker gerekmez) |
 | `./mvnw verify` | Test + paketleme |
 | `./mvnw test -Dgroups=postgres -Dsurefire.excluded.groups=` | Gerçek PostgreSQL'e karşı Testcontainers testleri |
 | `./mvnw -Pmutation test-compile org.pitest:pitest-maven:mutationCoverage` | PIT mutasyon analizi |
@@ -490,7 +490,7 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 
 | Katman | Kapsam |
 | --- | --- |
-| **Backend** | **330 test** — slug, snapshot/publish, engagement, analitik ve retention, lead ingestion/honeypot, şifre sıfırlama outbox'ı, önizleme tokeni, rate limit, prod secret kontrolü, eşzamanlı yazma yarışları (`CyclicBarrier`), **dolu veritabanına karşı migration**, N+1 sorgu sayısı |
+| **Backend** | **320 test** — slug, snapshot/publish, engagement, analitik ve retention, lead ingestion/honeypot, şifre sıfırlama outbox'ı, önizleme tokeni, rate limit, prod secret kontrolü, eşzamanlı yazma yarışları (`CyclicBarrier`), **dolu veritabanına karşı migration**, N+1 sorgu sayısı |
 | **Frontend** | **105 test** (Vitest + Testing Library) — public sayfa snapshot render'ı, şifre gate, auth hata eşlemesi, JSON-LD kaçışı, palet kontrastı, service worker, güvenlik başlıkları |
 | **Uçtan uca** | **13 Playwright testi** — iki sunucu da gerçekten ayaktayken; kayıt→kit→yayın akışı, pano, paylaşım linkleri, `axe` ile erişilebilirlik denetimi |
 | **Mimari** | **12 ArchUnit kuralı** build'i kırar — field injection yok, controller repository'ye dokunmaz, entity web katmanına bağımlı olmaz, plan sabitleri paketinden çıkmaz |
@@ -532,7 +532,6 @@ backend/                     Spring Boot API
   lead, notification         iletişim formu ingestion, gelen kutusu, bildirim outbox'ı
   analytics                  beacon ingestion, agregasyon, paylaşım linkleri, retention
   domain                     custom domain DNS doğrulama (scheduled job)
-  billing                    Stripe (dormant)
   ratelimit, security        Bucket4j filtresi, JWT filtresi, SecurityConfig
   observability              OperationalMetrics, RequestIdFilter
   config, shared, demo       prod secret kontrolü, ConstraintRetry/Csv/ClientIp, demo seed
@@ -581,7 +580,6 @@ docs/media/                  demo.gif/webm, snapshot.gif/webm
 | `CORS_ALLOWED_ORIGINS` | ✅ | Panonun origin'i |
 | `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_FROM` | ➖ | Boşsa mail özellikleri sessizce kapalı. **`MAIL_HOST` ve `MAIL_FROM` birlikte dolu olmalı** |
 | `YOUTUBE_API_KEY` | ➖ | Boşsa YouTube senkronu hiç sunulmaz |
-| `STRIPE_*` | ➖ | Boşsa billing 503 döner (ürün ücretsiz, akış dormant) |
 
 ### Frontend ortam değişkenleri
 

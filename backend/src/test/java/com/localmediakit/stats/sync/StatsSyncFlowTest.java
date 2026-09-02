@@ -22,6 +22,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.localmediakit.user.Plan;
+import com.localmediakit.user.User;
+import com.localmediakit.user.UserRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -61,8 +64,11 @@ class StatsSyncFlowTest {
         }
     }
 
-    @Autowired
+    @Autowired    
     private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -201,9 +207,7 @@ class StatsSyncFlowTest {
     void scheduledBatchRefreshesOnlyProOwnersDueSources() throws Exception {
         String token = register("sync-batch@example.com");
         // Accounts now default to PRO; drop to FREE for the "skipped" half of the test.
-        mockMvc.perform(post("/api/billing/demo-downgrade")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        setPlan("sync-batch@example.com", Plan.FREE);
         long kitId = createKit(token, "Batch Kit");
         connect(token, kitId, "@kanalim");
         backdateLastSync(kitId);
@@ -216,9 +220,7 @@ class StatsSyncFlowTest {
                 .andExpect(jsonPath("$[0].followers").value(1000));
 
         // PRO owner: the same due source is refreshed.
-        mockMvc.perform(post("/api/billing/demo-upgrade")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        setPlan("sync-batch@example.com", Plan.PRO);
         assertThat(syncService.runSyncBatch()).isEqualTo(1);
         mockMvc.perform(get("/api/mediakits/" + kitId + "/stats")
                         .header("Authorization", "Bearer " + token))
@@ -231,9 +233,7 @@ class StatsSyncFlowTest {
     @Test
     void quotaExhaustionAbortsTheBatch() throws Exception {
         String token = register("sync-quota@example.com");
-        mockMvc.perform(post("/api/billing/demo-upgrade")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        setPlan("sync-quota@example.com", Plan.PRO);
         long kitA = createKit(token, "Kota A");
         long kitB = createKit(token, "Kota B");
         connect(token, kitA, "@kanal-a");
@@ -266,5 +266,20 @@ class StatsSyncFlowTest {
         mockMvc.perform(post("/api/mediakits/" + kitId + "/sources/YOUTUBE/sync")
                         .header("Authorization", "Bearer " + owner))
                 .andExpect(status().isNotFound());
+    }
+
+    /**
+     * Puts an account on a plan.
+     *
+     * <p>Accounts default to PRO, so the FREE-tier assertions opt down here.
+     * Written straight to the repository: the endpoint that used to do this
+     * belonged to the Stripe integration and went with it, and a production
+     * route whose only caller is a test was never the honest way to arrange
+     * a fixture.
+     */
+    private void setPlan(String email, Plan plan) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        user.changePlan(plan);
+        userRepository.save(user);
     }
 }

@@ -115,14 +115,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Stripe TEST MODE only: hosted Checkout + signed webhooks. -->
-        <dependency>
-            <groupId>com.stripe</groupId>
-            <artifactId>stripe-java</artifactId>
-            <version>33.2.0</version>
-        </dependency>
-
-        <!-- In-memory token-bucket rate limiting (auth, beacon, unlock). -->
+        <!-- Token-bucket rate limiting (auth, beacon, unlock). -->
         <dependency>
             <groupId>com.bucket4j</groupId>
             <artifactId>bucket4j_jdk17-core</artifactId>

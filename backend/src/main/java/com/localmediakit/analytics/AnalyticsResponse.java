@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * Plan-aware analytics payload. FREE gets the total only (detailed fields
- * null); PRO gets the full breakdown. Step 7 flips plans via billing.
+ * null); PRO gets the full breakdown.
  */
 public record AnalyticsResponse(
         String plan,

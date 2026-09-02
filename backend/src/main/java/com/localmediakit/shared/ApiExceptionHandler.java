@@ -3,10 +3,6 @@ package com.localmediakit.shared;
 import com.localmediakit.analytics.ShareLinkNotFoundException;
 import com.localmediakit.analytics.TooManyShareLinksException;
 import com.localmediakit.auth.EmailAlreadyUsedException;
-import com.localmediakit.billing.AlreadyProException;
-import com.localmediakit.billing.BillingNotConfiguredException;
-import com.localmediakit.billing.DemoUpgradeDisabledException;
-import com.localmediakit.billing.InvalidWebhookSignatureException;
 import com.localmediakit.collab.CollaborationNotFoundException;
 import com.localmediakit.lead.LeadNotFoundException;
 import com.localmediakit.media.MediaItemNotFoundException;
@@ -116,26 +112,6 @@ public class ApiExceptionHandler {
     @ExceptionHandler(InvalidDemographicsException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidDemographics(InvalidDemographicsException ex) {
         return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
-    }
-
-    @ExceptionHandler(InvalidWebhookSignatureException.class)
-    public ResponseEntity<Map<String, Object>> handleBadWebhookSignature(InvalidWebhookSignatureException ex) {
-        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
-    }
-
-    @ExceptionHandler(BillingNotConfiguredException.class)
-    public ResponseEntity<Map<String, Object>> handleBillingNotConfigured(BillingNotConfiguredException ex) {
-        return body(HttpStatus.SERVICE_UNAVAILABLE, codeFor(ex), ex.getMessage(), null);
-    }
-
-    @ExceptionHandler(DemoUpgradeDisabledException.class)
-    public ResponseEntity<Map<String, Object>> handleDemoUpgradeDisabled(DemoUpgradeDisabledException ex) {
-        return body(HttpStatus.FORBIDDEN, codeFor(ex), ex.getMessage(), null);
-    }
-
-    @ExceptionHandler(AlreadyProException.class)
-    public ResponseEntity<Map<String, Object>> handleAlreadyPro(AlreadyProException ex) {
-        return body(HttpStatus.CONFLICT, codeFor(ex), ex.getMessage(), null);
     }
 
     @ExceptionHandler(CollaborationNotFoundException.class)

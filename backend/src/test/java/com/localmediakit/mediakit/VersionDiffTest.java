@@ -17,13 +17,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.localmediakit.user.Plan;
+import com.localmediakit.user.User;
+import com.localmediakit.user.UserRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class VersionDiffTest {
 
-    @Autowired
+    @Autowired    
     private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -151,9 +157,7 @@ class VersionDiffTest {
     void freeCannotDiffOutsideItsVisibleWindow() throws Exception {
         String token = register("diff-window@example.com");
         // Accounts now default to PRO; drop to FREE to exercise the visible window.
-        mockMvc.perform(post("/api/billing/demo-downgrade")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        setPlan("diff-window@example.com", Plan.FREE);
         long kitId = createKit(token, "{\"title\":\"Pencere Kit\"}");
         publish(token, kitId); // v1
         publish(token, kitId); // v2
@@ -167,9 +171,7 @@ class VersionDiffTest {
                 .andExpect(status().isOk());
 
         // PRO unlocks the full history for diffing too.
-        mockMvc.perform(post("/api/billing/demo-upgrade")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        setPlan("diff-window@example.com", Plan.PRO);
         mockMvc.perform(get("/api/mediakits/" + kitId + "/versions/diff?from=1&to=3")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
@@ -188,5 +190,20 @@ class VersionDiffTest {
         mockMvc.perform(get("/api/mediakits/" + kitId + "/versions/diff?from=1&to=9")
                         .header("Authorization", "Bearer " + owner))
                 .andExpect(status().isNotFound());
+    }
+
+    /**
+     * Puts an account on a plan.
+     *
+     * <p>Accounts default to PRO, so the FREE-tier assertions opt down here.
+     * Written straight to the repository: the endpoint that used to do this
+     * belonged to the Stripe integration and went with it, and a production
+     * route whose only caller is a test was never the honest way to arrange
+     * a fixture.
+     */
+    private void setPlan(String email, Plan plan) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        user.changePlan(plan);
+        userRepository.save(user);
     }
 }

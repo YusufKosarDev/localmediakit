@@ -85,9 +85,7 @@ class DomainFlowTest {
     void addingADomainIsAProFeature() throws Exception {
         String token = register("dom-free@example.com");
         // Accounts now default to PRO; drop to FREE to exercise the gate.
-        mockMvc.perform(post("/api/billing/demo-downgrade")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        setPlan("dom-free@example.com", Plan.FREE);
         long kitId = createKit(token, "Free Domain Kit");
         mockMvc.perform(post("/api/mediakits/" + kitId + "/domains")
                         .header("Authorization", "Bearer " + token)
@@ -211,5 +209,20 @@ class DomainFlowTest {
         mockMvc.perform(delete("/api/mediakits/" + kitId + "/domains/" + domainId)
                         .header("Authorization", "Bearer " + owner))
                 .andExpect(status().isNoContent());
+    }
+
+    /**
+     * Puts an account on a plan.
+     *
+     * <p>Accounts default to PRO, so the FREE-tier assertions opt down here.
+     * Written straight to the repository: the endpoint that used to do this
+     * belonged to the Stripe integration and went with it, and a production
+     * route whose only caller is a test was never the honest way to arrange
+     * a fixture.
+     */
+    private void setPlan(String email, Plan plan) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        user.changePlan(plan);
+        userRepository.save(user);
     }
 }

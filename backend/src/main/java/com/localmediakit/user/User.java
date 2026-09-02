@@ -129,7 +129,8 @@ public class User {
         return plan;
     }
 
-    /** Plan changes go through billing (or tests); there is no free-form setter. */
+    /** Seeded on creation, then only moved by the demo seeder or a test; there
+     *  is no free-form setter and no endpoint that reaches this. */
     public void changePlan(Plan plan) {
         this.plan = plan;
     }

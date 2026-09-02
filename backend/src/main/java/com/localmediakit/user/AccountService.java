@@ -3,8 +3,6 @@ package com.localmediakit.user;
 import com.localmediakit.auth.AuthService;
 import com.localmediakit.auth.EmailAlreadyUsedException;
 import com.localmediakit.auth.InvalidCredentialsException;
-import com.localmediakit.billing.Subscription;
-import com.localmediakit.billing.SubscriptionRepository;
 import com.localmediakit.mediakit.MediaKit;
 import com.localmediakit.mediakit.MediaKitRepository;
 import com.localmediakit.mediakit.MediaKitService;
@@ -35,7 +33,6 @@ public class AccountService {
     private final JwtService jwtService;
     private final MediaKitRepository mediaKitRepository;
     private final MediaKitService mediaKitService;
-    private final SubscriptionRepository subscriptionRepository;
     private final TransactionTemplate transactionTemplate;
     private final String protectedEmail;
 
@@ -44,7 +41,6 @@ public class AccountService {
                           JwtService jwtService,
                           MediaKitRepository mediaKitRepository,
                           MediaKitService mediaKitService,
-                          SubscriptionRepository subscriptionRepository,
                           TransactionTemplate transactionTemplate,
                           @Value("${app.demo.email:demo@localmediakit.app}") String protectedEmail) {
         this.userRepository = userRepository;
@@ -52,7 +48,6 @@ public class AccountService {
         this.jwtService = jwtService;
         this.mediaKitRepository = mediaKitRepository;
         this.mediaKitService = mediaKitService;
-        this.subscriptionRepository = subscriptionRepository;
         this.transactionTemplate = transactionTemplate;
         this.protectedEmail = protectedEmail;
     }
@@ -145,8 +140,6 @@ public class AccountService {
         // self-invocation, which the annotation proxy would not intercept.
         Long userId = user.getId();
         transactionTemplate.executeWithoutResult(status -> {
-            subscriptionRepository.findByUserId(userId).map(Subscription::getId)
-                    .ifPresent(subscriptionRepository::deleteById);
             userRepository.deleteById(userId);
         });
     }

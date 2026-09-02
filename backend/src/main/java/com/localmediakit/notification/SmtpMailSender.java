@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * SMTP delivery.
  *
- * <p>Graceful-enable, the same shape the Stripe and YouTube integrations use:
+ * <p>Graceful-enable, the same shape the YouTube integration uses:
  * with no host or sender configured the feature reports itself unavailable and
  * nothing is ever queued. The application starts and behaves identically
  * either way — an unconfigured deployment simply has no lead notifications.

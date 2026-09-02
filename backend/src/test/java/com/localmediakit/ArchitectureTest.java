@@ -170,8 +170,8 @@ class ArchitectureTest {
      * Reading a specific Plan constant is restricted to the packages that
      * legitimately decide or assign one.
      *
-     * <p>PlanPolicy answers "what may this plan do"; billing answers "which
-     * plan is this account on"; demo seeds one. Anywhere else, a bare
+     * <p>PlanPolicy answers "what may this plan do"; the demo seeder is the
+     * only thing left that assigns one. Anywhere else, a bare
      * {@code plan == Plan.PRO} is a gating decision taken outside the one class
      * meant to hold them all — which is how a feature gate ends up duplicated
      * and inconsistent.
@@ -188,7 +188,6 @@ class ArchitectureTest {
     static final ArchRule planConstantsStayInTheirPackages = noClasses()
             .that().resideOutsideOfPackages(
                     "com.localmediakit.user..",
-                    "com.localmediakit.billing..",
                     "com.localmediakit.demo..")
             .should(readAPlanConstant())
             .because("plan-based gating belongs in PlanPolicy, not spread across features");

@@ -46,8 +46,6 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs").permitAll()
                         // Anonymous view beacon from public pages (best-effort analytics).
                         .requestMatchers(HttpMethod.POST, "/api/track").permitAll()
-                        // Stripe webhook: no session, authenticated by its signature instead.
-                        .requestMatchers(HttpMethod.POST, "/api/billing/webhook").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(
                         (request, response, authException) ->

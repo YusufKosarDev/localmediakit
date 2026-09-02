@@ -136,9 +136,7 @@ class AnalyticsFlowTest {
     void freePlanSeesOnlyTheTotalCounter() throws Exception {
         String token = register("track-free@example.com");
         // Accounts now default to PRO; drop to FREE to exercise the limited view.
-        mockMvc.perform(post("/api/billing/demo-downgrade")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        setPlan("track-free@example.com", Plan.FREE);
         long kitId = createPublishedKit(token, "Free Analitik");
         mockMvc.perform(beacon("free-analitik", "203.0.113.40", BROWSER_UA))
                 .andExpect(status().isAccepted());
@@ -199,5 +197,20 @@ class AnalyticsFlowTest {
         mockMvc.perform(get("/api/mediakits/" + kitId + "/analytics")
                         .header("Authorization", "Bearer " + stranger))
                 .andExpect(status().isNotFound());
+    }
+
+    /**
+     * Puts an account on a plan.
+     *
+     * <p>Accounts default to PRO, so the FREE-tier assertions opt down here.
+     * Written straight to the repository: the endpoint that used to do this
+     * belonged to the Stripe integration and went with it, and a production
+     * route whose only caller is a test was never the honest way to arrange
+     * a fixture.
+     */
+    private void setPlan(String email, Plan plan) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        user.changePlan(plan);
+        userRepository.save(user);
     }
 }

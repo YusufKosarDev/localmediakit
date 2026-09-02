@@ -1,6 +1,5 @@
 package com.localmediakit.demo;
 
-import com.localmediakit.billing.SubscriptionRepository;
 import com.localmediakit.collab.CollaborationRequest;
 import com.localmediakit.collab.CollaborationService;
 import com.localmediakit.mediakit.CreateMediaKitRequest;
@@ -50,7 +49,6 @@ public class DemoDataService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final MediaKitRepository mediaKitRepository;
-    private final SubscriptionRepository subscriptionRepository;
     private final PlatformStatsRepository platformStatsRepository;
     private final MediaKitService mediaKitService;
     private final DemographicsService demographicsService;
@@ -61,7 +59,6 @@ public class DemoDataService {
     public DemoDataService(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            MediaKitRepository mediaKitRepository,
-                           SubscriptionRepository subscriptionRepository,
                            PlatformStatsRepository platformStatsRepository,
                            MediaKitService mediaKitService,
                            DemographicsService demographicsService,
@@ -71,7 +68,6 @@ public class DemoDataService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.mediaKitRepository = mediaKitRepository;
-        this.subscriptionRepository = subscriptionRepository;
         this.platformStatsRepository = platformStatsRepository;
         this.mediaKitService = mediaKitService;
         this.demographicsService = demographicsService;
@@ -86,7 +82,6 @@ public class DemoDataService {
         List<User> testUsers = userRepository.findByEmailEndingWith(TEST_EMAIL_SUFFIX);
         for (User user : testUsers) {
             deleteUsersKits(user.getId());
-            subscriptionRepository.findByUserId(user.getId()).ifPresent(subscriptionRepository::delete);
             userRepository.delete(user);
         }
         return testUsers.size();

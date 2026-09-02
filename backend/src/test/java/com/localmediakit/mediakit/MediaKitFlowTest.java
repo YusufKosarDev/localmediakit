@@ -12,13 +12,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.localmediakit.user.Plan;
+import com.localmediakit.user.User;
+import com.localmediakit.user.UserRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class MediaKitFlowTest {
 
-    @Autowired
+    @Autowired    
     private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -68,9 +74,7 @@ class MediaKitFlowTest {
     void freePlanAllowsOnlyOneKit() throws Exception {
         String token = register("limit-owner@example.com");
         // Accounts now default to PRO; drop to FREE to exercise the plan limit.
-        mockMvc.perform(post("/api/billing/demo-downgrade")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        setPlan("limit-owner@example.com", Plan.FREE);
         mockMvc.perform(post("/api/mediakits")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -127,5 +131,20 @@ class MediaKitFlowTest {
                         .content("{\"title\":\"Shared Name\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.slug").value("shared-name-2"));
+    }
+
+    /**
+     * Puts an account on a plan.
+     *
+     * <p>Accounts default to PRO, so the FREE-tier assertions opt down here.
+     * Written straight to the repository: the endpoint that used to do this
+     * belonged to the Stripe integration and went with it, and a production
+     * route whose only caller is a test was never the honest way to arrange
+     * a fixture.
+     */
+    private void setPlan(String email, Plan plan) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        user.changePlan(plan);
+        userRepository.save(user);
     }
 }
