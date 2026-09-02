@@ -1,0 +1,53 @@
+name: Keepalive
+
+# Warms the demo backend. Nothing about the product depends on this job.
+#
+# The free Render instance sleeps after fifteen minutes of no traffic and takes
+# well over a minute to answer once it has. That is fine for the thing this
+# project is actually about -- a published kit is static HTML on Vercel's edge
+# and never touches the backend, so a brand's link opens at full speed while
+# the instance is asleep -- but it is not fine for someone who was pointed at
+# the dashboard or at Swagger and is waiting on a blank tab to decide whether
+# the project works.
+#
+# So this is a demo affordance, not an architectural one. If it stops running,
+# is deleted, or silently fails, the only thing that degrades is how long a
+# visitor waits for the two surfaces that genuinely need a server. The claim in
+# the README stands either way, which is the reason it is safe to add: it is
+# not propping up a guarantee, it is shortening a wait.
+on:
+  schedule:
+    # Every ten minutes, against a fifteen-minute sleep timer. GitHub delays
+    # scheduled runs under load and drops them outright during incidents, so
+    # the margin is deliberate and the result is still best-effort: this makes
+    # a cold start uncommon, it does not make one impossible.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Ping the API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake the backend
+        # Never fails the job. Its purpose is to warm an instance, not to
+        # monitor one -- and a red run every time the free tier has a bad
+        # minute would train everyone to ignore this repository's Actions tab,
+        # which is where the checks that do mean something are reported.
+        #
+        # --max-time is generous because a genuinely cold instance is slow by
+        # definition: a timeout shorter than the cold start would abandon
+        # exactly the request this job exists to make.
+        run: |
+          curl --silent --show-error --location \
+               --max-time 180 --retry 2 --retry-delay 30 \
+               --write-out 'status=%{http_code} time=%{time_total}s\n' \
+               --output /dev/null \
+               https://localmediakit.onrender.com/actuator/health || true

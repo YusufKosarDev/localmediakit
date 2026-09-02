@@ -29,7 +29,7 @@ bilinmiyor ve her güncellemede yeniden gönderilmesi gerekiyor.
 | --- | --- |
 | **Uygulama** | https://localmediakit.vercel.app |
 | **Yayınlanmış örnek sayfa** | https://localmediakit.vercel.app/ornek-medya-kiti |
-| **API dokümantasyonu** | https://localmediakit.onrender.com/swagger-ui.html |
+| **API dokümantasyonu** | https://localmediakit.onrender.com/swagger-ui.html (backend uykudaysa açılması bekletebilir — aşağıya bakın) |
 
 **Panoyu gezmek için:** `/login` → **"Demo olarak gez"**
 
@@ -44,8 +44,16 @@ bilinmiyor ve her güncellemede yeniden gönderilmesi gerekiyor.
 > dışarıda bırakabilirdi.
 
 > ⏱️ **Soğuk başlangıç:** Backend ücretsiz katmanda ve 15 dakika istek almazsa
-> uykuya geçer, panoya ilk giriş ~50 saniye sürebilir. **Yayınlanmış sayfalar
-> bundan etkilenmez** — backend'e hiç dokunmazlar. Sebebi
+> uykuya geçer. Uyanması ölçüldüğünde **90 saniyeyi aşabiliyor** — uzun süre
+> dokunulmamış bir instance'ta ilk iki istek zaman aşımına uğrayıp üçüncüsü
+> yanıt verdi. Bu yüzden `keepalive.yml` on dakikada bir `/actuator/health`
+> uçuna dokunuyor; GitHub zamanlanmış işleri geciktirdiği için bu **garanti
+> değil, en iyi çaba**: soğuk başlangıcı seyrekleştirir, ortadan kaldırmaz.
+> Bekletirse pano ve Swagger için bir-iki dakika ayırın.
+>
+> Bu ısıtıcı bir mimari çözüm değil, bir demo kolaylığıdır. **Yayınlanmış
+> sayfalar ping çalışsa da çalışmasa da etkilenmez** — backend'e hiç
+> dokunmazlar, edge'den gelirler. Sebebi
 > [Immutable Snapshot & Edge Cache](#-immutable-snapshot--edge-cache) bölümünde.
 
 ---
@@ -327,9 +335,15 @@ Akla ilk gelen çözüm, public sayfayı istek anında backend'den veri çekerek
 render etmek. Bu, üzerinde en çok düşünülen ve **kasten reddedilen** seçenek.
 
 Sebep somut: backend ücretsiz katmanda çalışıyor ve 15 dakika istek almazsa
-uykuya geçiyor, uyanması ~50 saniye sürüyor. Üreticinin markaya haftalar önce
-gönderdiği bir link, arkasındaki instance uyuduğu için 50 saniye boyunca boş
-ekran gösteremez. O linkin açıldığı an, ürünün var olma sebebi olan tek andır.
+uykuya geçiyor, uyanması ölçüldüğünde 90 saniyeyi aşabiliyor. Üreticinin
+markaya haftalar önce gönderdiği bir link, arkasındaki instance uyuduğu için
+dakikalarca boş ekran gösteremez. O linkin açıldığı an, ürünün var olma sebebi
+olan tek andır.
+
+Bu sayıyı düşüren bir keepalive ping'i var (`keepalive.yml`) ama argümanı
+değiştirmiyor: zamanlanmış bir iş gecikebilir, kotayı doldurabilir, silinebilir.
+Public sayfanın doğruluğunu bir cron'a bağlamak, tam da burada reddedilen
+bağımlılığın daha kırılgan bir biçimi olurdu.
 
 Runtime fetch'in ikinci sorunu daha sinsi: çalıştığı zaman bile sistemin en
 kritik yolunu en kırılgan bileşene bağlar. Backend'deki bir hata, bir migration,
@@ -487,6 +501,7 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 | `e2e.yml` | Her push/PR | Playwright, iki sunucu birden ayakta |
 | `security.yml` | Her push/PR + haftalık | Trivy (HIGH/CRITICAL'da kırılır) + CodeQL (`security-extended`, java-kotlin & javascript-typescript) |
 | `mutation.yml` | Haftalık + elle | PIT mutasyon analizi |
+| `keepalive.yml` | 10 dakikada bir | Demo backend'ini ısıtır. Kalite kapısı değildir, hiçbir zaman kırmızı dönmez ve rozeti yoktur |
 
 ### İki test, iki gerçek olaydan doğdu
 
@@ -542,6 +557,12 @@ docs/media/                  demo.gif/webm, snapshot.gif/webm
 | Backend | Render (Docker) | `main`'e push = otomatik deploy |
 | Frontend | Vercel | `main`'e push = otomatik deploy |
 | Veritabanı | Neon PostgreSQL | `DATABASE_URL` **pooled** endpoint'i göstermeli |
+
+> Render'ın ücretsiz katmanı ayda 750 instance-saat veriyor; `keepalive.yml`
+> servisi 7/24 uyanık tuttuğunda bu ~730 saat eder. Sığıyor, ama marj
+> bırakmıyor: aynı hesapta ikinci bir servis açılırsa ping'in aralığı
+> seyreltilmeli ya da işin kendisi kapatılmalı. Kapatmanın maliyeti yalnızca
+> bekleme süresidir — yayınlanmış sayfalar zaten backend'e bağlı değil.
 
 ### Backend ortam değişkenleri
 
