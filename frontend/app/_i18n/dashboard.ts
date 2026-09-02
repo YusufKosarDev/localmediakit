@@ -261,7 +261,11 @@ const dashboardStrings = {
   profileSubtitle:
     "Bu bilgiler yalnızca panonuzda görünür. Medya kitlerinizin kendi başlığı ve görseli ayrıdır; burayı değiştirmek yayındaki sayfalarınızı etkilemez.",
   displayName: "Görünen ad",
-  avatarUrlHint: "https:// ile başlayan bir görsel adresi. Boş bırakırsanız baş harfiniz gösterilir.",
+  avatarUrlHint: "Bir görsel yükleyin ya da https:// ile başlayan bir adres yapıştırın. Boş bırakırsanız baş harfiniz gösterilir.",
+  avatarUpload: "Görsel yükle",
+  avatarUploading: "Yükleniyor...",
+  avatarUploaded: "Görsel yüklendi. Kaydet'e basmayı unutmayın.",
+  avatarUploadFailed: "Görsel yüklenemedi",
   dashboardTheme: "Pano teması",
   dashboardThemeHint:
     "Yalnızca panoyu etkiler. Yayındaki medya kitiniz kendi temasını kullanmaya devam eder.",
@@ -301,9 +305,10 @@ const dashboardStrings = {
   emailCurrent: "Şu anki adresiniz:",
   newEmail: "Yeni e-posta",
   emailVerifyNote:
-    "Bu adresle giriş yapacaksınız. Doğrulama e-postası gönderilmediği için adresi doğru yazdığınızdan emin olun.",
+    "Yeni adrese bir doğrulama linki gönderilir; siz o linki açana kadar hesabınız taşınmaz ve mevcut adresinizle girmeye devam edersiniz.",
   changeEmail: "E-postayı değiştir",
   emailChanged: "E-postanız güncellendi.",
+  emailPending: "Doğrulama linki yeni adresinize gönderildi. Siz açana kadar hesabınız taşınmaz.",
   emailFailed: "E-posta değiştirilemedi.",
 
   dangerTitle: "Hesabı sil",
@@ -586,7 +591,11 @@ export const dashboardDict: Dict<Record<keyof DashboardStrings, string>> = {
     profileSubtitle:
       "These details appear only in your dashboard. Each media kit has its own title and image; changing anything here does not affect your published pages.",
     displayName: "Display name",
-    avatarUrlHint: "An image address starting with https://. Leave it blank to show your initial instead.",
+    avatarUrlHint: "Upload an image, or paste an address starting with https://. Leave it blank to show your initial instead.",
+    avatarUpload: "Upload image",
+    avatarUploading: "Uploading...",
+    avatarUploaded: "Image uploaded. Remember to press Save.",
+    avatarUploadFailed: "Couldn't upload the image",
     dashboardTheme: "Dashboard theme",
     dashboardThemeHint:
       "Affects the dashboard only. Your published media kit keeps using its own theme.",
@@ -625,9 +634,10 @@ export const dashboardDict: Dict<Record<keyof DashboardStrings, string>> = {
     emailCurrent: "Your current address:",
     newEmail: "New email",
     emailVerifyNote:
-      "You'll sign in with this address. No verification email is sent, so please make sure it's typed correctly.",
+      "A confirmation link is sent to the new address. Nothing moves until you open it, and you keep signing in with your current one.",
     changeEmail: "Change email",
     emailChanged: "Your email has been updated.",
+    emailPending: "A confirmation link is on its way to your new address. Nothing moves until you open it.",
     emailFailed: "Couldn't change your email.",
 
     dangerTitle: "Delete account",

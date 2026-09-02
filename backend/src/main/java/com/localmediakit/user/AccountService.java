@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Optional;
+
 import java.util.List;
 
 /**
@@ -33,6 +35,7 @@ public class AccountService {
     private final JwtService jwtService;
     private final MediaKitRepository mediaKitRepository;
     private final MediaKitService mediaKitService;
+    private final EmailChangeService emailChangeService;
     private final TransactionTemplate transactionTemplate;
     private final String protectedEmail;
 
@@ -41,6 +44,7 @@ public class AccountService {
                           JwtService jwtService,
                           MediaKitRepository mediaKitRepository,
                           MediaKitService mediaKitService,
+                          EmailChangeService emailChangeService,
                           TransactionTemplate transactionTemplate,
                           @Value("${app.demo.email:demo@localmediakit.app}") String protectedEmail) {
         this.userRepository = userRepository;
@@ -48,6 +52,7 @@ public class AccountService {
         this.jwtService = jwtService;
         this.mediaKitRepository = mediaKitRepository;
         this.mediaKitService = mediaKitService;
+        this.emailChangeService = emailChangeService;
         this.transactionTemplate = transactionTemplate;
         this.protectedEmail = protectedEmail;
     }
@@ -88,14 +93,25 @@ public class AccountService {
     }
 
     /**
-     * Verifies the password, then enforces uniqueness on the normalized
-     * address so two accounts can never collide.
+     * Verifies the password, then either sends the new address a link or, when
+     * mail is unavailable, applies the change on the spot.
      *
-     * @return a freshly signed token — the old one carries the previous email
-     *         as its subject and stops resolving the moment this commits.
+     * <p>The password is the control that stops somebody else's session moving
+     * this account. Verification is the control that catches the owner's own
+     * typo, which is the failure that costs the whole account, because the
+     * address is the login. They guard different things and this method runs
+     * both when it can.
+     *
+     * <p>Uniqueness is checked here so a doomed request is refused before a
+     * mail goes out, and again at confirmation, because another account can
+     * claim the address in between.
+     *
+     * @return a replacement session token when the change applied immediately,
+     *         or empty when a verification link was sent instead and nothing
+     *         has moved yet
      */
     @Transactional
-    public String changeEmail(String email, ChangeEmailRequest request) {
+    public Optional<String> changeEmail(String email, ChangeEmailRequest request) {
         User user = require(email);
         requireNotProtected(user, "Demo hesabının e-postası değiştirilemez.");
         requireCurrentPassword(user, request.currentPassword());
@@ -104,8 +120,18 @@ public class AccountService {
         if (!newEmail.equals(user.getEmail()) && userRepository.existsByEmail(newEmail)) {
             throw new EmailAlreadyUsedException("Bu e-posta başka bir hesapta kayıtlı.");
         }
-        user.changeEmail(newEmail);
-        return jwtService.generateToken(newEmail);
+
+        if (!emailChangeService.verificationAvailable()) {
+            // Graceful-enable, as everywhere else mail is involved: with no
+            // provider configured the feature degrades to what it was before
+            // verification existed rather than disappearing, and what it
+            // degrades to is the password check that has already passed.
+            user.changeEmail(newEmail);
+            return Optional.of(jwtService.generateToken(newEmail));
+        }
+
+        emailChangeService.requestChange(user, newEmail);
+        return Optional.empty();
     }
 
     /**

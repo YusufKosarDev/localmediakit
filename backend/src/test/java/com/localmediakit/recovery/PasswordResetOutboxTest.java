@@ -37,6 +37,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * send made them measurably different, which is a membership oracle. The
  * second is that nothing which can log in is ever written down: the queue holds
  * a reference to the token row, and the secret is minted at send time.
+ *
+ * <p>Every batch here is driven explicitly. The scheduler is off for the whole
+ * suite (see src/test/resources/application.properties) because the contexts
+ * share one in-memory database, so a job ticking anywhere would be draining
+ * this outbox while these assertions run.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

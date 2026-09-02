@@ -29,7 +29,7 @@ public class SlugService {
     private static final Set<String> RESERVED = Set.of(
             "app", "api", "admin", "login", "register", "dashboard", "me", "public",
             "demo", "preview", "static", "assets", "_next", "favicon.ico", "robots.txt",
-            "sitemap.xml", "forgot", "reset", "offline", "settings");
+            "sitemap.xml", "forgot", "reset", "offline", "settings", "confirm-email");
 
     /** Normalizes text to a URL-safe slug (lowercase, hyphenated, ASCII). */
     public String slugify(String input) {

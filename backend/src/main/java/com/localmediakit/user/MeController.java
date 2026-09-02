@@ -78,15 +78,25 @@ public class MeController {
     }
 
     /**
-     * @return a replacement session token. The caller must swap it in: the
-     *         token it authenticated with names the old address and is dead.
+     * Two outcomes, and the client has to be able to tell them apart.
+     *
+     * <p>Normally nothing has changed yet: a link is on its way to the new
+     * address and the account stays where it is until somebody opens it. The
+     * response says {@code pending} and carries no token, because there is no
+     * new session to hand out — the account is still the old address.
+     *
+     * <p>With no mail provider configured the change applies immediately, as it
+     * did before verification existed, and the response carries the replacement
+     * token. The caller must swap that in: the one it authenticated with names
+     * the old address and is dead.
      */
     @PostMapping("/email")
     public ChangeEmailResponse changeEmail(Authentication authentication,
                                            @Valid @RequestBody ChangeEmailRequest request) {
-        String token = accountService.changeEmail(email(authentication), request);
-        return new ChangeEmailResponse(token,
-                accountService.me(AccountService.normalizeEmail(request.newEmail())));
+        return accountService.changeEmail(email(authentication), request)
+                .map(token -> new ChangeEmailResponse(false, token,
+                        accountService.me(AccountService.normalizeEmail(request.newEmail()))))
+                .orElseGet(() -> new ChangeEmailResponse(true, null, null));
     }
 
     /** Getting-started progress, derived from the account's own data. */
@@ -114,6 +124,13 @@ public class MeController {
         return (String) authentication.getPrincipal();
     }
 
-    public record ChangeEmailResponse(String token, MeResponse user) {
+    /**
+     * @param pending true when a confirmation link was sent and the account has
+     *                not moved; the client should say so and keep the session
+     * @param token   a replacement session token, only when the change already
+     *                applied
+     * @param user    the account as it now stands, only when it already applied
+     */
+    public record ChangeEmailResponse(boolean pending, String token, MeResponse user) {
     }
 }

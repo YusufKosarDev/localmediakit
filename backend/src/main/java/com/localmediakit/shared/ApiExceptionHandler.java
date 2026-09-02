@@ -7,6 +7,7 @@ import com.localmediakit.collab.CollaborationNotFoundException;
 import com.localmediakit.lead.LeadNotFoundException;
 import com.localmediakit.media.MediaItemNotFoundException;
 import com.localmediakit.recovery.InvalidResetTokenException;
+import com.localmediakit.user.InvalidEmailChangeTokenException;
 import com.localmediakit.media.TooManyMediaItemsException;
 import com.localmediakit.ratecard.RateCardItemNotFoundException;
 import com.localmediakit.domain.DomainAlreadyExistsException;
@@ -192,6 +193,13 @@ public class ApiExceptionHandler {
     /** 400 rather than 404: which of the three reasons it failed is not said. */
     @ExceptionHandler(InvalidResetTokenException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidResetToken(InvalidResetTokenException ex) {
+        return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
+    }
+
+    /** Same shape, same reticence, for the address-verification link. */
+    @ExceptionHandler(InvalidEmailChangeTokenException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidEmailChangeToken(
+            InvalidEmailChangeTokenException ex) {
         return body(HttpStatus.BAD_REQUEST, codeFor(ex), ex.getMessage(), null);
     }
 

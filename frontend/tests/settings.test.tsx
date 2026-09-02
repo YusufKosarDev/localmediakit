@@ -97,7 +97,34 @@ describe("SettingsPage", () => {
     expect(posts).toHaveLength(0);
   });
 
-  it("swaps in the replacement token after an email change", async () => {
+  /**
+   * The ordinary path once a mail provider is configured: the account has not
+   * moved, so the session that asked must be left alone. Swapping in a token
+   * here — or clearing the one that is there — would sign the user out of an
+   * account they still own, for a change that has not happened yet.
+   */
+  it("keeps the session when the change is only pending confirmation", async () => {
+    localStorage.setItem("token", "jwt-old");
+    mockFetch((url, init) => {
+      if (url.endsWith("/api/me/email") && init?.method === "POST") {
+        return json({ pending: true, token: null, user: null });
+      }
+      return json({}, 404);
+    });
+    render(<SettingsPage />);
+
+    await screen.findByText("E-posta değiştir");
+    await userEvent.type(screen.getByLabelText("Yeni e-posta"), "yeni@ornek.com");
+    await userEvent.type(screen.getByLabelText("Mevcut şifre", { selector: "#emailPassword" }), "gizli123");
+    await userEvent.click(screen.getByRole("button", { name: "E-postayı değiştir" }));
+
+    expect(await screen.findByText(/Doğrulama linki yeni adresinize gönderildi/))
+      .toBeInTheDocument();
+    expect(localStorage.getItem("token")).toBe("jwt-old");
+    expect(screen.queryByText("E-postanız güncellendi.")).not.toBeInTheDocument();
+  });
+
+  it("swaps in the replacement token when mail is unconfigured and the change applies at once", async () => {
     mockFetch((url, init) => {
       if (url.endsWith("/api/me/email") && init?.method === "POST") {
         return json({ token: "jwt-new", user: { ...ME, email: "yeni@ornek.com" } });

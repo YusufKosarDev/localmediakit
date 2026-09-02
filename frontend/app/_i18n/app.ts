@@ -68,6 +68,11 @@ const appStrings = {
   registerInvalid: "Bilgileri kontrol edin (şifre en az 8 karakter).",
   registerFailed: "Kayıt oluşturulamadı.",
 
+  confirmEmailTitle: "Yeni adresinizi doğrulayın",
+  confirmEmailWorking: "Doğrulanıyor...",
+  confirmEmailDone: "Adresiniz güncellendi. Artık yeni e-postanızla giriş yapabilirsiniz.",
+  confirmEmailInvalid: "Bu link geçersiz veya süresi dolmuş. Ayarlar'dan değişikliği tekrar isteyin.",
+
   offlineTitle: "Bağlantı yok",
   offlineBody:
     "Panonuzdaki her şey sunucudan canlı okunur, bu yüzden çevrimdışı gösterilebilecek bir içerik yok. Bağlantınız gelince kaldığınız yerden devam edebilirsiniz.",
@@ -118,7 +123,7 @@ export const appDict: Dict<Record<keyof AppStrings, string>> = {
     loginSubmit: "Sign in",
     loginOr: "or",
     loginDemo: "Explore the demo",
-    loginDemoHint: "Browse the dashboard on a fully populated account (resets nightly).",
+    loginDemoHint: "Browse the dashboard on a fully populated account (resets hourly).",
     forgotLink: "Forgot your password?",
     forgotTitle: "Reset your password",
     forgotSubtitle: "Enter your account email. If it is registered, a reset link is on its way.",
@@ -147,6 +152,11 @@ export const appDict: Dict<Record<keyof AppStrings, string>> = {
     registerEmailTaken: "That email is already registered.",
     registerInvalid: "Please check your details — the password needs at least 8 characters.",
     registerFailed: "Couldn't create the account.",
+
+    confirmEmailTitle: "Confirm your new address",
+    confirmEmailWorking: "Confirming...",
+    confirmEmailDone: "Your address has been updated. You can now sign in with your new email.",
+    confirmEmailInvalid: "This link is invalid or has expired. Ask for the change again from Settings.",
 
     offlineTitle: "No connection",
     offlineBody:

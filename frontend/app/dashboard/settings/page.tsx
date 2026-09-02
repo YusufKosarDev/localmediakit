@@ -49,6 +49,12 @@ export default function SettingsPage() {
   });
   const [profileMsg, setProfileMsg] = useState({ ok: "", err: "" });
   const [profileBusy, setProfileBusy] = useState(false);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  // Undefined until the first attempt tells us. The control is offered
+  // optimistically and withdrawn if the route answers 503, rather than probing
+  // on load: a request on every settings visit to learn something that only
+  // matters if somebody picks a file is a request not worth making.
+  const [uploadsOff, setUploadsOff] = useState(false);
 
   const [pw, setPw] = useState({ currentPassword: "", newPassword: "", repeat: "" });
   const [pwMsg, setPwMsg] = useState({ ok: "", err: "" });
@@ -175,6 +181,51 @@ export default function SettingsPage() {
     }
   }
 
+  /**
+   * Puts the file somewhere with a URL, then lets the ordinary profile save
+   * store that URL.
+   *
+   * <p>Deliberately two steps rather than one. The account has always held a
+   * URL and still does — the backend knows nothing about uploads — so this only
+   * removes the part where the creator had to go and find a URL elsewhere. The
+   * field stays editable for anyone who already has one.
+   */
+  async function uploadAvatar(file: File) {
+    setProfileMsg({ ok: "", err: "" });
+    setUploadBusy(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/avatar", {
+        method: "POST",
+        // Only the Authorization header. Reusing authHeaders() wholesale would
+        // set Content-Type: application/json and stop the browser writing the
+        // multipart boundary, which the server then cannot parse.
+        headers: { Authorization: `Bearer ${localStorage.getItem("token") ?? ""}` },
+        body: form,
+      });
+      if (res.status === 503) {
+        // No blob store configured for this deployment. Withdraw the control
+        // rather than leaving a button that cannot work.
+        setUploadsOff(true);
+        return;
+      }
+      if (!res.ok) {
+        setProfileMsg({ ok: "", err: await errorText(res, t("avatarUploadFailed")) });
+        return;
+      }
+      const { url } = await res.json();
+      // Shown immediately, saved when they save the profile — the same as if
+      // they had pasted it, so there is one way this field gets committed.
+      setProfile((p) => ({ ...p, avatarUrl: url }));
+      setProfileMsg({ ok: t("avatarUploaded"), err: "" });
+    } catch {
+      setProfileMsg({ ok: "", err: t("unreachable") });
+    } finally {
+      setUploadBusy(false);
+    }
+  }
+
   async function changeEmail(e: React.FormEvent) {
     e.preventDefault();
     setMailMsg({ ok: "", err: "" });
@@ -189,12 +240,19 @@ export default function SettingsPage() {
         setMailMsg({ ok: "", err: await errorText(res, t("emailFailed")) });
         return;
       }
-      // The token that authenticated this call names the OLD address and is
-      // now dead — swapping in the replacement keeps the session alive.
       const data = await res.json();
+      setMail({ currentPassword: "", newEmail: "" });
+      if (data.pending) {
+        // Nothing has moved. A link is on its way to the new address and this
+        // session still belongs to the old one, so it stays exactly as it is.
+        setMailMsg({ ok: t("emailPending"), err: "" });
+        return;
+      }
+      // No mail provider configured, so the change applied on the spot. The
+      // token that authenticated this call names the OLD address and is now
+      // dead — swapping in the replacement keeps the session alive.
       localStorage.setItem("token", data.token);
       applyMe(data.user);
-      setMail({ currentPassword: "", newEmail: "" });
       setMailMsg({ ok: t("emailChanged"), err: "" });
     } catch {
       setMailMsg({ ok: "", err: t("unreachable") });
@@ -326,6 +384,29 @@ export default function SettingsPage() {
                   maxLength={1000}
                 />
               </div>
+              {!uploadsOff && (
+                <div className="flex items-center gap-2">
+                  <input
+                    id="avatarFile"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      // Cleared so picking the same file twice fires again --
+                      // after a failed upload that is exactly what someone does.
+                      e.target.value = "";
+                      if (file) void uploadAvatar(file);
+                    }}
+                  />
+                  <Label
+                    htmlFor="avatarFile"
+                    className="cursor-pointer rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-page"
+                  >
+                    {uploadBusy ? t("avatarUploading") : t("avatarUpload")}
+                  </Label>
+                </div>
+              )}
               <p className="text-xs text-faint">
                 {t("avatarUrlHint")}
               </p>

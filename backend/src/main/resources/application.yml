@@ -68,10 +68,10 @@ management:
 
 app:
   # Absolute base for every link this backend hands out: the dashboard link in a
-  # lead notification email and the Stripe return URLs. One property, because
-  # both are the same fact — when it lived in two places (app.frontend-url and
-  # app.billing.frontend-url) only one of them was ever defined, and the reader
-  # of the other silently fell back to a hard-coded default. No trailing slash.
+  # lead notification, the password-reset link and the address-verification
+  # link. One property, because they are the same fact — when it lived in two
+  # places only one of them was ever defined, and the reader of the other
+  # silently fell back to a hard-coded default. No trailing slash.
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
   # The "local-dev-" prefix on the secrets below is load-bearing, not decorative:
   # ProductionSecretsCheck refuses to start the prod profile while any of them
@@ -107,6 +107,15 @@ app:
     batch-size: ${PASSWORD_RESET_BATCH_SIZE:20}
     job-interval-ms: ${PASSWORD_RESET_JOB_INTERVAL_MS:30000}
     job-initial-delay-ms: ${PASSWORD_RESET_JOB_INITIAL_DELAY_MS:15000}
+  email-change:
+    # Longer than a password reset's thirty minutes. Nothing is at risk while
+    # this link is unopened -- the account has not moved and the old address
+    # still signs in -- and the person confirming may be switching to a mailbox
+    # they check less often, which is frequently the reason they are moving.
+    ttl-minutes: ${EMAIL_CHANGE_TTL_MINUTES:60}
+    batch-size: ${EMAIL_CHANGE_BATCH_SIZE:20}
+    job-interval-ms: ${EMAIL_CHANGE_JOB_INTERVAL_MS:30000}
+    job-initial-delay-ms: ${EMAIL_CHANGE_JOB_INITIAL_DELAY_MS:15000}
   preview:
     # Lifetime of a signed draft-preview link (minutes).
     ttl-minutes: ${PREVIEW_TTL_MINUTES:30}
@@ -129,7 +138,8 @@ app:
     retention-job-interval-ms: ${ANALYTICS_RETENTION_JOB_INTERVAL_MS:21600000}
     retention-job-initial-delay-ms: ${ANALYTICS_RETENTION_JOB_INITIAL_DELAY_MS:120000}
   ratelimit:
-    # In-memory token buckets per client IP (per minute). Disabled in tests.
+    # Token buckets per client IP (per minute), held in the database so the
+    # limit is the limit however many instances are running. Disabled in tests.
     enabled: ${RATELIMIT_ENABLED:true}
     login-capacity: ${RATELIMIT_LOGIN:10}
     register-capacity: ${RATELIMIT_REGISTER:30}
