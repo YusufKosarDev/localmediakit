@@ -319,7 +319,7 @@ bozulmaz — analitik kaybı kabul edilir, sayfanın açılmaması kabul edilmez
 | Token saklama | Tarayıcıda `localStorage` — bilinçli takas, gerekçesi [Dürüst Sınırlar](#️-dürüst-sınırlar)'da |
 | Yetkilendirme | Özne yalnızca JWT principal'ından; `/api/users/{id}` yok |
 | Sahiplik | Kit uçlarında `findByIdAndUserId` sorguları |
-| Rate limit | Bucket4j, IP başına: login, register, track, unlock, contact, hesap işlemleri |
+| Rate limit | Veritabanı destekli token kovası, IP başına: login, register, track, unlock, contact, hesap işlemleri — limit, instance sayısından bağımsız |
 | Şifre denemesi | Kit kilidi açmada 5 hata / 15 dakika penceresi |
 | İstemci IP | `CF-Connecting-IP` önce, yoksa X-Forwarded-For'un **en sağdaki** hop'u (spoof edilemez) |
 | Prod secret'ları | `ProductionSecretsCheck` — `local-dev-` işaretli secret'la başlamayı reddeder |
@@ -435,7 +435,7 @@ dokunmuyor.
 | Backend | Java 21, Spring Boot 3.5, Spring Web, Spring Security (JWT), Spring Data JPA |
 | Veritabanı | Neon PostgreSQL (prod), H2 PostgreSQL uyumluluk modu (yerel) — **aynı migration'lar** |
 | Migration | Flyway (32 migration) |
-| Rate limit | Bucket4j + Caffeine |
+| Rate limit | Veritabanı destekli token kovası (kütüphane yok; refill, token harcayan `UPDATE`'in içinde) |
 | Dokümantasyon | springdoc / OpenAPI 3 |
 | Mail | Düz SMTP (vendor SDK'sı yok — sağlayıcı değişimi env işidir) |
 | Frontend | Next.js 16 App Router, React 19, TypeScript, Tailwind CSS |
@@ -518,7 +518,7 @@ sayfa `http://localhost:3000/<slug>` adresinde görünür.
 | **Uçtan uca** | **16 Playwright testi** — iki sunucu da gerçekten ayaktayken; kayıt→kit→yayın akışı, pano, paylaşım linkleri, `axe` ile erişilebilirlik denetimi ve **piksel karşılaştırması** |
 | **Görsel** | Public sayfanın 3 anlık görüntüsü (açık/koyu tema, mobil). Baseline'lar CI ile **aynı Playwright container'ında** üretiliyor — font rasterizasyonu aynı makineden geldiği için normal sonuç sıfır piksel fark |
 | **Mimari** | **13 ArchUnit kuralı** build'i kırar — field injection yok, controller repository'ye dokunmaz, entity web katmanına bağımlı olmaz, plan sabitleri paketinden çıkmaz, **zamanlanmış her iş kilitli olmak zorunda** |
-| **Mutasyon** | Kritik paketlerde PIT: **144 mutasyonun %97'si** öldürülüyor |
+| **Mutasyon** | Kritik paketlerde PIT: **161 mutasyonun %97'si** öldürülüyor |
 
 ### CI Workflow'ları
 
@@ -556,7 +556,7 @@ backend/                     Spring Boot API
   lead, notification         iletişim formu ingestion, gelen kutusu, bildirim outbox'ı
   analytics                  beacon ingestion, agregasyon, paylaşım linkleri, retention
   domain                     custom domain DNS doğrulama (scheduled job)
-  ratelimit, security        Bucket4j filtresi, JWT filtresi, SecurityConfig
+  ratelimit, security        rate-limit filtresi ve kovaları, JWT filtresi, SecurityConfig
   observability              OperationalMetrics, RequestIdFilter
   config, shared, demo       prod secret kontrolü, ConstraintRetry/Csv/ClientIp, demo seed
 
