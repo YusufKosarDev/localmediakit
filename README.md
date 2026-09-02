@@ -309,6 +309,7 @@ bozulmaz — analitik kaybı kabul edilir, sayfanın açılmaması kabul edilmez
 | --- | --- |
 | Kimlik doğrulama | JWT (HMAC-SHA; algoritma anahtar uzunluğundan türer — üretimde **HS512**), `STATELESS` oturum, CSRF kapalı (çerez yok) |
 | Şifre saklama | BCrypt |
+| Token saklama | Tarayıcıda `localStorage` — bilinçli takas, gerekçesi [Dürüst Sınırlar](#️-dürüst-sınırlar)'da |
 | Yetkilendirme | Özne yalnızca JWT principal'ından; `/api/users/{id}` yok |
 | Sahiplik | Kit uçlarında `findByIdAndUserId` sorguları |
 | Rate limit | Bucket4j, IP başına: login, register, track, unlock, contact, hesap işlemleri |
@@ -601,6 +602,7 @@ Bunlar bilinmeyen eksikler değil, ölçülmüş ve kayda geçirilmiş sınırla
 
 | Sınır | Ayrıntı |
 | --- | --- |
+| **Oturum token'ı `localStorage`'da** | Bu bir gözden kaçma değil, alınmış bir takas — ve maliyeti şu: bu origin'de çalışan bir XSS token'ı okuyabilir, `httpOnly` bir çerez okuyamazdı. Çereze geçilmemesinin sebebi API'nin durumsuz ve çerezsiz olması: çerez taşınsaydı CSRF geri gelirdi (şu an tam olarak çerez olmadığı için kapalı) ve pano ile API farklı origin'lerde olduğu için `SameSite` gevşetilmek zorunda kalırdı. Riski daraltan şey token'ın nerede durduğu değil, XSS'in ne kadar zor olduğu: `object-src 'none'`, `frame-ancestors 'none'`, React'in otomatik kaçışı ve JSON-LD'nin ayrı kaçış katmanı. Doğru çözüm çerez değil, ilk-taraf bir proxy'nin arkasında aynı origin'de servis etmek — o gün geldiğinde `httpOnly` bedavaya geliyor. |
 | **Mail teslimat kalitesi** | Gönderen bir `gmail.com` adresi ve mail Brevo rölesinden çıkıyor, dolayısıyla DMARC hizalaması tutmuyor ve mailler spam'e düşebilir. Uygulama `*.vercel.app` üzerinde olduğu için SPF/DKIM kaydı eklenemiyor. Çözümü özel bir domain. |
 | **Tek instance varsayımı** | Rate-limit kovaları, şifre denemesi sayacı ve zamanlanmış işlerin overlap guard'ları bellekte. İkinci bir instance çökmez; limitleri sessizce çarpar ve batch'leri üst üste koşturur — daha tehlikeli bozulma biçimi budur. |
 | **Avatar yükleme yok** | Avatar bir URL'dir. Ücretsiz katman diski her deploy'da silindiği için nesne deposu ya ücretli bir servis ya da sessizce veri kaybeden bir çözüm olurdu. |
