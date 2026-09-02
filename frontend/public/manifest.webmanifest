@@ -1,7 +1,7 @@
 {
   "name": "LocalMediaKit",
   "short_name": "LocalMediaKit",
-  "description": "Icerik ureticileri icin canli medya kiti panosu.",
+  "description": "İçerik üreticileri için canlı medya kiti panosu.",
   "lang": "tr",
   "dir": "ltr",
   "start_url": "/dashboard",
@@ -36,7 +36,7 @@
       "url": "/dashboard"
     },
     {
-      "name": "Hesap ayarlari",
+      "name": "Hesap ayarları",
       "url": "/dashboard/settings"
     }
   ]

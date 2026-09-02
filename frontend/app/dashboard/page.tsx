@@ -237,7 +237,7 @@ export default function DashboardPage() {
           headline: t("quickStartHeadline"),
           theme: "light",
         },
-        "Olusturulamadi",
+        "Oluşturulamadı",
         201
       );
       if (!created.ok) {

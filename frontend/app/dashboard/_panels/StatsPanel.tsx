@@ -22,7 +22,7 @@ const emptyStatForm = { platform: "YOUTUBE", followers: "", avgViews: "", avgLik
 /**
  * Platform measurements, audience demographics and the automatic data source.
  *
- * <p>All three live on one screen ("Istatistik & Kitle"), so they live in one
+ * <p>All three live on one screen ("İstatistik & Kitle"), so they live in one
  * file: splitting them would spread a single tab across three places without
  * making any of them easier to follow.
  */

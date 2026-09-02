@@ -13,31 +13,31 @@ import { DEFAULT_LOCALE, type Locale } from "./index";
  */
 const ERRORS: Record<string, Record<Locale, string>> = {
   EMAIL_ALREADY_USED: {
-    tr: "Bu e-posta baska bir hesapta kayitli.",
+    tr: "Bu e-posta başka bir hesapta kayıtlı.",
     en: "That email is already registered to another account.",
   },
   INVALID_CREDENTIALS: {
-    tr: "E-posta veya sifre hatali.",
+    tr: "E-posta veya şifre hatalı.",
     en: "Incorrect email or password.",
   },
   VALIDATION_FAILED: {
-    tr: "Girilen bilgiler gecersiz.",
+    tr: "Girilen bilgiler geçersiz.",
     en: "Some of the details entered are not valid.",
   },
   MALFORMED_BODY: {
-    tr: "Istek okunamadi.",
+    tr: "İstek okunamadı.",
     en: "The request could not be read.",
   },
   PLAN_LIMIT_EXCEEDED: {
-    tr: "Plan sinirina ulastiniz.",
+    tr: "Plan sınırına ulaştınız.",
     en: "You have reached your plan's limit.",
   },
   PROTECTED_ACCOUNT: {
-    tr: "Bu islem demo hesabinda yapilamaz.",
+    tr: "Bu işlem demo hesabında yapılamaz.",
     en: "This cannot be done on the demo account.",
   },
   INVALID_APPEARANCE: {
-    tr: "Gecersiz gorunum secimi.",
+    tr: "Geçersiz görünüm seçimi.",
     en: "That appearance option is not available.",
   },
   UNSUPPORTED_LOCALE: {
@@ -45,39 +45,39 @@ const ERRORS: Record<string, Record<Locale, string>> = {
     en: "That language is not supported.",
   },
   RESERVED_SLUG: {
-    tr: "Bu adres ayrilmis, baska bir tane secin.",
+    tr: "Bu adres ayrılmış, başka bir tane seçin.",
     en: "That address is reserved — please choose another.",
   },
   MEDIA_KIT_NOT_FOUND: {
-    tr: "Medya kiti bulunamadi.",
+    tr: "Medya kiti bulunamadı.",
     en: "Media kit not found.",
   },
   SYNC_COOLDOWN: {
-    tr: "Cok kisa arayla senkron. Biraz bekleyin.",
+    tr: "Çok kısa arayla senkron. Biraz bekleyin.",
     en: "Synced too recently. Please wait a moment.",
   },
   SYNC_NOT_CONFIGURED: {
-    tr: "Bu veri kaynagi su anda kullanilamiyor.",
+    tr: "Bu veri kaynağı şu anda kullanılamıyor.",
     en: "This data source is currently unavailable.",
   },
   EXTERNAL_ACCOUNT_NOT_FOUND: {
-    tr: "Kanal bulunamadi. Adi kontrol edin.",
+    tr: "Kanal bulunamadı. Adını kontrol edin.",
     en: "Channel not found. Please check the handle.",
   },
   DOMAIN_ALREADY_EXISTS: {
-    tr: "Bu alan adi zaten ekli.",
+    tr: "Bu alan adı zaten ekli.",
     en: "That domain has already been added.",
   },
   INVALID_DOMAIN: {
-    tr: "Gecersiz alan adi.",
+    tr: "Geçersiz alan adı.",
     en: "That domain is not valid.",
   },
   INVALID_KIT_PASSWORD: {
-    tr: "Sifre hatali.",
+    tr: "Şifre hatalı.",
     en: "Incorrect password.",
   },
   TOO_MANY_UNLOCK_ATTEMPTS: {
-    tr: "Cok fazla deneme. Biraz bekleyin.",
+    tr: "Çok fazla deneme. Biraz bekleyin.",
     en: "Too many attempts. Please wait a moment.",
   },
 };

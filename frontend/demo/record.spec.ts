@@ -30,11 +30,11 @@ test("localmediakit demo", async ({ page, request }) => {
   // 1. Sign up.
   await page.goto("/register");
   await beat(page, 1200);
-  await typeSlowly(page, "#name", "Elif Demirtas");
+  await typeSlowly(page, "#name", "Elif Demirtaş");
   await typeSlowly(page, "#email", email);
   await typeSlowly(page, "#password", PASSWORD);
   await beat(page, 600);
-  await page.getByRole("button", { name: "Kayit ol" }).click();
+  await page.getByRole("button", { name: "Kayıt ol" }).click();
 
   // 2. The dashboard opens with the welcome tour; step through it once.
   const dialog = page.getByRole("dialog");
@@ -46,9 +46,9 @@ test("localmediakit demo", async ({ page, request }) => {
   await beat(page);
 
   // 3. Create the kit.
-  await typeSlowly(page, "input[placeholder='Baslik *']", "Elif Demirtas — Seyahat & Yasam");
+  await typeSlowly(page, "input[placeholder='Başlık *']", "Elif Demirtaş — Seyahat & Yaşam");
   await beat(page, 500);
-  await page.getByRole("button", { name: "Olustur", exact: true }).click();
+  await page.getByRole("button", { name: "Oluştur", exact: true }).click();
   await expect(page.getByText("DRAFT").first()).toBeVisible();
   await beat(page, 1200);
 
@@ -56,14 +56,14 @@ test("localmediakit demo", async ({ page, request }) => {
   const panelLoaded = page.waitForResponse(
     (r) => r.url().includes("/api/mediakits/") && r.url().endsWith("/sources")
   );
-  await page.getByRole("button", { name: "Istatistik & Kitle" }).click();
+  await page.getByRole("button", { name: "İstatistik & Kitle" }).click();
   await panelLoaded;
   await expect(page.getByText("Platform istatistikleri")).toBeVisible();
   await beat(page);
 
-  await typeSlowly(page, "input[placeholder='takipci *']", "128400");
+  await typeSlowly(page, "input[placeholder='takipçi *']", "128400");
   await beat(page, 500);
-  await page.getByRole("button", { name: "Olcum ekle" }).click();
+  await page.getByRole("button", { name: "Ölçüm ekle" }).click();
   await expect(page.getByText("128.400", { exact: false })).toBeVisible();
   await beat(page, 1400);
 
@@ -104,8 +104,8 @@ test("localmediakit demo", async ({ page, request }) => {
   });
 
   for (const collab of [
-    { brandName: "Kayak Tourism", campaign: "Kapadokya kis serisi", period: "2026 Q1", resultNote: "3 Reels, 412 B goruntulenme" },
-    { brandName: "Nordic Outdoor", campaign: "Ekipman incelemesi", period: "2025 Q4", resultNote: "YouTube uzun form, %6,2 etkilesim" },
+    { brandName: "Kayak Tourism", campaign: "Kapadokya kış serisi", period: "2026 Q1", resultNote: "3 Reels, 412 B görüntülenme" },
+    { brandName: "Nordic Outdoor", campaign: "Ekipman incelemesi", period: "2025 Q4", resultNote: "YouTube uzun form, %6,2 etkileşim" },
   ]) {
     await request.post(`${BACKEND}/api/mediakits/${kitId}/collaborations`, { headers: auth, data: collab });
   }
@@ -119,13 +119,13 @@ test("localmediakit demo", async ({ page, request }) => {
   }
 
   await page.reload();
-  await expect(page.getByRole("button", { name: "Yayinla" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Yayınla" }).first()).toBeVisible();
   await beat(page, 1200);
 
   // 5. Publish: the moment the draft becomes an immutable snapshot.
   await caption(page, "Publish — freezes the draft into a snapshot");
-  await page.getByRole("button", { name: "Yayinla" }).first().click();
-  await expect(page.getByText("Yayinlandi.")).toBeVisible();
+  await page.getByRole("button", { name: "Yayınla" }).first().click();
+  await expect(page.getByText("Yayınlandı.")).toBeVisible();
   await beat(page, 1800);
 
   // 6. Read it as a brand would -- served static from the edge in production.
@@ -148,7 +148,7 @@ test("localmediakit demo", async ({ page, request }) => {
     await request
       .delete(`${BACKEND}/api/me`, {
         headers: { Authorization: `Bearer ${token}` },
-        data: { currentPassword: PASSWORD, confirmation: "HESABIMI SIL" },
+        data: { currentPassword: PASSWORD, confirmation: "HESABIMI SİL" },
       })
       .catch(() => undefined);
   }

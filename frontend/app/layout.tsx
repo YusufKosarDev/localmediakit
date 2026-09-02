@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     default: "LocalMediaKit",
     template: "%s · LocalMediaKit",
   },
-  description: "Icerik ureticileri icin canli medya kiti platformu.",
+  description: "İçerik üreticileri için canlı medya kiti platformu.",
   applicationName: "LocalMediaKit",
   openGraph: {
     siteName: "LocalMediaKit",

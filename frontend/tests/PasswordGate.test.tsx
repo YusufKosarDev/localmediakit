@@ -14,10 +14,10 @@ describe("PasswordGate (protected kit unlock)", () => {
     );
 
     render(<PasswordGate slug="gizli" title="Gizli Kit" theme="light" />);
-    await userEvent.type(screen.getByPlaceholderText("Sifre"), "yanlis");
-    await userEvent.click(screen.getByRole("button", { name: "Goruntule" }));
+    await userEvent.type(screen.getByPlaceholderText("Şifre"), "yanlis");
+    await userEvent.click(screen.getByRole("button", { name: "Görüntüle" }));
 
-    expect(await screen.findByText("Sifre yanlis.")).toBeInTheDocument();
+    expect(await screen.findByText("Şifre yanlış.")).toBeInTheDocument();
     // The unlocked content must never appear on a failed attempt.
     expect(screen.queryByRole("heading", { name: "Ayse Gezgin" })).not.toBeInTheDocument();
   });
@@ -31,12 +31,12 @@ describe("PasswordGate (protected kit unlock)", () => {
     );
 
     render(<PasswordGate slug="gizli" title="Gizli Kit" theme="light" />);
-    await userEvent.type(screen.getByPlaceholderText("Sifre"), "dogru-sifre");
-    await userEvent.click(screen.getByRole("button", { name: "Goruntule" }));
+    await userEvent.type(screen.getByPlaceholderText("Şifre"), "dogru-sifre");
+    await userEvent.click(screen.getByRole("button", { name: "Görüntüle" }));
 
     // The shared KitCard now renders the unlocked snapshot.
     expect(await screen.findByRole("heading", { name: "Ayse Gezgin" })).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("Sifre")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Şifre")).not.toBeInTheDocument();
   });
 
   it("surfaces the rate-limit message on 429", async () => {
@@ -45,9 +45,9 @@ describe("PasswordGate (protected kit unlock)", () => {
     );
 
     render(<PasswordGate slug="gizli" title="Gizli Kit" theme="light" />);
-    await userEvent.type(screen.getByPlaceholderText("Sifre"), "x");
-    await userEvent.click(screen.getByRole("button", { name: "Goruntule" }));
+    await userEvent.type(screen.getByPlaceholderText("Şifre"), "x");
+    await userEvent.click(screen.getByRole("button", { name: "Görüntüle" }));
 
-    expect(await screen.findByText(/Cok fazla deneme/)).toBeInTheDocument();
+    expect(await screen.findByText(/Çok fazla deneme/)).toBeInTheDocument();
   });
 });

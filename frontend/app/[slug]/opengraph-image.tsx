@@ -84,7 +84,7 @@ export default async function OgImage({
             <div style={{ display: "flex", width: 76, height: 54, borderRadius: 14, background: t.brand, marginTop: -2 }} />
           </div>
           <div style={{ display: "flex", fontSize: 56, fontWeight: 700 }}>{kit.title}</div>
-          <div style={{ display: "flex", fontSize: 30, color: t.muted }}>{kit?.language === "en" ? "Password-protected media kit" : "Sifre korumali medya kiti"}</div>
+          <div style={{ display: "flex", fontSize: 30, color: t.muted }}>{kit?.language === "en" ? "Password-protected media kit" : "Şifre korumalı medya kiti"}</div>
         </div>
       ),
       size

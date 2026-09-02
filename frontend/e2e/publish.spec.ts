@@ -18,8 +18,8 @@ test.describe("publishing", () => {
     await page.goto("/dashboard");
     await expect(page.getByRole("heading", { name: "Yeni medya kiti" })).toBeVisible();
 
-    await page.getByPlaceholder("Baslik *").fill("Gezgin Kanali");
-    await page.getByRole("button", { name: "Olustur", exact: true }).click();
+    await page.getByPlaceholder("Başlık *").fill("Gezgin Kanalı");
+    await page.getByRole("button", { name: "Oluştur", exact: true }).click();
 
     // The kit appears in the list, as a draft.
     const card = page.locator("text=Gezgin Kanali").first();
@@ -35,17 +35,17 @@ test.describe("publishing", () => {
     const panelLoaded = page.waitForResponse(
       (r) => r.url().includes("/api/mediakits/") && r.url().endsWith("/sources")
     );
-    await page.getByRole("button", { name: "Istatistik & Kitle" }).click();
+    await page.getByRole("button", { name: "İstatistik & Kitle" }).click();
     await panelLoaded;
     await expect(page.getByText("Platform istatistikleri")).toBeVisible();
 
-    await page.getByPlaceholder("takipci *").fill("42000");
-    await page.getByRole("button", { name: "Olcum ekle" }).click();
+    await page.getByPlaceholder("takipçi *").fill("42000");
+    await page.getByRole("button", { name: "Ölçüm ekle" }).click();
     // The measurement lands in the list above the form.
     await expect(page.getByText("42.000", { exact: false })).toBeVisible();
 
-    await page.getByRole("button", { name: "Yayinla" }).click();
-    await expect(page.getByText("Yayinlandi.")).toBeVisible();
+    await page.getByRole("button", { name: "Yayınla" }).click();
+    await expect(page.getByText("Yayınlandı.")).toBeVisible();
 
     // The public link is offered, and it serves the content.
     const link = page.locator('a[href^="/"]:has-text("/")').first();
@@ -75,9 +75,9 @@ test.describe("publishing", () => {
     // Edit the draft in the dashboard â and only the draft.
     await signIn(page, account);
     await page.goto("/dashboard");
-    await page.getByRole("button", { name: "Duzenle" }).first().click();
+    await page.getByRole("button", { name: "Düzenle" }).first().click();
 
-    const title = page.getByLabel("Baslik").first();
+    const title = page.getByLabel("Başlık").first();
     await title.fill("IKINCI BASLIK");
     await page.getByRole("button", { name: "Kaydet", exact: true }).click();
     await expect(page.getByText("Kaydedildi.")).toBeVisible();
@@ -89,8 +89,8 @@ test.describe("publishing", () => {
     // Publishing is what moves it.
     await signIn(page, account);
     await page.goto("/dashboard");
-    await page.getByRole("button", { name: "Yayinla" }).first().click();
-    await expect(page.getByText("Yayinlandi.")).toBeVisible();
+    await page.getByRole("button", { name: "Yayınla" }).first().click();
+    await expect(page.getByText("Yayınlandı.")).toBeVisible();
 
     await expectPublicPageToShow(page, kit.slug, "IKINCI BASLIK");
   });
@@ -115,17 +115,17 @@ test.describe("publishing", () => {
     await publish(request, account, kit.id);
 
     await page.goto(`/${kit.slug}`);
-    await expect(page.getByText("Bu medya kiti sifre korumali.")).toBeVisible();
+    await expect(page.getByText("Bu medya kiti şifre korumalı.")).toBeVisible();
     // The gate is all a visitor gets: the numbers are not in the page at all.
     await expect(page.locator("body")).not.toContainText("91");
 
-    await page.getByLabel("Sifre").fill("yanlis-sifre");
-    await page.getByRole("button", { name: "Goruntule" }).click();
-    await expect(page.getByText("Sifre yanlis.")).toBeVisible();
-    await expect(page.locator("body")).not.toContainText("Gizli Kit iÃ§erik");
+    await page.getByLabel("Şifre").fill("yanlis-sifre");
+    await page.getByRole("button", { name: "Görüntüle" }).click();
+    await expect(page.getByText("Şifre yanlış.")).toBeVisible();
+    await expect(page.locator("body")).not.toContainText("Platformlar");
 
-    await page.getByLabel("Sifre").fill("acik-sesame");
-    await page.getByRole("button", { name: "Goruntule" }).click();
+    await page.getByLabel("Şifre").fill("acik-sesame");
+    await page.getByRole("button", { name: "Görüntüle" }).click();
 
     // Now the content is revealed, in the same card the public page uses.
     await expect(page.getByText("Platformlar", { exact: false })).toBeVisible();

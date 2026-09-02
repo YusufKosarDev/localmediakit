@@ -219,16 +219,16 @@ public class LeadNotificationService {
                 : """
                   Merhaba,
 
-                  "%s" medya kitiniz uzerinden yeni bir marka teklifi aldiniz.
+                  "%s" medya kitiniz üzerinden yeni bir marka teklifi aldınız.
 
                   Marka   : %s
                   Mesaj   : %s
 
-                  Teklifin tamamini ve marka iletisim bilgisini panonuzdaki Gelen Kutusu
-                  sekmesinden gorebilirsiniz:
+                  Teklifin tamamını ve marka iletişim bilgisini panonuzdaki Gelen Kutusu
+                  sekmesinden görebilirsiniz:
                   %s
 
-                  Bu bildirimleri hesap ayarlarinizdan kapatabilirsiniz.
+                  Bu bildirimleri hesap ayarlarınızdan kapatabilirsiniz.
                   """;
         return template.formatted(kitTitle, lead.getBrandName(), excerpt(lead.getMessage()), dashboardUrl);
     }

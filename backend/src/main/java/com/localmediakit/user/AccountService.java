@@ -87,7 +87,7 @@ public class AccountService {
     @Transactional
     public void changePassword(String email, ChangePasswordRequest request) {
         User user = require(email);
-        requireNotProtected(user, "Demo hesabinin sifresi degistirilemez.");
+        requireNotProtected(user, "Demo hesabının şifresi değiştirilemez.");
         requireCurrentPassword(user, request.currentPassword());
         user.changePasswordHash(passwordEncoder.encode(request.newPassword()));
     }
@@ -102,7 +102,7 @@ public class AccountService {
     @Transactional
     public String changeEmail(String email, ChangeEmailRequest request) {
         User user = require(email);
-        requireNotProtected(user, "Demo hesabinin e-postasi degistirilemez.");
+        requireNotProtected(user, "Demo hesabının e-postası değiştirilemez.");
         requireCurrentPassword(user, request.currentPassword());
 
         String newEmail = normalizeEmail(request.newEmail());
@@ -127,7 +127,7 @@ public class AccountService {
      */
     public void deleteAccount(String email, DeleteAccountRequest request) {
         User user = require(email);
-        requireNotProtected(user, "Demo hesabi silinemez.");
+        requireNotProtected(user, "Demo hesabı silinemez.");
         requireCurrentPassword(user, request.currentPassword());
         if (!DeleteAccountRequest.REQUIRED_CONFIRMATION.equals(request.confirmation().trim())) {
             throw new InvalidCredentialsException("Onay metni hatali.");
@@ -158,7 +158,7 @@ public class AccountService {
 
     private void requireCurrentPassword(User user, String currentPassword) {
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
-            throw new InvalidCredentialsException("Mevcut sifre hatali.");
+            throw new InvalidCredentialsException("Mevcut şifre hatalı.");
         }
     }
 

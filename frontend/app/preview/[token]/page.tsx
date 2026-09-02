@@ -9,7 +9,7 @@ import KitCard, { PublicKit } from "@/app/[slug]/KitCard";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Onizleme — LocalMediaKit",
+  title: "Önizleme — LocalMediaKit",
   robots: { index: false, follow: false },
 };
 

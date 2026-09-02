@@ -40,7 +40,7 @@ test.describe("dashboard", () => {
     await signIn(page, account);
     await page.goto("/dashboard");
     await page.getByRole("button", { name: "Analitik" }).click();
-    await expect(page.getByText("toplam goruntulenme")).toBeVisible();
+    await expect(page.getByText("toplam görüntülenme")).toBeVisible();
   });
 
   /**
@@ -83,7 +83,7 @@ test.describe("dashboard", () => {
     await expect(dialog).toBeVisible();
     // It leads with the publish rule — the one concept the product hides.
     await dialog.getByRole("button", { name: "Devam" }).click();
-    await expect(dialog.getByText("En onemlisi: Yayinla")).toBeVisible();
+    await expect(dialog.getByText("En önemlisi: Yayınla")).toBeVisible();
 
     await dialog.getByRole("button", { name: "Atla" }).click();
     await expect(dialog).toBeHidden();

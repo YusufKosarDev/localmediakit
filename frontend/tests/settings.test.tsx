@@ -62,20 +62,20 @@ describe("SettingsPage", () => {
     mockFetch(() => json({}, 204));
     render(<SettingsPage />);
 
-    const button = await screen.findByRole("button", { name: /Hesabimi kalici olarak sil/ });
+    const button = await screen.findByRole("button", { name: /Hesabımı kalıcı olarak sil/ });
     expect(button).toBeDisabled();
 
     // Password alone is not enough.
-    await userEvent.type(screen.getByLabelText("Mevcut sifre", { selector: "#deletePassword" }), "gizli123");
+    await userEvent.type(screen.getByLabelText("Mevcut şifre", { selector: "#deletePassword" }), "gizli123");
     expect(button).toBeDisabled();
 
     // Neither is a near-miss of the confirmation phrase.
-    const confirmation = screen.getByLabelText(/Onaylamak icin/);
-    await userEvent.type(confirmation, "hesabimi sil");
+    const confirmation = screen.getByLabelText(/Onaylamak için/);
+    await userEvent.type(confirmation, "hesabımı sil");
     expect(button).toBeDisabled();
 
     await userEvent.clear(confirmation);
-    await userEvent.type(confirmation, "HESABIMI SIL");
+    await userEvent.type(confirmation, "HESABIMI SİL");
     expect(button).toBeEnabled();
   });
 
@@ -83,13 +83,13 @@ describe("SettingsPage", () => {
     const fetchSpy = mockFetch(() => json({}, 204));
     render(<SettingsPage />);
 
-    await screen.findByText("Sifre degistir");
-    await userEvent.type(screen.getByLabelText("Mevcut sifre", { selector: "#currentPassword" }), "eskisifre");
-    await userEvent.type(screen.getByLabelText("Yeni sifre"), "yenisifre1");
-    await userEvent.type(screen.getByLabelText("Yeni sifre (tekrar)"), "yenisifre2");
-    await userEvent.click(screen.getByRole("button", { name: "Sifreyi degistir" }));
+    await screen.findByText("Şifre değiştir");
+    await userEvent.type(screen.getByLabelText("Mevcut şifre", { selector: "#currentPassword" }), "eskisifre");
+    await userEvent.type(screen.getByLabelText("Yeni şifre"), "yenisifre1");
+    await userEvent.type(screen.getByLabelText("Yeni şifre (tekrar)"), "yenisifre2");
+    await userEvent.click(screen.getByRole("button", { name: "Şifreyi değiştir" }));
 
-    expect(await screen.findByText("Yeni sifreler eslesmiyor.")).toBeInTheDocument();
+    expect(await screen.findByText("Yeni şifreler eşleşmiyor.")).toBeInTheDocument();
     // Only the initial GET /api/me happened.
     const posts = fetchSpy.mock.calls.filter(
       ([, init]) => (init as RequestInit | undefined)?.method === "POST"
@@ -106,15 +106,15 @@ describe("SettingsPage", () => {
     });
     render(<SettingsPage />);
 
-    await screen.findByText("E-posta degistir");
+    await screen.findByText("E-posta değiştir");
     await userEvent.type(screen.getByLabelText("Yeni e-posta"), "yeni@ornek.com");
-    await userEvent.type(screen.getByLabelText("Mevcut sifre", { selector: "#emailPassword" }), "gizli123");
-    await userEvent.click(screen.getByRole("button", { name: "E-postayi degistir" }));
+    await userEvent.type(screen.getByLabelText("Mevcut şifre", { selector: "#emailPassword" }), "gizli123");
+    await userEvent.click(screen.getByRole("button", { name: "E-postayı değiştir" }));
 
     // The old token names the old address and no longer resolves; without the
     // swap the user would be silently signed out on the next request.
     await vi.waitFor(() => expect(localStorage.getItem("token")).toBe("jwt-new"));
-    expect(await screen.findByText("E-postaniz guncellendi.")).toBeInTheDocument();
+    expect(await screen.findByText("E-postanız güncellendi.")).toBeInTheDocument();
   });
 
   it("surfaces the backend message when an email is already taken", async () => {
@@ -126,10 +126,10 @@ describe("SettingsPage", () => {
     });
     render(<SettingsPage />);
 
-    await screen.findByText("E-posta degistir");
+    await screen.findByText("E-posta değiştir");
     await userEvent.type(screen.getByLabelText("Yeni e-posta"), "dolu@ornek.com");
-    await userEvent.type(screen.getByLabelText("Mevcut sifre", { selector: "#emailPassword" }), "gizli123");
-    await userEvent.click(screen.getByRole("button", { name: "E-postayi degistir" }));
+    await userEvent.type(screen.getByLabelText("Mevcut şifre", { selector: "#emailPassword" }), "gizli123");
+    await userEvent.click(screen.getByRole("button", { name: "E-postayı değiştir" }));
 
     expect(
       await screen.findByText("Bu e-posta baska bir hesapta kayitli.")
@@ -145,7 +145,7 @@ describe("SettingsPage", () => {
     });
     render(<SettingsPage />);
 
-    const select = await screen.findByLabelText("Arayuz dili");
+    const select = await screen.findByLabelText("Arayüz dili");
     expect(select).toHaveValue("tr");
 
     // The account language is the dashboard's; a published kit's language is
@@ -175,12 +175,12 @@ describe("SettingsPage", () => {
     });
     render(<SettingsPage />);
 
-    const toggle = await screen.findByLabelText(/Yeni marka teklifi e-postasi/);
+    const toggle = await screen.findByLabelText(/Yeni marka teklifi e-postası/);
     expect(toggle).toBeChecked();
 
     // Switching notifications off must not read as "stop receiving offers".
     expect(
-      screen.getByText(/teklifler yine de Gelen Kutusu sekmenize duser/)
+      screen.getByText(/teklifler yine de Gelen Kutusu sekmenize düşer/)
     ).toBeInTheDocument();
 
     await userEvent.click(toggle);
@@ -207,15 +207,15 @@ describe("SettingsPage", () => {
 
     // The profile/kit boundary is a promise to the user, so it is on screen.
     expect(
-      await screen.findByText(/Medya kitlerinizin kendi basligi ve/)
+      await screen.findByText(/Medya kitlerinizin kendi başlığı ve/)
     ).toBeInTheDocument();
 
-    const name = screen.getByLabelText("Gorunen ad");
+    const name = screen.getByLabelText("Görünen ad");
     await userEvent.clear(name);
     await userEvent.type(name, "Ayse Yilmaz");
     await userEvent.click(screen.getByRole("button", { name: "Kaydet" }));
 
-    expect(await screen.findByText("Profil guncellendi.")).toBeInTheDocument();
+    expect(await screen.findByText("Profil güncellendi.")).toBeInTheDocument();
     const put = fetchSpy.mock.calls.find(
       ([, init]) => (init as RequestInit | undefined)?.method === "PUT"
     );

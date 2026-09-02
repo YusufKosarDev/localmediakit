@@ -33,7 +33,7 @@ public final class Locales {
         String candidate = value.trim().toLowerCase(Locale.ROOT);
         if (!SUPPORTED.contains(candidate)) {
             throw new UnsupportedLocaleException(
-                    "Desteklenmeyen dil: " + value + ". Izin verilenler: " + String.join(", ", SUPPORTED));
+                    "Desteklenmeyen dil: " + value + ". İzin verilenler: " + String.join(", ", SUPPORTED));
         }
         return candidate;
     }

@@ -18,7 +18,7 @@ describe("signed-out language switch", () => {
 
   it("renders the landing in Turkish by default", () => {
     render(<Home />);
-    expect(screen.getByText(/Ornek medya kitini gor/)).toBeInTheDocument();
+    expect(screen.getByText(/Örnek medya kitini gör/)).toBeInTheDocument();
   });
 
   it("switches the landing to English and remembers it", async () => {
@@ -27,7 +27,7 @@ describe("signed-out language switch", () => {
     await userEvent.click(screen.getByRole("button", { name: "en" }));
 
     expect(await screen.findByText("See an example kit")).toBeInTheDocument();
-    expect(screen.queryByText(/Ornek medya kitini gor/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Örnek medya kitini gör/)).not.toBeInTheDocument();
     // Persisted, so the next page (and the next visit) opens in English.
     expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe("en");
   });
@@ -44,7 +44,7 @@ describe("signed-out language switch", () => {
     localStorage.setItem(LOCALE_STORAGE_KEY, "klingon");
     render(<LoginPage />);
 
-    expect(await screen.findByRole("button", { name: "Giris yap" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Giriş yap" })).toBeInTheDocument();
   });
 });
 
@@ -54,7 +54,7 @@ describe("signed-out language switch", () => {
  */
 describe("backend error translation", () => {
   it("translates a known code", () => {
-    expect(translateError("EMAIL_ALREADY_USED", "Bu e-posta baska bir hesapta kayitli.", "en"))
+    expect(translateError("EMAIL_ALREADY_USED", "Bu e-posta başka bir hesapta kayıtlı.", "en"))
       .toBe("That email is already registered to another account.");
   });
 

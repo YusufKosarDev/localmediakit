@@ -40,10 +40,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const kit = await getKit(slug);
-  if (!kit) return { title: "Sayfa bulunamadi / Page not found" };
+  if (!kit) return { title: "Sayfa bulunamadı / Page not found" };
   // A protected kit exposes only its title in metadata; nothing sensitive.
   if (kit.isProtected) {
-    return { title: `${kit.title} — Sifre korumali`, robots: { index: false } };
+    return { title: `${kit.title} — Şifre korumalı`, robots: { index: false } };
   }
   const description = kit.headline ?? `${kit.displayName} medya kiti`;
   // og:image / twitter:image come from the opengraph-image.tsx file convention

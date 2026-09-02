@@ -14,7 +14,7 @@ const emptyRateForm = { serviceName: "", priceAmount: "", currency: "TRY", note:
 /**
  * Past brand collaborations and the rate card.
  *
- * <p>Both belong to the "Isbirlikleri & Ucretler" tab, so both are here: they
+ * <p>Both belong to the "İş Birlikleri & Ücretler" tab, so both are here: they
  * are two lists on one screen, and the file stays readable at this size.
  */
 export function CollabsPanel({ kitId, feedback, t }: { kitId: number; feedback: Feedback; t: Translate }) {

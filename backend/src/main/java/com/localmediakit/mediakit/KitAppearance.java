@@ -58,7 +58,7 @@ public final class KitAppearance {
         String candidate = value.trim().toLowerCase(Locale.ROOT);
         if (!allowed.contains(candidate)) {
             throw new InvalidAppearanceException(
-                    "Gecersiz secim: " + value + ". Izin verilenler: " + String.join(", ", allowed));
+                    "Geçersiz seçim: " + value + ". İzin verilenler: " + String.join(", ", allowed));
         }
         return candidate;
     }

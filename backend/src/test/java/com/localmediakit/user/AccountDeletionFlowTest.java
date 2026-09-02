@@ -82,7 +82,7 @@ class AccountDeletionFlowTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"currentPassword":"supersecret","confirmation":"HESABIMI SIL"}
+                                {"currentPassword":"supersecret","confirmation":"HESABIMI SİL"}
                                 """))
                 .andExpect(status().isNoContent());
 
@@ -116,7 +116,7 @@ class AccountDeletionFlowTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"currentPassword":"notmypassword","confirmation":"HESABIMI SIL"}
+                                {"currentPassword":"notmypassword","confirmation":"HESABIMI SİL"}
                                 """))
                 .andExpect(status().isUnauthorized());
 
@@ -149,7 +149,7 @@ class AccountDeletionFlowTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"currentPassword":"supersecret","confirmation":"HESABIMI SIL"}
+                                {"currentPassword":"supersecret","confirmation":"HESABIMI SİL"}
                                 """))
                 .andExpect(status().isNoContent());
 

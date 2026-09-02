@@ -138,7 +138,7 @@ public class PasswordResetNotificationService {
     private String subjectFor(String locale) {
         return "en".equals(locale)
                 ? "Reset your LocalMediaKit password"
-                : "LocalMediaKit sifrenizi sifirlayin";
+                : "LocalMediaKit şifrenizi sıfırlayın";
     }
 
     /**
@@ -166,13 +166,13 @@ public class PasswordResetNotificationService {
                 : """
                   Merhaba,
 
-                  Yeni sifre belirlemek icin bu linki kullanin:
+                  Yeni şifre belirlemek için bu linki kullanın:
                   %s
 
-                  Link tek kullanimliktir ve %d dakika sonra gecersiz olur.
+                  Link tek kullanımlıktır ve %d dakika sonra geçersiz olur.
 
-                  Bu istegi siz yapmadiysaniz bu mesaji yok sayabilirsiniz --
-                  mevcut sifreniz gecerli kalir ve hicbir sey degismez.
+                  Bu isteği siz yapmadıysanız bu mesajı yok sayabilirsiniz --
+                  mevcut şifreniz geçerli kalır ve hiçbir şey değişmez.
                   """.formatted(link, minutes);
     }
 }

@@ -35,13 +35,13 @@ describe("WelcomeTour", () => {
     render(<WelcomeTour onClose={() => {}} t={t} />);
 
     // Slide 1 introduces the product...
-    expect(screen.getByText(/hos geldiniz/i)).toBeInTheDocument();
+    expect(screen.getByText(/hoş geldiniz/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Devam/ }));
 
     // ...and slide 2 is the draft/live distinction, before any confusion.
-    expect(screen.getByText(/En onemlisi: Yayinla/)).toBeInTheDocument();
+    expect(screen.getByText(/En önemlisi: Yayınla/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Public sayfaniza ancak Yayinla dediginizde yansir/)
+      screen.getByText(/Public sayfanıza ancak Yayınla dediğinizde yansır/)
     ).toBeInTheDocument();
   });
 
@@ -80,7 +80,7 @@ describe("WelcomeTour", () => {
     for (let i = 0; i < 3; i++) {
       await userEvent.click(screen.getByRole("button", { name: /Devam/ }));
     }
-    await userEvent.click(screen.getByRole("button", { name: "Basla" }));
+    await userEvent.click(screen.getByRole("button", { name: "Başla" }));
     expect(onClose).toHaveBeenCalledOnce();
   });
 });
@@ -138,10 +138,10 @@ describe("OnboardingChecklist", () => {
       />
     );
 
-    expect(screen.getByText("1 / 3 tamamlandi")).toBeInTheDocument();
+    expect(screen.getByText("1 / 3 tamamlandı")).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
     // The publish hint stays visible while it is still outstanding.
-    expect(screen.getByText(/ancak Yayinla ile yansir/)).toBeInTheDocument();
+    expect(screen.getByText(/ancak Yayınla ile yansır/)).toBeInTheDocument();
   });
 
   it("shows the resulting public link once everything is done", () => {
@@ -154,8 +154,8 @@ describe("OnboardingChecklist", () => {
       />
     );
 
-    expect(screen.getByText("Hazirsiniz")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /\/ayse adresini gor/ })).toHaveAttribute(
+    expect(screen.getByText("Hazırsınız")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /\/ayse adresini gör/ })).toHaveAttribute(
       "href",
       "/ayse"
     );
@@ -176,8 +176,8 @@ describe("EmptyKitState", () => {
   it("explains what a media kit is instead of showing an empty list", () => {
     render(<EmptyKitState t={t} onStart={() => {}} onQuickStart={() => {}} quickStartBusy={false} />);
 
-    expect(screen.getByText("Henuz bir medya kitiniz yok")).toBeInTheDocument();
-    expect(screen.getByText(/markalara tek bir linkle gosterdiginiz sayfadir/)).toBeInTheDocument();
+    expect(screen.getByText("Henüz bir medya kitiniz yok")).toBeInTheDocument();
+    expect(screen.getByText(/markalara tek bir linkle gösterdiğiniz sayfadır/)).toBeInTheDocument();
   });
 
   it("offers both an empty start and a sample-content start", async () => {
@@ -187,14 +187,14 @@ describe("EmptyKitState", () => {
       <EmptyKitState t={t} onStart={onStart} onQuickStart={onQuickStart} quickStartBusy={false} />
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Bos kit olustur" }));
-    await userEvent.click(screen.getByRole("button", { name: "Ornek icerikle basla" }));
+    await userEvent.click(screen.getByRole("button", { name: "Boş kit oluştur" }));
+    await userEvent.click(screen.getByRole("button", { name: "Örnek içerikle başla" }));
     expect(onStart).toHaveBeenCalledOnce();
     expect(onQuickStart).toHaveBeenCalledOnce();
   });
 
   it("locks the sample start while it is running so it cannot double-fire", () => {
     render(<EmptyKitState t={t} onStart={() => {}} onQuickStart={() => {}} quickStartBusy />);
-    expect(screen.getByRole("button", { name: "Hazirlaniyor..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Hazırlanıyor..." })).toBeDisabled();
   });
 });

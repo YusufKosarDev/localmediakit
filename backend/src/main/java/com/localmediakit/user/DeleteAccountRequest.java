@@ -12,5 +12,5 @@ public record DeleteAccountRequest(
         @NotBlank String confirmation) {
 
     /** The exact phrase the UI asks the user to type. */
-    public static final String REQUIRED_CONFIRMATION = "HESABIMI SIL";
+    public static final String REQUIRED_CONFIRMATION = "HESABIMI SİL";
 }

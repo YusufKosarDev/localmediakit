@@ -15,10 +15,10 @@ describe("KitCard (public snapshot page)", () => {
     // Engagement rate is formatted tr-TR with the percent sign in front (%6,47),
     // not the raw 6.47.
     expect(screen.getByText("%6,47")).toBeInTheDocument();
-    expect(screen.getByText("etkilesim")).toBeInTheDocument();
+    expect(screen.getByText("etkileşim")).toBeInTheDocument();
     // Collaborations and rate card came from the same frozen snapshot.
     expect(screen.getByText("Kahve Dunyasi")).toBeInTheDocument();
-    expect(screen.getByText("Calisma Ucretleri")).toBeInTheDocument();
+    expect(screen.getByText("Çalışma Ücretleri")).toBeInTheDocument();
   });
 
   it("shows a positive 30-day growth badge with a + sign, negative without", () => {
@@ -50,8 +50,8 @@ describe("KitCard (public snapshot page)", () => {
   it("in preview mode: banners the draft, hides the contact form, dates it as unpublished", () => {
     render(<KitCard kit={makeKit({ contactEnabled: true })} preview />);
 
-    expect(screen.getByText(/ONIZLEME/)).toBeInTheDocument();
-    expect(screen.getByText(/henuz yayinlanmadi/)).toBeInTheDocument();
+    expect(screen.getByText(/ÖNİZLEME/)).toBeInTheDocument();
+    expect(screen.getByText(/henüz yayınlanmadı/)).toBeInTheDocument();
     // Contact form is deliberately absent on previews even when enabled.
     expect(screen.queryByPlaceholderText(/Marka \/ sirket adi/)).not.toBeInTheDocument();
   });
@@ -68,8 +68,8 @@ describe("KitCard (public snapshot page)", () => {
 
     // The title still renders; empty sections leave no dangling headers.
     expect(screen.getByRole("heading", { name: "Ayse Gezgin" })).toBeInTheDocument();
-    expect(screen.queryByText("Calisma Ucretleri")).not.toBeInTheDocument();
-    expect(screen.queryByText("Marka Isbirlikleri")).not.toBeInTheDocument();
+    expect(screen.queryByText("Çalışma Ücretleri")).not.toBeInTheDocument();
+    expect(screen.queryByText("Marka İş Birlikleri")).not.toBeInTheDocument();
     expect(screen.queryByText("Platformlar")).not.toBeInTheDocument();
   });
 });

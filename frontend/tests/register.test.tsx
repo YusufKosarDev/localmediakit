@@ -8,10 +8,10 @@ import RegisterPage from "@/app/register/page";
 // mapping.
 describe("RegisterPage error mapping", () => {
   async function fillAndSubmit() {
-    await userEvent.type(screen.getByLabelText("Gorunen ad"), "Ayse");
-    await userEvent.type(screen.getByLabelText("Email"), "ayse@ornek.com");
-    await userEvent.type(screen.getByLabelText("Sifre"), "sifre123");
-    await userEvent.click(screen.getByRole("button", { name: "Kayit ol" }));
+    await userEvent.type(screen.getByLabelText("Görünen ad"), "Ayse");
+    await userEvent.type(screen.getByLabelText("E-posta"), "ayse@ornek.com");
+    await userEvent.type(screen.getByLabelText("Şifre"), "sifre123");
+    await userEvent.click(screen.getByRole("button", { name: "Kayıt ol" }));
   }
 
   it("tells the visitor when the email is already taken (409)", async () => {
@@ -20,7 +20,7 @@ describe("RegisterPage error mapping", () => {
     render(<RegisterPage />);
     await fillAndSubmit();
 
-    expect(await screen.findByText(/zaten kayitli/)).toBeInTheDocument();
+    expect(await screen.findByText(/zaten kayıtlı/)).toBeInTheDocument();
   });
 
   it("explains invalid input (400) rather than a generic failure", async () => {
@@ -30,6 +30,6 @@ describe("RegisterPage error mapping", () => {
     await fillAndSubmit();
 
     expect(await screen.findByText(/Bilgileri kontrol edin/)).toBeInTheDocument();
-    expect(screen.queryByText("Kayit olusturulamadi.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Kayıt oluşturulamadı.")).not.toBeInTheDocument();
   });
 });

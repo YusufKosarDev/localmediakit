@@ -30,11 +30,11 @@ describe("LoginPage", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 401 }));
 
     render(<LoginPage />);
-    await userEvent.type(screen.getByLabelText("Email"), "yok@ornek.com");
-    await userEvent.type(screen.getByLabelText("Sifre"), "kotusifre");
-    await userEvent.click(screen.getByRole("button", { name: "Giris yap" }));
+    await userEvent.type(screen.getByLabelText("E-posta"), "yok@ornek.com");
+    await userEvent.type(screen.getByLabelText("Şifre"), "kotusifre");
+    await userEvent.click(screen.getByRole("button", { name: "Giriş yap" }));
 
-    expect(await screen.findByText(/Giris basarisiz/)).toBeInTheDocument();
+    expect(await screen.findByText(/Giriş başarısız/)).toBeInTheDocument();
     expect(localStorage.getItem("token")).toBeNull();
   });
 
@@ -47,9 +47,9 @@ describe("LoginPage", () => {
     );
 
     render(<LoginPage />);
-    await userEvent.type(screen.getByLabelText("Email"), "ayse@ornek.com");
-    await userEvent.type(screen.getByLabelText("Sifre"), "doetrusifre");
-    await userEvent.click(screen.getByRole("button", { name: "Giris yap" }));
+    await userEvent.type(screen.getByLabelText("E-posta"), "ayse@ornek.com");
+    await userEvent.type(screen.getByLabelText("Şifre"), "doetrusifre");
+    await userEvent.click(screen.getByRole("button", { name: "Giriş yap" }));
 
     await vi.waitFor(() => expect(localStorage.getItem("token")).toBe("jwt-abc"));
   });

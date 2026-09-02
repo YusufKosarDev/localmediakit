@@ -18,8 +18,8 @@ import { caption } from "./caption";
 const BACKEND = "http://localhost:8080";
 const PASSWORD = "demo-parola-1234";
 
-const BEFORE = "Seyahat ve yasam tarzi icerik ureticisi";
-const AFTER = "TASLAKTA DEGISTIRILDI";
+const BEFORE = "Seyahat ve yaşam tarzı içerik üreticisi";
+const AFTER = "TASLAKTA DEĞİŞTİRİLDİ";
 
 async function beat(page: { waitForTimeout(ms: number): Promise<void> }, ms = 1000) {
   await page.waitForTimeout(ms);
@@ -42,7 +42,7 @@ async function seedPublishedKit(request: APIRequestContext) {
   const kit = await request
     .post(`${BACKEND}/api/mediakits`, {
       headers: auth,
-      data: { title: "Deniz Yilmaz — Moda & Icerik", headline: BEFORE },
+      data: { title: "Deniz Yılmaz — Moda & İçerik", headline: BEFORE },
     })
     .then((r) => r.json());
 
@@ -75,7 +75,7 @@ test("immutable snapshot", async ({ page, request }) => {
   await page.goto("/dashboard");
   await caption(page, "Back in the dashboard: edit the draft");
   await beat(page, 1400);
-  await page.getByRole("button", { name: "Duzenle", exact: true }).first().click();
+  await page.getByRole("button", { name: "Düzenle", exact: true }).first().click();
   await beat(page, 800);
 
   const headline = page.locator(`#kit-headline-${kitId}`);
@@ -102,8 +102,8 @@ test("immutable snapshot", async ({ page, request }) => {
   await page.goto("/dashboard");
   await caption(page, "Publish again");
   await beat(page, 1200);
-  await page.getByRole("button", { name: "Yayinla" }).first().click();
-  await expect(page.getByText("Yayinlandi.")).toBeVisible();
+  await page.getByRole("button", { name: "Yayınla" }).first().click();
+  await expect(page.getByText("Yayınlandı.")).toBeVisible();
   await beat(page, 1400);
 
   // Publish triggers an on-demand revalidation, and the regenerated page lands
@@ -121,7 +121,7 @@ test("immutable snapshot", async ({ page, request }) => {
   await request
     .delete(`${BACKEND}/api/me`, {
       headers: auth,
-      data: { currentPassword: PASSWORD, confirmation: "HESABIMI SIL" },
+      data: { currentPassword: PASSWORD, confirmation: "HESABIMI SİL" },
     })
     .catch(() => undefined);
 });

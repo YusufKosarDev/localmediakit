@@ -105,7 +105,7 @@ class DemoAccountProtectionTest {
                         .header("Authorization", "Bearer " + demoToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"currentPassword":"%s","confirmation":"HESABIMI SIL"}
+                                {"currentPassword":"%s","confirmation":"HESABIMI SİL"}
                                 """.formatted(DemoDataService.DEMO_PASSWORD)))
                 .andExpect(status().isForbidden());
 

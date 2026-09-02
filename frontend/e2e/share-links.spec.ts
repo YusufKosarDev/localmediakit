@@ -105,11 +105,11 @@ test.describe("per-brand share links", () => {
     await page.goto("/dashboard");
     await page.getByRole("button", { name: "Analitik" }).click();
 
-    await page.getByPlaceholder("Marka adi").fill("Zara");
-    await page.getByRole("button", { name: "Link uret" }).click();
+    await page.getByPlaceholder("Marka adı").fill("Zara");
+    await page.getByRole("button", { name: "Link üret" }).click();
     await expect(page.getByText("Zara")).toBeVisible();
 
-    await page.getByRole("button", { name: "Iptal et" }).click();
+    await page.getByRole("button", { name: "İptal et" }).click();
     await expect(page.getByText("iptal edildi")).toBeVisible();
 
     // Revoked, not deleted: the row stays so its history stays with it.

@@ -11,7 +11,7 @@ import { rememberLocale } from "@/app/_i18n/useLocale";
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
 // The exact phrase the backend requires before it will delete an account.
-const DELETE_CONFIRMATION = "HESABIMI SIL";
+const DELETE_CONFIRMATION = "HESABIMI SİL";
 
 type Me = {
   id: number;

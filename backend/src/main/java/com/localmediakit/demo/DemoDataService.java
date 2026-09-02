@@ -100,8 +100,8 @@ public class DemoDataService {
 
         String email = demo.getEmail();
         MediaKitResponse kit = mediaKitService.create(email, new CreateMediaKitRequest(
-                "Ornek Medya Kiti",
-                "Seyahat ve yasam tarzi icerik ureticisi",
+                "Örnek Medya Kiti",
+                "Seyahat ve yaşam tarzı içerik üreticisi",
                 null, "light", "ocean", "classic", "tr", "ornek-medya-kiti"));
         Long kitId = kit.id();
 
@@ -111,18 +111,18 @@ public class DemoDataService {
                 new DemographicEntry(DemographicCategory.AGE, "25-34", new BigDecimal("38")),
                 new DemographicEntry(DemographicCategory.AGE, "35-44", new BigDecimal("15")),
                 new DemographicEntry(DemographicCategory.AGE, "45+", new BigDecimal("7")),
-                new DemographicEntry(DemographicCategory.GENDER, "Kadin", new BigDecimal("55")),
+                new DemographicEntry(DemographicCategory.GENDER, "Kadın", new BigDecimal("55")),
                 new DemographicEntry(DemographicCategory.GENDER, "Erkek", new BigDecimal("45")),
-                new DemographicEntry(DemographicCategory.COUNTRY, "Turkiye", new BigDecimal("70")),
+                new DemographicEntry(DemographicCategory.COUNTRY, "Türkiye", new BigDecimal("70")),
                 new DemographicEntry(DemographicCategory.COUNTRY, "Almanya", new BigDecimal("12")),
                 new DemographicEntry(DemographicCategory.COUNTRY, "ABD", new BigDecimal("7")),
-                new DemographicEntry(DemographicCategory.COUNTRY, "Diger", new BigDecimal("11")))));
+                new DemographicEntry(DemographicCategory.COUNTRY, "Diğer", new BigDecimal("11")))));
         collaborationService.create(email, kitId, new CollaborationRequest(
-                "Kahve Diyari", "Yeni urun lansmani", "2025 Q4", "1,1M goruntulenme", null, 0));
+                "Kahve Diyarı", "Yeni ürün lansmanı", "2025 Q4", "1,1M görüntülenme", null, 0));
         collaborationService.create(email, kitId, new CollaborationRequest(
                 "GezginApp", "Seyahat vlog serisi", "2025 Q3", "3 video, 1,8M izlenme", null, 1));
         rateCardService.create(email, kitId, new RateCardRequest(
-                "YouTube video sponsorlugu", new BigDecimal("25000"), "TRY", "60 sn'ye kadar entegrasyon", 0));
+                "YouTube video sponsorluğu", new BigDecimal("25000"), "TRY", "60 sn'ye kadar entegrasyon", 0));
         rateCardService.create(email, kitId, new RateCardRequest(
                 "Instagram Reels", new BigDecimal("9000"), "TRY", null, 1));
         rateCardService.create(email, kitId, new RateCardRequest(
@@ -146,7 +146,7 @@ public class DemoDataService {
 
     private User ensureDemoUser() {
         return userRepository.findByEmail(DEMO_EMAIL).orElseGet(() -> {
-            User user = new User(DEMO_EMAIL, passwordEncoder.encode(DEMO_PASSWORD), "Demo Kullanici");
+            User user = new User(DEMO_EMAIL, passwordEncoder.encode(DEMO_PASSWORD), "Demo Kullanıcı");
             user.changePlan(Plan.PRO);
             return userRepository.save(user);
         });
