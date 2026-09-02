@@ -76,7 +76,7 @@ public class LeadNotification {
         this.locale = locale;
         this.status = status;
         this.attempts = 0;
-        this.createdAt = Instant.now();
+        this.createdAt = DueAt.now();
         this.nextAttemptAt = this.createdAt;
     }
 

@@ -1,5 +1,6 @@
 package com.localmediakit.recovery;
 
+import com.localmediakit.notification.DueAt;
 import com.localmediakit.notification.NotificationStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -85,7 +86,7 @@ public class PasswordResetNotification {
         this.locale = locale;
         this.status = NotificationStatus.PENDING;
         this.attempts = 0;
-        this.createdAt = Instant.now();
+        this.createdAt = DueAt.now();
         // Due immediately: the person is waiting on this one.
         this.nextAttemptAt = this.createdAt;
     }
