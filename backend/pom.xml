@@ -31,7 +31,7 @@
              and separate versions arrive as three separate update proposals. -->
         <jjwt.version>0.13.0</jjwt.version>
         <!-- Both ShedLock artifacts move together, same reasoning as jjwt. -->
-        <shedlock.version>6.6.0</shedlock.version>
+        <shedlock.version>7.10.0</shedlock.version>
         <!--
             Ahead of what the Boot BOM pins. The driver the BOM brings carries
             three fixed advisories, one of them in channel-binding
