@@ -154,7 +154,7 @@
                 is the line that tracks Boot 3.5; 3.x is for Boot 4 and moves
                 with that upgrade, not before it.
             -->
-            <version>2.8.17</version>
+            <version>3.1.0</version>
         </dependency>
 
         <!-- Lead notifications. Plain SMTP rather than a provider SDK: every
